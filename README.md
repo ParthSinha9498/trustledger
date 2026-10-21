@@ -7,14 +7,14 @@
 
 **Make product authenticity a condition of payment.**
 
-TrustLedger bridges physical brand serialization and digital checkout. Before any PayPal order is created, the brand verifies the serialized unit against its verified supply chain. If genuine, PayPal creates the payment with the verification ID sealed in `custom_id`. If counterfeit or diverted, payment is blocked before money moves, and an autonomous AI agent investigates the leak using differential privacy aggregates.
+TrustLedger bridges physical brand serialization and digital checkout. Before any PayPal order is created, the brand verifies the serialized unit against its verified supply chain. If genuine, PayPal creates the payment with the verification ID stored in the order's `custom_id`. If counterfeit or diverted, payment is blocked before money moves, and an autonomous AI agent investigates the failure using differential privacy aggregates.
 
 ---
 
 ## 60-Second Tour
 
 ### 1. Store Checkout: Brand Verification Gating Payment
-When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK (generated via APIMatic)** to create an Order with the verification ID locked into `custom_id`.
+When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK (generated via APIMatic)** to create an Order with the verification ID stored in `custom_id`.
 
 ![Store A Verified](docs/media/01_pos_verified.png)
 
@@ -35,14 +35,14 @@ Authenticity is enforced at the commerce layer. Genuine units proceed smoothly t
 ---
 
 ### 4. Autonomous Brand Cockpit & Agent Investigation
-The brand's AI investigator automatically claims the case. Operating under strict differential privacy bounds, the agent queries brand distribution logs and federated PayPal data, discovering the exact point of supply chain diversion while citing individual audit steps.
+The brand's AI investigator automatically claims the case. Operating under strict differential privacy bounds, the agent queries brand distribution logs and federated PayPal data, discovering where the evidence diverges while citing individual audit steps.
 
 ![Cockpit Investigation Case](docs/media/04_cockpit_case.png)
 
 ---
 
 ### 5. Privacy Console: Zero-Concentrated Differential Privacy
-Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP), dynamic confidence intervals, and automated cell suppression.
+Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP), dynamic confidence intervals (±CI), and automated cell suppression.
 
 ![Privacy Console](docs/media/05_console_aggregate.png)
 
@@ -109,10 +109,10 @@ flowchart TD
 
 | Component | Status | Details |
 |---|---|---|
-| **PayPal Orders v2** | **Real (Sandbox)** | Orders v2 (`intent: CAPTURE`, verification ID in `custom_id`, order retrieval, and capture) implemented with the APIMatic-generated PayPal Server SDK (`paypal-server-sdk`), leveraging APIMatic's PayPal Context Plugin. See [docs/APIMATIC.md](docs/APIMATIC.md). |
+| **PayPal Orders v2** | **Real (Sandbox)** | Orders v2 (`intent: CAPTURE`, order retrieval, and capture) implemented with the APIMatic-generated PayPal Server SDK (`paypal-server-sdk`), leveraging APIMatic's PayPal Context Plugin (see [docs/APIMATIC.md](docs/APIMATIC.md)). Webhook signature verification and browser client token exchange call PayPal REST directly via httpx (as the server SDK does not provide endpoints for them). |
 | **Differential Privacy** | **Real (OpenDP)** | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), response caching, and 95% confidence intervals. |
 | **Investigation Agent** | **Real (Live LLM)** | Multi-turn autonomous agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and evidence citations. |
-| **MCP Server** | **Real (Protocol)** | Model Context Protocol server exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
+| **MCP Server** | **Real (Protocol)** | Model Context Protocol server generated with `openapi-mcp-generator` exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
 | **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. |
 | **Brand Serialization** | **Simulated Node** | In production, brands maintain private ERP/serialization databases. Here, an isolated microservice (`backend/brand_node/`, port 8001) simulates the brand's private verification API. |
 | **Buyer Demographics** | **Simulated Data** | PayPal APIs do not expose customer demographic attributes. Synthetic demographic attributes demonstrate federated differential privacy across commerce nodes. |
@@ -124,12 +124,12 @@ flowchart TD
 
 ### Differential Privacy Red-Teaming
 TrustLedger underwent rigorous differential privacy red-teaming evaluating resistance against privacy extraction attacks:
-- **Result:** **220 of 220 reconstruction attacks blocked** across 20 repeated runs of 11 distinct attack archetypes (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion).
-- **Attacker Success Rate:** Baseline guess rate of **23%**, which is mathematically no better than random chance.
+- **Result:** **220 of 220 reconstruction attacks blocked** across 20 repeated runs of 11 distinct attack archetypes (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion). Attacker success was **0 of 220** (no attack exceeded the confidence threshold needed for linkage).
+- **Baseline Guess Accuracy:** An attacker guessing blindly achieved **23%**, matching random chance across candidate stores (20–33%).
 - **Report:** Full methodology, audit logs, and parameters documented in [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 
 ### Live Detection Evaluation
-- Placeholder for live detection evaluation benchmarks against real counterfeit diversion patterns (to be updated following overnight evaluation runs: [evals/results/live_detection.md](evals/results/live_detection.md)).
+- Placeholder for live detection evaluation benchmarks against real counterfeit diversion patterns (to be populated from live evaluation runs).
 
 ---
 
@@ -137,16 +137,16 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 1. **PayPal Server SDK (APIMatic)**:
    - Built with the official APIMatic PayPal Context Plugin.
-   - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and cryptographic binding of brand verification IDs to `custom_id`.
+   - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and storing the brand verification ID in the order's `custom_id`.
    - Comprehensive implementation details in [docs/APIMATIC.md](docs/APIMATIC.md).
-2. **AG Grid**:
+2. **AG Grid Community**:
    - Powers the high-performance investigations table in the Brand Cockpit (`/cockpit`), featuring responsive column pinning, status badges, and sub-second filtering.
 3. **Bryntum Scheduler**:
    - Delivers the interactive multi-tier supply chain visualization (`/cockpit/supply-chain`), displaying brand dispatches, distributor inventory, and store receipts across time.
 4. **OpenDP**:
    - Core mathematical foundation for the differential privacy Gaussian mechanism guaranteeing bounded privacy leakage on federated demographic analytics.
 5. **Render**:
-   - Multi-service deployment architecture connecting the web frontend, platform gateway, brand node, and PayPal node. See [docs/DEPLOY.md](docs/DEPLOY.md).
+   - All-in-one free-plan container / Render web service connecting the web frontend, platform gateway, brand node, and PayPal node. See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ---
 

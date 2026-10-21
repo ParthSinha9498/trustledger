@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import time
 from playwright.sync_api import sync_playwright
@@ -23,11 +24,16 @@ def main():
         page.fill("#serial", "X123")
         page.click("button:has-text('Verify and check out')")
         page.wait_for_selector("text=Brand verified", timeout=15000)
-        time.sleep(1.2)
+        # Wait for PayPal container / buttons to load to avoid "Loading PayPal..."
+        try:
+            page.wait_for_selector("iframe, [class*='paypal-button'], text=Open the pay screen", timeout=6000)
+        except Exception:
+            pass
+        time.sleep(2.5)
         pos_a_path = os.path.join(DOCS_MEDIA, "01_pos_verified.png")
         page.screenshot(path=pos_a_path)
 
-        # 2. 02_pos_blocked.png: Store B blocked
+        # 2. 02_pos_blocked.png: Store B blocked & retrieve dynamic case_id
         print("Capturing 02_pos_blocked...")
         page.click("button:has-text('Store B')")
         page.fill("#serial", "X123")
@@ -37,7 +43,15 @@ def main():
         pos_b_path = os.path.join(DOCS_MEDIA, "02_pos_blocked.png")
         page.screenshot(path=pos_b_path)
 
-        # 3. 03_compare.png: Side-by-side split screen using base64 data URIs
+        # Dynamically discover case_id from the blocked verdict link
+        case_id = None
+        case_link = page.query_selector("a[href*='/cockpit/cases/']")
+        if case_link:
+            href = case_link.get_attribute("href")
+            case_id = href.split("/cockpit/cases/")[-1]
+            print(f"Discovered case_id: {case_id}")
+
+        # 3. 03_compare.png: Side-by-side split screen with no letterbox bars
         print("Capturing 03_compare...")
         with open(pos_a_path, "rb") as f:
             b64_a = base64.b64encode(f.read()).decode("utf-8")
@@ -50,10 +64,10 @@ def main():
         <head>
           <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{ background: #0b1220; display: flex; width: 1280px; height: 720px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
-            .split {{ flex: 1; height: 100%; border-right: 2px solid #334155; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #070d18; }}
+            body {{ background: #0f172a; display: flex; width: 1280px; height: 720px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+            .split {{ flex: 1; height: 100%; border-right: 2px solid #334155; position: relative; overflow: hidden; display: flex; }}
             .split:last-child {{ border-right: none; }}
-            img {{ width: 100%; height: 100%; object-fit: contain; object-position: center; }}
+            img {{ width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }}
             .badge {{ position: absolute; top: 20px; left: 20px; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 10; }}
             .badge-verified {{ background: #10b981; color: #fff; }}
             .badge-blocked {{ background: #ef4444; color: #fff; }}
@@ -77,26 +91,37 @@ def main():
         split_page.screenshot(path=os.path.join(DOCS_MEDIA, "03_compare.png"))
         split_page.close()
 
-        # 4. 04_cockpit_case.png: Investigation case with agent steps
+        # 4. 04_cockpit_case.png: Investigation case with agent steps & citations
         print("Capturing 04_cockpit_case...")
-        page.goto("http://localhost:3000/cockpit/cases/case_af739ac755")
+        if case_id:
+            page.goto(f"http://localhost:3000/cockpit/cases/{case_id}")
+        else:
+            page.goto("http://localhost:3000/cockpit")
+            time.sleep(1.0)
+            cl = page.query_selector("a[href*='/cockpit/cases/']")
+            if cl:
+                cl.click()
         page.add_style_tag(content=hide_devtools)
         time.sleep(2.0)
         page.screenshot(path=os.path.join(DOCS_MEDIA, "04_cockpit_case.png"))
 
-        # 5. 05_console_aggregate.png: DP Console with queries and CI intervals
+        # 5. 05_console_aggregate.png: DP Console with PayPal query, results table, & ±CI
         print("Capturing 05_console_aggregate...")
         page.goto("http://localhost:3000/cockpit/console")
         page.add_style_tag(content=hide_devtools)
         time.sleep(1.5)
-        example_btn = page.query_selector("button:has-text('Where is Nimbus P8')")
-        if example_btn:
-            example_btn.click()
-            time.sleep(2.0)
-            run_btn = page.query_selector("button:has-text('Run')")
-            if run_btn:
-                run_btn.click()
-                time.sleep(2.0)
+        # Click the PayPal demographic question
+        pp_btn = page.wait_for_selector("button:has-text('buyers of NMB-P8-128')", timeout=10000)
+        pp_btn.click()
+        # Wait for planning to complete and Run button to become active
+        run_btn = page.wait_for_selector("button:has-text('Run')", timeout=15000)
+        run_btn.click()
+        # Wait for results table with CI or noise metadata
+        try:
+            page.wait_for_selector("text=Results, text=±", timeout=12000)
+        except Exception:
+            pass
+        time.sleep(2.0)
         page.screenshot(path=os.path.join(DOCS_MEDIA, "05_console_aggregate.png"))
 
         # 6. 06_supply_chain.png: Bryntum Supply Chain Gantt/Scheduler

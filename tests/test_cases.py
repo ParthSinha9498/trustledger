@@ -1,7 +1,6 @@
 """Case design: one case per open problem (brand, store, reason), agent re-runs only on material change."""
-import httpx
 
-from backend.api.paypal_client import paypal
+from backend.api.paypal_client import PayPalError, paypal
 from backend.common.llm import ToolCall, Turn
 from backend.worker import agent
 from backend.worker.main import process_one
@@ -97,13 +96,11 @@ def test_turn_limit_forces_finish(env):
 def test_capture_unapproved_order_is_clean_409(env, monkeypatch):
     api = env["api"]
     chk = scan(api, "X123", store="store_a")
-    req = httpx.Request("POST", "https://api-m.sandbox.paypal.com/v2/checkout/orders/X/capture")
-    resp = httpx.Response(422, request=req, json={
-        "name": "UNPROCESSABLE_ENTITY", "message": "The requested action could not be performed.",
-        "details": [{"issue": "ORDER_NOT_APPROVED"}]})
 
     def boom(order_id):
-        raise httpx.HTTPStatusError("422", request=req, response=resp)
+        raise PayPalError(422, {
+            "name": "UNPROCESSABLE_ENTITY", "message": "The requested action could not be performed.",
+            "details": [{"issue": "ORDER_NOT_APPROVED"}]})
 
     monkeypatch.setattr(paypal, "capture_order", boom)
     r = api.post(f"/checkout/{chk['checkout_id']}/capture")

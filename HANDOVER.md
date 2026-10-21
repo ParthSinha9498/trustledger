@@ -55,7 +55,7 @@ token-quota stop. Nothing has changed in the code since then (all file mtimes ar
   so restarts can't reset it. The cache means repeated queries cost nothing and can't be averaged to remove the noise. CIs let the agent reason about the noise.
 - One database per service, with no shared DB URL. Isolation can be shown at the infra level, not just claimed. The worker has no DB access.
 - OpenAI-compatible LLM client, so the provider can change (Gemini for cost and quota, Groq for speed) without code changes.
-- Sponsor plan: AG Grid/Charts is the main prize bet (cockpit + console). Render (hosting), APIMatic (OpenAPI),
+- Sponsor plan: AG Grid/Charts is the main prize bet (cockpit + console). Render (hosting), APIMatic (OpenAPI; PayPal Server SDK for Orders v2, see docs/APIMATIC.md),
   Postman (collection), Bryntum (supply-chain timeline), Zapier/Slack (alerts), Astropods (agent) are side prizes.
 
 ## Gotchas

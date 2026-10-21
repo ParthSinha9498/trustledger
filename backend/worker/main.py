@@ -7,6 +7,8 @@ import argparse
 import time
 import traceback
 
+import httpx
+
 from backend import config
 from backend.common import http
 from backend.common.llm import get_llm
@@ -34,8 +36,17 @@ def main() -> None:
     if args.once:
         process_one()
         return
+    backoff = 3
     while True:
-        if not process_one():
+        try:
+            worked = process_one()
+            backoff = 3
+        except httpx.TransportError as e:  # api not up yet, or restarting: wait instead of dying
+            print(f"worker: api unreachable ({e}); retrying in {backoff}s", flush=True)
+            worked, backoff = False, min(backoff * 2, 60)
+            time.sleep(backoff)
+            continue
+        if not worked:
             time.sleep(3)
 
 

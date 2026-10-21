@@ -507,6 +507,131 @@
   color: #64748b;
 }
 
+/* Code Card */
+.codeWindow {
+  width: 980px;
+  max-width: 980px;
+  height: 520px;
+  background: #030712;
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(37, 99, 235, 0.15);
+  text-align: left;
+}
+
+.codeHeader {
+  height: 42px;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  user-select: none;
+}
+
+.codeTab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(51, 65, 85, 0.7);
+  border-bottom: none;
+  padding: 6px 14px;
+  border-radius: 6px 6px 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #38bdf8;
+}
+
+.codeLangBadge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+}
+
+.codeBody {
+  flex: 1;
+  padding: 18px 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e2e8f0;
+  overflow-y: auto;
+}
+
+.codeLine {
+  display: flex;
+  align-items: center;
+  min-height: 1.5em;
+  padding: 0 20px 0 0;
+  transition: background-color 0.2s ease;
+}
+
+.codeLineHighlighted {
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.06) 100%);
+  border-left: 3px solid #38bdf8;
+  animation: codeHighlightPulse 2s ease-in-out infinite;
+}
+
+@keyframes codeHighlightPulse {
+  0%, 100% {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.06) 100%);
+  }
+  50% {
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.38) 0%, rgba(37, 99, 235, 0.12) 100%);
+  }
+}
+
+.codeGutter {
+  width: 44px;
+  color: #475569;
+  text-align: right;
+  padding-right: 16px;
+  user-select: none;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.codeText {
+  flex: 1;
+  white-space: pre;
+}
+
+.synKeyword {
+  color: #c084fc;
+  font-weight: 600;
+}
+
+.synString {
+  color: #86efac;
+}
+
+.synComment {
+  color: #64748b;
+  font-style: italic;
+}
+
+.synConst {
+  color: #38bdf8;
+  font-weight: 700;
+}
+
+.synNum {
+  color: #fbbf24;
+}
+
+
 .brandWordmark {
   font-size: 42px;
   font-weight: 800;

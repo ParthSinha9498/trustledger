@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import s from "./story.module.css";
@@ -23,6 +23,7 @@ const CARDS: CardMeta[] = [
   { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
   { id: "s5", title: "Scenario 5: Autonomous AI shopping agents", desc: "Brand verification over MCP: the same check, for agents" },
   { id: "terminal", title: "AI Shopping Agent Terminal", desc: "Live MCP client verifyProduct execution and brand verdict" },
+  { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
   { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
   { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
 ];
@@ -100,55 +101,60 @@ function formatTerminalLine(line: string) {
 }
 
 function TerminalCard() {
-  const [lines, setLines] = useState<string[]>([]);
+  const [lines, setLines] = useState<string[]>([
+    "# [Sample output of mcp/demo_agent_call.mjs]",
+    "# Run 'node mcp/demo_agent_call.mjs' to stream live MCP verification.",
+    "",
+    ...DEFAULT_TERMINAL_LINES,
+  ]);
+  const streamIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let active = true;
-    let timer: NodeJS.Timeout;
+
+    // Direct-load readiness: show static sample block, mark ready after mount
+    const readyTimer = setTimeout(() => {
+      if (active && !(window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder) {
+        document.body.dataset.ready = "1";
+      }
+    }, 100);
 
     // Expose window.typeLines for the Playwright demo recorder
     (window as unknown as { typeLines?: (l: string[]) => void }).typeLines = (newLines: string[]) => {
       if (!active) return;
       (window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder = true;
+      clearTimeout(readyTimer);
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
+      delete document.body.dataset.ready;
       setLines([]);
+
       let i = 0;
-      const interval = setInterval(() => {
+      streamIntervalRef.current = setInterval(() => {
         if (!active) {
-          clearInterval(interval);
+          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
           return;
         }
         if (i < newLines.length) {
           setLines(newLines.slice(0, i + 1));
           i++;
         } else {
-          clearInterval(interval);
+          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+          streamIntervalRef.current = null;
           document.body.dataset.ready = "1";
         }
-      }, 55);
+      }, 50);
     };
-
-    // Fallback: stream default demo lines if not driven externally
-    timer = setTimeout(() => {
-      if (!active || (window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder) return;
-      let i = 0;
-      const interval = setInterval(() => {
-        if (!active) {
-          clearInterval(interval);
-          return;
-        }
-        if (i < DEFAULT_TERMINAL_LINES.length) {
-          setLines(DEFAULT_TERMINAL_LINES.slice(0, i + 1));
-          i++;
-        } else {
-          clearInterval(interval);
-          document.body.dataset.ready = "1";
-        }
-      }, 45);
-    }, 150);
 
     return () => {
       active = false;
-      clearTimeout(timer);
+      clearTimeout(readyTimer);
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
       delete (window as unknown as { typeLines?: unknown }).typeLines;
       delete (window as unknown as { __typedByRecorder?: unknown }).__typedByRecorder;
       delete document.body.dataset.ready;
@@ -172,6 +178,171 @@ function TerminalCard() {
             {formatTerminalLine(l)}
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+interface ShowCodePayload {
+  title?: string;
+  language?: string;
+  code: string;
+  highlight?: number[];
+}
+
+const DEFAULT_CODE_PAYLOAD: ShowCodePayload = {
+  title: "src/checkout.ts",
+  language: "TypeScript",
+  code: `import { verifyProduct } from "@trustledger/sdk";
+
+// 1. Any checkout: verify serial with brand before payment
+const verdict = await verifyProduct({
+  serialNumber: item.serial,
+  sku: item.sku,
+  storeId: checkout.storeId,
+});
+
+// 2. Only genuine goods reach PayPal payment creation
+if (verdict.status === "VERIFIED") {
+  return await paypal.createOrder({
+    ...orderData,
+    custom_id: verdict.id,
+  });
+}
+
+throw new Error(\`Authenticity check failed: \${verdict.reason}\`);`,
+  highlight: [4, 5, 6, 7, 8, 11, 12, 13, 14],
+};
+
+function formatCodeLine(line: string) {
+  if (line.trim().startsWith("//")) {
+    return <span className={s.synComment}>{line}</span>;
+  }
+  let codePart = line;
+  let commentPart = "";
+  const commentIdx = line.indexOf("//");
+  if (commentIdx !== -1) {
+    codePart = line.slice(0, commentIdx);
+    commentPart = line.slice(commentIdx);
+  }
+
+  const tokens = codePart.split(/(\b(?:import|from|const|let|var|await|async|function|return|if|else|throw|new)\b|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b(?:VERIFIED|NOT_VERIFIED)\b|\b\d+\b)/g);
+
+  return (
+    <>
+      {tokens.map((token, idx) => {
+        if (!token) return null;
+        if (/^(import|from|const|let|var|await|async|function|return|if|else|throw|new)$/.test(token)) {
+          return <span key={idx} className={s.synKeyword}>{token}</span>;
+        }
+        if (/^(".*"|'.*'|`.*`)$/.test(token)) {
+          return <span key={idx} className={s.synString}>{token}</span>;
+        }
+        if (/^(VERIFIED|NOT_VERIFIED)$/.test(token)) {
+          return <span key={idx} className={s.synConst}>{token}</span>;
+        }
+        if (/^\d+$/.test(token)) {
+          return <span key={idx} className={s.synNum}>{token}</span>;
+        }
+        return <span key={idx}>{token}</span>;
+      })}
+      {commentPart && <span className={s.synComment}>{commentPart}</span>}
+    </>
+  );
+}
+
+function CodeCard() {
+  const [title, setTitle] = useState(DEFAULT_CODE_PAYLOAD.title || "src/checkout.ts");
+  const [language, setLanguage] = useState(DEFAULT_CODE_PAYLOAD.language || "TypeScript");
+  const [codeLines, setCodeLines] = useState<string[]>(DEFAULT_CODE_PAYLOAD.code.split("\n"));
+  const [highlight, setHighlight] = useState<number[]>(DEFAULT_CODE_PAYLOAD.highlight || []);
+  const streamIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    // Direct-load readiness: mark ready after initial render
+    const readyTimer = setTimeout(() => {
+      if (active && !(window as unknown as { __codeTypedByRecorder?: boolean }).__codeTypedByRecorder) {
+        document.body.dataset.ready = "1";
+      }
+    }, 100);
+
+    // Expose window.showCode for demo recorder
+    (window as unknown as { showCode?: (p: ShowCodePayload) => void }).showCode = (payload: ShowCodePayload) => {
+      if (!active) return;
+      (window as unknown as { __codeTypedByRecorder?: boolean }).__codeTypedByRecorder = true;
+      clearTimeout(readyTimer);
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
+      delete document.body.dataset.ready;
+
+      if (payload.title) setTitle(payload.title);
+      if (payload.language) setLanguage(payload.language);
+      setHighlight(payload.highlight || []);
+
+      const allLines = payload.code.split("\n");
+      setCodeLines([]);
+      let i = 0;
+      streamIntervalRef.current = setInterval(() => {
+        if (!active) {
+          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+          return;
+        }
+        if (i < allLines.length) {
+          setCodeLines(allLines.slice(0, i + 1));
+          i++;
+        } else {
+          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
+          streamIntervalRef.current = null;
+          document.body.dataset.ready = "1";
+        }
+      }, 45);
+    };
+
+    return () => {
+      active = false;
+      clearTimeout(readyTimer);
+      if (streamIntervalRef.current) {
+        clearInterval(streamIntervalRef.current);
+        streamIntervalRef.current = null;
+      }
+      delete (window as unknown as { showCode?: unknown }).showCode;
+      delete (window as unknown as { __codeTypedByRecorder?: unknown }).__codeTypedByRecorder;
+      delete document.body.dataset.ready;
+    };
+  }, []);
+
+  return (
+    <div className={s.codeWindow}>
+      <div className={s.codeHeader}>
+        <div className={s.terminalDots}>
+          <span className={`${s.terminalDot} ${s.dotRed}`} />
+          <span className={`${s.terminalDot} ${s.dotYellow}`} />
+          <span className={`${s.terminalDot} ${s.dotGreen}`} />
+        </div>
+        <div className={s.codeTab}>
+          <span>📄</span>
+          <span>{title}</span>
+        </div>
+        <div className={s.codeLangBadge}>{language}</div>
+      </div>
+      <div className={s.codeBody}>
+        {codeLines.map((line, idx) => {
+          const lineNum = idx + 1;
+          const isHighlighted = highlight.includes(lineNum);
+          return (
+            <div
+              key={idx}
+              className={`${s.codeLine} ${isHighlighted ? s.codeLineHighlighted : ""}`}
+            >
+              <div className={s.codeGutter}>{lineNum}</div>
+              <div className={s.codeText}>{formatCodeLine(line)}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -351,6 +522,10 @@ function CardView({ cardId }: { cardId: string }) {
 
         {actualCardId === "terminal" && (
           <TerminalCard />
+        )}
+
+        {actualCardId === "code" && (
+          <CodeCard />
         )}
 
         {actualCardId === "onboard" && (

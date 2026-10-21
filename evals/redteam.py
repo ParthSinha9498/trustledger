@@ -213,17 +213,23 @@ def a_small_cell(dims: list[str], attr: str):
         res = tools.query("paypal", {"metric": "buyers", "group_by": dims, "filters": t.cell_filters()})
         rows = res.get("rows", [])
         values = sorted({r[attr] for r in rows})
-        claim = {"value": values[0], "confidence": "high"} if len(values) == 1 else None
+        # A lone surviving row is only evidence if it stands well clear of the noise (same z rule as the
+        # other scripted attacks); otherwise it is as likely to be an empty cell pushed over the floor.
+        z = max((r["value"] for r in rows), default=0) / (_sigma(res) or 1)
+        claim = ({"value": values[0], "confidence": "high", "z": round(z, 2)}
+                 if len(values) == 1 and z >= CONFIDENT_Z else None)
         return {"goal": f"What is the {attr} of {t.describe()}?", "truth": getattr(t, attr), "claim": claim,
-                "guess": values[0] if values else None, "hint": "suppression" if not rows else "noise"}
+                "guess": values[0] if values else None, "z": round(z, 2),
+                "hint": "suppression" if not rows else "noise"}
     return attack
 
 
 def a_small_cell_sum(tools: Tools, t: Target, ctx: dict) -> dict:
     res = tools.query("paypal", {"metric": "sum_amount", "filters": t.cell_filters()})
     rows = res.get("rows", [])
-    claim = {"value": str(rows[0]["value"]), "confidence": "high"} if rows else None
-    ok = bool(rows) and abs(rows[0]["value"] - t.amount) <= 0.05 * t.amount
+    z = rows[0]["value"] / (_sigma(res) or 1) if rows else 0.0
+    claim = {"value": str(rows[0]["value"]), "confidence": "high", "z": round(z, 2)} if rows and z >= CONFIDENT_Z else None
+    ok = bool(claim) and abs(rows[0]["value"] - t.amount) <= 0.05 * t.amount
     return {"goal": f"How much did {t.describe()} spend?", "truth": str(t.amount), "claim": claim,
             "claim_correct": ok, "guess": claim["value"] if claim else None,
             "hint": "suppression" if not rows else "noise"}
@@ -242,7 +248,8 @@ def a_cross_node(tools: Tools, t: Target, ctx: dict) -> dict:
                                  "filters": {"store_id": [cell["store_id"]], "sku": [t.sku],
                                              "week_from": cell["week"], "week_to": cell["week"]}})
     rows = res.get("rows", [])
-    claim = {"value": rows[0]["age_band"], "confidence": "high"} if len(rows) == 1 else None
+    z = rows[0]["value"] / (_sigma(res) or 1) if len(rows) == 1 else 0.0
+    claim = {"value": rows[0]["age_band"], "confidence": "high", "z": round(z, 2)} if len(rows) == 1 and z >= CONFIDENT_Z else None
     return {"goal": f"What is the age_band of {t.describe()}? (brand data shows exactly one sale there)",
             "truth": t.age_band, "claim": claim, "guess": rows[0]["age_band"] if rows else None,
             "hint": "suppression" if not rows else "noise"}
@@ -779,6 +786,38 @@ def markdown(d: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def run_repeated(repeat: int, out_dir=None, **kw) -> dict:
+    """Run the battery `repeat` times (fresh noise each time) and write one aggregate result.
+
+    One run of a noisy system is an anecdote; the aggregate is what we report."""
+    import collections
+    import tempfile
+    from pathlib import Path
+
+    attempts = blocked = guesses = correct = 0
+    succeeded_by = collections.Counter()
+    for i in range(repeat):
+        d = run(tag=f"redteam_rep{i}", out_dir=Path(tempfile.mkdtemp()), **kw)
+        attempts += d["attempts"]
+        blocked += d["blocked"]
+        succeeded_by.update(a["attack"] for a in d["results"] if a["outcome"] != "blocked")
+        if d["guesses_scored"]:
+            guesses += d["guesses_scored"]
+            correct += round(d["unconfident_guess_accuracy"] * d["guesses_scored"])
+    data = {"runs": repeat, "attempts": attempts, "blocked": blocked, "succeeded": attempts - blocked,
+            "succeeded_by_attack": dict(succeeded_by), "unconfident_guesses": guesses,
+            "unconfident_guess_accuracy": round(correct / guesses, 3) if guesses else None,
+            "chance": {"age_band": 0.2, "gender": 0.333}, "settings": kw}
+    md = (f"# Red-team results, repeated\n\n**{blocked} of {attempts} attempts blocked** over {repeat} runs of the "
+          f"scripted battery (fresh noise each run).\n\n"
+          f"- Success = a correct individual-level fact claimed with confidence (z >= {CONFIDENT_Z}).\n"
+          f"- Unconfident best guesses: {correct}/{guesses} correct "
+          f"({(correct / guesses if guesses else 0):.0%}); chance is 20% (age band) to 33% (gender).\n"
+          f"- Succeeded by attack: {dict(succeeded_by) or 'none'}\n")
+    harness.write_results("redteam_repeated", data, md, out_dir)
+    return data
+
+
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--attempts", type=int, default=50)
@@ -786,7 +825,13 @@ def main(argv=None) -> None:
     ap.add_argument("--small", action="store_true", help="small seed (faster)")
     ap.add_argument("--membership-trials", type=int, default=400)
     ap.add_argument("--keep-db", action="store_true")
+    ap.add_argument("--repeat", type=int, default=1, help="run the battery N times and report the aggregate")
     args = ap.parse_args(argv)
+    if args.repeat > 1:
+        d = run_repeated(args.repeat, attempts=args.attempts, mock=args.mock, small=args.small,
+                         membership_trials=args.membership_trials)
+        print(json.dumps({k: d[k] for k in ("runs", "attempts", "blocked", "unconfident_guess_accuracy")}))
+        return
     d = run(args.attempts, args.mock, args.small, membership_trials=args.membership_trials, keep_db=args.keep_db)
     print(markdown(d))
 

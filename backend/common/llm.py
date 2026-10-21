@@ -53,14 +53,24 @@ class OpenAICompatibleLLM:
         )
 
     def next_turn(self, messages: list[dict], tools: list[dict]) -> Turn:
-        from openai import RateLimitError
+        from openai import BadRequestError, RateLimitError
 
+        sent, fixes = list(messages), 0
         for attempt in range(6):
             try:
                 resp = self.client.chat.completions.create(
-                    model=self.model, messages=messages, tools=tools, tool_choice="auto"
+                    model=self.model, messages=sent, tools=tools, tool_choice="auto"
                 )
                 break
+            except BadRequestError as e:
+                # Groq validates tool arguments server-side and rejects the whole turn. Tell the model
+                # what was wrong and let it try again (the caller's history is left untouched).
+                if _error_code(e) != "tool_use_failed" or fixes == 2:
+                    raise
+                fixes += 1
+                sent = sent + [{"role": "user", "content":
+                                f"Your last tool call was rejected: {_error_message(e)} "
+                                "Fix the arguments to match the tool schema and call it again."}]
             except RateLimitError as e:
                 # Free tiers allow a few requests per minute; wait as long as the provider asks.
                 if attempt == 5:
@@ -78,6 +88,19 @@ class OpenAICompatibleLLM:
         usage = {"prompt": u.prompt_tokens, "completion": u.completion_tokens,
                  "cached": (getattr(details, "cached_tokens", None) or 0)} if u else {}
         return Turn(content=m.content or "", tool_calls=calls, usage=usage)
+
+
+def _error_body(e) -> dict:
+    body = getattr(e, "body", None)
+    return (body.get("error", body) if isinstance(body, dict) else {}) or {}
+
+
+def _error_code(e) -> str | None:
+    return _error_body(e).get("code")
+
+
+def _error_message(e) -> str:
+    return str(_error_body(e).get("message") or e)[:500]
 
 
 def get_llm():

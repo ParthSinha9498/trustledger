@@ -287,12 +287,15 @@ def run_scenario(name: str, mock: bool = True, tag_prefix: str = "det") -> Scena
         harness.drop_databases(tag)
 
 
-def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir: Path | None = None) -> dict:
+def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir: Path | None = None,
+            tag_prefix: str | None = None) -> dict:
+    # Live runs get their own databases so a concurrent pytest run (which uses "det") can't drop them.
+    tag_prefix = tag_prefix or ("det" if mock else "live")
     names = scenario_names or list(SCENARIOS.keys())
     results: list[ScenarioResult] = []
 
     for name in names:
-        res = run_scenario(name, mock=mock)
+        res = run_scenario(name, mock=mock, tag_prefix=tag_prefix)
         results.append(res)
 
     problem_scenarios = [r for r in results if r.is_problem]

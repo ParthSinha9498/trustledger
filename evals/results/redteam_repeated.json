@@ -1,0 +1,19 @@
+{
+  "runs": 20,
+  "attempts": 220,
+  "blocked": 220,
+  "succeeded": 0,
+  "succeeded_by_attack": {},
+  "unconfident_guesses": 107,
+  "unconfident_guess_accuracy": 0.234,
+  "chance": {
+    "age_band": 0.2,
+    "gender": 0.333
+  },
+  "settings": {
+    "attempts": 11,
+    "mock": true,
+    "small": true,
+    "membership_trials": 40
+  }
+}

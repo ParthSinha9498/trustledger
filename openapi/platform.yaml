@@ -199,6 +199,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+        '409':
+          description: Checkout is not awaiting payment, or buyer has not approved the PayPal order yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail:
+                  paypal_issue: ORDER_NOT_APPROVED
+                  message: Order has not been approved by buyer
+        '502':
+          description: PayPal upstream error or capture failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail:
+                  paypal_status: FAILED
       description: Captures the PayPal order, confirms the sale with the brand, and returns the receipt.
   /receipts/{checkout_id}:
     get:
@@ -366,6 +385,11 @@ components:
         summary:
           type: string
           title: Summary
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
       type: object
       required:
       - status
@@ -485,6 +509,27 @@ components:
       - msg
       - type
       title: ValidationError
+    Error:
+      type: object
+      properties:
+        detail:
+          description: Error details, either as a human-readable string or a PayPal error object.
+          oneOf:
+          - type: string
+            example: checkout is not awaiting payment
+          - type: object
+            properties:
+              paypal_issue:
+                type: string
+                example: ORDER_NOT_APPROVED
+              message:
+                type: string
+                example: Order has not been approved by buyer
+              paypal_status:
+                type: string
+                example: FAILED
+      required:
+      - detail
   securitySchemes:
     NodeToken:
       type: apiKey

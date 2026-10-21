@@ -1,0 +1,16 @@
+{
+  "name": "trustledger-mcp-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo MCP client that calls the TrustLedger brand verification MCP server.",
+  "scripts": {
+    "demo": "node demo_agent_call.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.10.0"
+  }
+}

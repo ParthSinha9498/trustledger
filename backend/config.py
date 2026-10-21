@@ -15,8 +15,8 @@ def brand_id() -> str:
 
 
 def current_week() -> int:
-    """The demo's 'now'. Seed history covers weeks 1-12."""
-    return int(env("CURRENT_WEEK", "12"))
+    """The demo's 'now' (week 42 is mid-October 2026). Seed history covers weeks 1..now."""
+    return int(env("CURRENT_WEEK", "42"))
 
 
 def brand_node_url() -> str:

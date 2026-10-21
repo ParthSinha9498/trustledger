@@ -19,12 +19,16 @@ from backend.seed import (
     SUPPLY,
     AGE_BANDS,
     GENDERS,
-    WEEKS,
     BRAND_SCHEMA,
     PAYPAL_SCHEMA,
     PLATFORM_SCHEMA,
 )
+
 from evals import harness
+
+# Scenarios use their own compact 12-week world (planted problems in weeks 7-12); harness.configure pins
+# CURRENT_WEEK to match, independent of the demo seed's history length.
+WEEKS = 12
 
 
 @dataclass

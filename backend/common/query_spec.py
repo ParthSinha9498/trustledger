@@ -9,7 +9,7 @@ Dimension = Literal[
 ]
 
 MAX_DIMENSIONS = 2
-MAX_CELLS = 200
+MAX_CELLS = 300  # e.g. 6 stores x 42 weeks; privacy cost per query does not depend on cell count
 
 NODE_RULES: dict[str, dict[str, set[str]]] = {
     # Brand-side data is about businesses (serials, shipments, stores), not people.

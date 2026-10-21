@@ -36,6 +36,7 @@ def env(monkeypatch):
     for name, var in (("brand", "BRAND_DATABASE_URL"), ("paypal_side", "PAYPAL_DATABASE_URL"),
                       ("platform", "PLATFORM_DATABASE_URL")):
         monkeypatch.setenv(var, f"{TEST_PG}/{TEST_DBS[name]}")
+    monkeypatch.setenv("CURRENT_WEEK", "42")  # the demo's "now"; eval harnesses may set 12 process-wide
     from backend import seed
     seed.build(small=True)
 

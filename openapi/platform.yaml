@@ -199,6 +199,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+        '409':
+          description: Checkout is not awaiting payment, or buyer has not approved the PayPal order yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: checkout is not awaiting payment
       description: Captures the PayPal order, confirms the sale with the brand, and returns the receipt.
   /receipts/{checkout_id}:
     get:
@@ -366,6 +374,11 @@ components:
         summary:
           type: string
           title: Summary
+        confidence:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Confidence
       type: object
       required:
       - status
@@ -485,6 +498,16 @@ components:
       - msg
       - type
       title: ValidationError
+    Error:
+      type: object
+      properties:
+        detail:
+          description: Human-readable error.
+          type: string
+      required:
+      - detail
+      example:
+        detail: bad node token
   securitySchemes:
     NodeToken:
       type: apiKey

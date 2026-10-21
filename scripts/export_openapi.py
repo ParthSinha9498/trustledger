@@ -288,6 +288,14 @@ def platform_spec() -> dict:
                 op["operationId"], op["summary"] = doc[0], doc[1]
                 if doc[2]:
                     op["description"] = doc[2]
+    spec.setdefault("components", {}).setdefault("schemas", {})["Error"] = ERROR_SCHEMA
+    capture_op = spec.get("paths", {}).get("/checkout/{checkout_id}/capture", {}).get("post")
+    if capture_op:
+        capture_op.setdefault("responses", {})["409"] = {
+            "description": "Checkout is not awaiting payment, or buyer has not approved the PayPal order yet.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"},
+                                             "example": {"detail": "checkout is not awaiting payment"}}},
+        }
     return spec
 
 

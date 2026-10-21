@@ -22,6 +22,7 @@ def configure(tag: str, mock: bool) -> None:
     for name, dbname in db_names(tag).items():
         os.environ[DB_VARS[name]] = f"{PG}/{dbname}"
     os.environ["PAYPAL_MODE"] = "mock"      # evals never create real PayPal orders
+    os.environ["CURRENT_WEEK"] = "12"       # scenarios are built on a 12-week world (evals/scenarios.py)
     os.environ.pop("NOTIFY_WEBHOOK_URL", None)
     if mock:
         os.environ["LLM_MODE"] = "mock"

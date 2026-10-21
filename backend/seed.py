@@ -5,18 +5,22 @@
 
 Writes the brand, paypal_side and platform Postgres databases (tables are dropped and recreated).
 
-Planted scenarios:
-  * Demo serial X123: shipped Nimbus -> Distributor 1 -> Store A, not yet sold.
-  * Clone attempts: serials from Distributor 1 batches tried at Store B (verification failures).
-  * Diversion: Distributor 1 stock sold at Store C, which Distributor 1 never supplied.
-  * A normal demand spike at Store D in week 10 (should NOT be flagged).
+History: weeks 1..WEEKS (week 1 starts 4 Jan 2026; WEEKS = CURRENT_WEEK, mid-October). Batches restock every
+store all year; each store sells most of a batch in the weeks after it arrives, so unsold stock is recent.
+
+Planted scenarios (all recent, relative to WEEKS):
+  * Demo serial X123: in the latest Distributor 1 -> Store A batch, not yet sold.
+  * Diversion: Distributor 1 stock (from batches 6-12 weeks old) sold at Store C, which Distributor 1 never
+    supplied, during the last 6 weeks.
+  * Clone attempts: serials from Distributor 1 batches tried at Store B in the last 4 weeks.
+  * A normal demand spike at Store D four weeks ago (should NOT be flagged).
 """
 import argparse
 import hashlib
 import random
 import psycopg
 
-from backend import db
+from backend import config, db
 
 BRAND = "nimbus"
 PRODUCTS = [
@@ -38,7 +42,6 @@ PARTNERS = [
 SUPPLY = {"dist_1": ["store_a", "store_d", "store_f"], "dist_2": ["store_b", "store_c", "store_e"]}
 AGE_BANDS = ["18-24", "25-34", "35-44", "45-54", "55+"]
 GENDERS = ["female", "male", "other"]
-WEEKS = 12
 DEMO_SERIAL = "X123"
 
 BRAND_SCHEMA = """
@@ -96,10 +99,11 @@ def _store(pid: str) -> tuple:
 
 def build(small: bool = False, seed: int = 42) -> None:
     rng = random.Random(seed)
-    n_batches = 8 if small else 40
-    batch_size = 100 if small else 500
-    n_txn = 1200 if small else 8000
-    n_buyers = 600 if small else 5000
+    weeks = config.current_week()  # the demo's "now"; history covers weeks 1..weeks
+    n_batches = 12 if small else 84
+    batch_size = 70 if small else 250
+    n_diverted = 60 if small else 800   # dist_1 units sold at store_c
+    n_buyers = 600 if small else 6000
 
     for name in ("brand", "paypal_side", "platform"):
         db.ensure_database(name)
@@ -111,29 +115,40 @@ def build(small: bool = False, seed: int = 42) -> None:
     b.executemany("INSERT INTO products VALUES (%s,%s,%s,%s)", PRODUCTS)
     b.executemany("INSERT INTO partners VALUES (%s,%s,%s,%s,%s)", PARTNERS)
 
-    serials_by_store: dict[str, list[tuple[str, str]]] = {s: [] for v in SUPPLY.values() for s in v}
+    # Stock delivered to each store: (serial, sku, arrival_week).
+    stock: dict[str, list] = {s: [] for v in SUPPLY.values() for s in v}
+    diverted: list[tuple[str, str]] = []   # dist_1 serials that end up at store_c
     d1_serials: list[tuple[str, str]] = []
+    demo_batch = None
     counter = 100000
     for i in range(n_batches):
         dist = "dist_1" if i % 2 == 0 else "dist_2"
         sku = PRODUCTS[i % len(PRODUCTS)][0]
         store = SUPPLY[dist][(i // 2) % len(SUPPLY[dist])]
-        week = rng.randint(1, 4)
+        week = 1 + (i * (weeks - 4)) // n_batches          # restocks spread over the year
+        arrival = week + 1
         batch_id = f"B{i:03d}"
         b.execute("INSERT INTO batches VALUES (%s,%s,%s,%s)", (batch_id, sku, dist, week))
-        b.execute("INSERT INTO channel_shipments VALUES (%s,%s,%s,%s)", (batch_id, dist, store, week + 1))
+        b.execute("INSERT INTO channel_shipments VALUES (%s,%s,%s,%s)", (batch_id, dist, store, arrival))
+        # Part of some dist_1 batches leaks to store_c (diversion), but only from batches 6-12 weeks old.
+        leak = dist == "dist_1" and weeks - 12 <= arrival <= weeks - 6
         rows = []
         for _ in range(batch_size):
             counter += 1
             serial = f"NMB{counter}"
             rows.append((serial, sku, batch_id))
-            serials_by_store[store].append((serial, sku))
             if dist == "dist_1":
                 d1_serials.append((serial, sku))
+            if leak and rng.random() < 0.35:
+                diverted.append((serial, sku))
+            else:
+                stock[store].append((serial, sku, arrival))
         b.executemany("INSERT INTO serials (serial, sku, batch_id) VALUES (%s,%s,%s)", rows)
+        if dist == "dist_1" and store == "store_a" and sku == "NMB-P8-128":
+            demo_batch = batch_id
 
-    # Demo serial: first batch is dist_1 -> store_a.
-    b.execute("INSERT INTO serials (serial, sku, batch_id) VALUES (%s,%s,%s)", (DEMO_SERIAL, "NMB-P8-128", "B000"))
+    # Demo serial: the latest Distributor 1 -> Store A batch of the P8 128GB.
+    b.execute("INSERT INTO serials (serial, sku, batch_id) VALUES (%s,%s,%s)", (DEMO_SERIAL, "NMB-P8-128", demo_batch))
 
     # ---------------- PayPal side ----------------
     paypal_conn = psycopg.connect(db.url("paypal_side"), autocommit=True)
@@ -158,24 +173,22 @@ def build(small: bool = False, seed: int = 42) -> None:
         txns.append((tid, f"SIM-{tid}", BRAND, store_id, sku, price[sku], s[3], s[4], week, key, age, gender, "simulated"))
         sold.append((store_id, week, f"SIM-{tid}", serial))
 
-    # Normal sales: each store sells from its own channel.
-    store_ids = list(serials_by_store)
-    for _ in range(int(n_txn * 0.9)):
-        store_id = rng.choice(store_ids)
-        pool = serials_by_store[store_id]
-        if not pool:
-            continue
-        serial, sku = pool.pop()
-        week = rng.randint(5, WEEKS)
-        if store_id == "store_d" and rng.random() < 0.25:
-            week = 10  # normal seasonal spike
-        sell(store_id, serial, sku, week)
+    # Normal sales: each store sells ~85% of every batch it receives, over the 0-5 weeks after it arrives,
+    # so weekly sales follow deliveries right up to "now" (units that would sell after now are still on the shelf).
+    spike = weeks - 4
+    for store_id, pool in stock.items():
+        for serial, sku, arrival in pool:
+            if rng.random() > 0.85:
+                continue
+            week = arrival + rng.randint(0, 5)
+            if store_id == "store_d" and arrival <= spike <= arrival + 5 and rng.random() < 0.25:
+                week = spike  # normal seasonal spike
+            if week <= weeks:
+                sell(store_id, serial, sku, week)
 
-    # Diversion: dist_1 stock appears at store_c (supplied only by dist_2).
-    sold_serials = {x[3] for x in sold}
-    remaining_d1 = [s for s in d1_serials if s[0] not in sold_serials]
-    for serial, sku in remaining_d1[: int(n_txn * 0.05)]:
-        sell("store_c", serial, sku, rng.randint(9, WEEKS))
+    # Diversion: dist_1 stock appears at store_c (supplied only by dist_2) in the last six weeks.
+    for serial, sku in diverted[:n_diverted]:
+        sell("store_c", serial, sku, rng.randint(weeks - 5, weeks))
 
     with p.copy("COPY transactions (txn_id, order_id, brand_id, store_id, sku, amount, region, city, week, "
                 "payer_key, age_band, gender, source) FROM STDIN") as cp:
@@ -193,7 +206,7 @@ def build(small: bool = False, seed: int = 42) -> None:
     for i, (serial, sku) in enumerate(rng.sample(d1_serials, min(40, len(d1_serials)))):
         reason = "ALREADY_SOLD" if i % 3 == 0 else "NOT_IN_CHANNEL"
         clone_rows.append((f"ver_seed_{i:03d}", serial, sku, "store_b", "NOT_VERIFIED", reason,
-                           rng.randint(10, WEEKS)))
+                           rng.randint(weeks - 3, weeks)))
     b.executemany("INSERT INTO verification_log (verification_id, serial, sku, store_id, result, reason_code, week) "
                   "VALUES (%s,%s,%s,%s,%s,%s,%s)", clone_rows)
     brand_conn.close()
@@ -205,7 +218,8 @@ def build(small: bool = False, seed: int = 42) -> None:
         pl.cursor().executemany("INSERT INTO stores VALUES (%s,%s,%s,%s,%s)",
                                 [(s[0], s[2], s[3], s[4], BRAND) for s in stores])
 
-    print(f"seeded {len(txns)} transactions, {counter - 100000 + 1} serials, {len(clone_rows)} clone attempts")
+    print(f"seeded {weeks} weeks: {len(txns)} transactions, {counter - 100000 + 1} serials, "
+          f"{len(clone_rows)} clone attempts")
 
 
 if __name__ == "__main__":

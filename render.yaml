@@ -85,6 +85,6 @@ services:
       - key: BRAND_ID
         value: nimbus
       - key: CURRENT_WEEK
-        value: "12"
+        value: "42"
       - key: DAILY_EPSILON
         value: "5.0"

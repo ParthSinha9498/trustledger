@@ -32,10 +32,10 @@ def test_shape_resources_events_dependencies(env):
     assert all(e["resource_id"] in res_ids for e in d["events"])
     assert all(dep["from"] in ids and dep["to"] in ids for dep in d["dependencies"])
     assert all(e["end_week"] > e["start_week"] for e in d["events"])
-    # Seed small: 8 batches, each dispatch -> distributor -> store.
-    assert d["totals"]["batches"] == 8
+    # Seed small: 12 batches, each dispatch -> distributor -> store.
+    assert d["totals"]["batches"] == 12
     kinds = [e["kind"] for e in d["events"]]
-    assert kinds.count("dispatch") == kinds.count("distributor") == 8
+    assert kinds.count("dispatch") == kinds.count("distributor") == 12
 
 
 def test_aggregates_only_no_serials(env):

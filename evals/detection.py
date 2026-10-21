@@ -37,6 +37,7 @@ class ScenarioResult:
     reason_attributed: bool = False
     correct: bool = False
     error: str | None = None
+    trace: list[str] = field(default_factory=list)  # each tool call, for debugging misses
 
 
 # ---------------------------------------------------------------- Offline Rule-Based Mock Agent
@@ -181,6 +182,8 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
 
     gt = scenario.ground_truth
     tool_queries = sum(1 for s in steps if s.get("kind") == "tool_call")
+    trace = [f'{s["payload"].get("tool")} {json.dumps(s["payload"].get("args"), sort_keys=True)}'
+             for s in steps if s.get("kind") == "tool_call"]
 
     if not gt.is_problem:
         # Clean control: the agent will mention the trigger store (every case starts there), so mentions
@@ -202,6 +205,7 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
             distributor_attributed=True,
             reason_attributed=True,
             correct=correct,
+            trace=trace,
         )
 
     # Problem scenario: check store, distributor, and reason attribution
@@ -226,6 +230,7 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
         distributor_attributed=dist_ok,
         reason_attributed=reason_ok,
         correct=correct,
+        trace=trace,
     )
 
 

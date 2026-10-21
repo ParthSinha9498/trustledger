@@ -66,7 +66,7 @@ class OpenAICompatibleLLM:
                 # Groq validates tool calls server-side and rejects the whole turn (bad arguments, or output it
                 # couldn't parse). Tell the model and let it try again; the caller's history is left untouched.
                 code = _error_code(e)
-                if code not in ("tool_use_failed", "output_parse_failed") or fixes == 2:
+                if code not in ("tool_use_failed", "output_parse_failed") or fixes == 2 or attempt == 5:
                     raise
                 fixes += 1
                 hint = (f"Your last tool call was rejected: {_error_message(e)} "
@@ -96,12 +96,12 @@ class OpenAICompatibleLLM:
 
 
 def _retry_after(msg: str) -> float | None:
-    """Seconds to wait from a 429 message: Gemini says "retry in 12.3s", Groq "try again in 1m29.8s"."""
-    m = re.search(r"(?:retry|try again) in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", msg)
+    """Seconds to wait from a 429 message: Gemini says "retry in 12.3s", Groq "try again in 1m29.8s" or "520ms"."""
+    m = re.search(r"(?:retry|try again) in ((?:[\d.]+(?:ms|h|m|s))+)", msg, re.IGNORECASE)
     if not m:
         return None
-    h, mins, secs = m.groups()
-    return int(h or 0) * 3600 + int(mins or 0) * 60 + float(secs) + 1
+    scale = {"ms": 0.001, "h": 3600, "m": 60, "s": 1}
+    return sum(float(n) * scale[u.lower()] for n, u in re.findall(r"([\d.]+)(ms|h|m|s)", m.group(1), re.I)) + 1
 
 
 def _error_body(e) -> dict:

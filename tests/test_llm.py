@@ -5,7 +5,7 @@ import httpx
 import pytest
 from openai import BadRequestError
 
-from backend.common.llm import OpenAICompatibleLLM
+from backend.common.llm import OpenAICompatibleLLM, _retry_after
 
 REJECTED = {"message": "parameters for tool query_brand_node did not match schema: `/group_by`: maxItems: got 3, want 2",
             "type": "invalid_request_error", "code": "tool_use_failed"}
@@ -56,3 +56,21 @@ def test_gives_up_after_two_fixes_and_ignores_other_400s():
         _llm([_bad_request(REJECTED)] * 3, []).next_turn([], tools=[])
     with pytest.raises(BadRequestError):
         _llm([_bad_request({"message": "bad model", "code": "model_not_found"})], []).next_turn([], tools=[])
+
+
+def test_retry_after_parses_provider_formats():
+    assert _retry_after("Please retry in 12.5s") == 13.5
+    assert _retry_after("Please try again in 1m29.5s.") == 90.5
+    assert _retry_after("Please try again in 520ms") == 1.52
+    assert _retry_after("Retry in 1h22m0s") == 4921
+    assert _retry_after("no hint here") is None
+
+
+def test_rejections_on_the_last_attempt_raise_instead_of_returning_nothing():
+    from openai import RateLimitError
+    limited = RateLimitError("429 retry in 0.001s", response=httpx.Response(
+        429, request=httpx.Request("POST", "https://llm.test")), body=None)
+    garbled = {"message": "Parsing failed.", "code": "output_parse_failed"}
+    llm = _llm([limited] * 4 + [_bad_request(garbled)] * 2, [])
+    with pytest.raises(BadRequestError):  # previously: UnboundLocalError on `resp`
+        llm.next_turn([], tools=[])

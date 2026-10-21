@@ -78,6 +78,9 @@ FALLBACK = {
     "s2": ["Scenario 2", "The same serial at a store outside the supply chain"],
     "s3": ["Scenario 3", "The brand investigates"],
     "s4": ["Scenario 4", "Privacy by design"],
+    "redteam": ["11 of 11 re-identification attacks blocked",
+                "No attack extracted a confident individual-level fact",
+                "Scripted battery: small cells, differencing, membership, cross-node linkage, averaging, budget probing"],
     "onboard": ["One API. Every checkout.", "OpenAPI → SDKs · docs portal · MCP server → POS, e-commerce, AI shopping agents"],
     "close": ["Trust at checkout for buyers.", "Intelligence for brands.", "A more trusted network for PayPal."],
 }
@@ -187,13 +190,13 @@ def main() -> None:
         # ---- Scenario 1: genuine product, authorized store
         rec.card("s1", 3.5)
         rec.go("/pos")
-        rec.caption("Store A, an authorized Nimbus retailer, scans serial X123.", 2.5)
+        rec.caption("Store A, an authorized Nimbus retailer, scans serial X123.", 1.5)
         a = scan(rec, 0)
         if a.get("status") != "VERIFIED":
             raise SystemExit(f"Store A was not verified ({a.get('reason_code')}): X123 is probably already sold. "
                              "Reseed before each take (e.g. docker compose run --rm seed).")
         rec.ring(page.get_by_text("PayPal order created", exact=False).first)
-        rec.caption("The brand confirms it. Only then does PayPal create the order, with the verification ID in custom_id.", 6)
+        rec.caption("The brand confirms it. Only then does PayPal create the order, with the verification ID in custom_id.", 5)
         rec.unring()
         if mock:
             api_post(args.api, f"/checkout/{a['checkout_id']}/capture")
@@ -201,15 +204,15 @@ def main() -> None:
             rec.go(f"/pay/{a['checkout_id']}")
             rec.caption("The buyer pays with PayPal.", 20)
         rec.go(f"/receipt/{a['checkout_id']}")
-        rec.caption("Receipt: Brand Verified, and the PayPal payment points to the verification.", 5)
+        rec.caption("Receipt: Brand Verified, and the PayPal payment points to the verification.", 4)
 
         # ---- Scenario 2: same serial, store outside the supply chain
         rec.card("s2", 3.5)
         rec.go("/pos")
-        rec.caption("Store B scans the SAME serial, X123.", 2.5)
+        rec.caption("Store B scans the SAME serial, X123.", 1.5)
         b = scan(rec, 1)
         rec.ring(page.get_by_text("Never created", exact=False).first)
-        rec.caption("Not verified: this unit was never shipped to Store B. The PayPal order is never created.", 6)
+        rec.caption("Blocked before any money moves: this unit was never shipped to Store B, so no PayPal order exists.", 6)
         rec.unring()
 
         # ---- Scenario 3: the brand investigates
@@ -244,13 +247,17 @@ def main() -> None:
         rec.caption("An analyst asks for individual buyers.", 3)
         rec.click(page.get_by_role("button", name=re.compile("Plan queries")))
         rec.wait(3)
+        rec.ring(page.locator("p.rationale").first)
         rec.caption("It can't list individuals: the question becomes an aggregate, privacy-protected count.", 5)
+        rec.unring()
         run = page.get_by_role("button", name=re.compile(r"^Run \d+ quer"))
         if run.count():
             rec.click(run.first)
             rec.wait(3)
             page.mouse.wheel(0, 600)
             rec.caption("Answers come back with noise and ±95% intervals, small groups hidden, each query spending budget.", 6)
+
+        rec.card("redteam", 6)
 
         # ---- Onboarding and close
         rec.card("onboard", 7)

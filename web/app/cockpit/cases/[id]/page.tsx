@@ -67,6 +67,7 @@ export default function CaseDetailPage() {
             <span><span className="muted">Store</span> {c.store_id}</span>
             <span><span className="muted">Product</span> {c.sku}</span>
             {c.serial && <span><span className="muted">Serial</span> {c.serial}</span>}
+            <span><span className="muted">Confidence</span> {c.confidence ? c.confidence.toUpperCase() : "–"}</span>
             <span><span className="muted">Reason</span> {REASON_TEXT[c.reason_code] ?? c.reason_code}</span>
             <span><span className="muted">Opened</span> {new Date(c.created_at).toLocaleString()}</span>
           </div>

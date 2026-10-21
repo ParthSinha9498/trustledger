@@ -78,6 +78,7 @@ export default function ConsolePage() {
           <input aria-label="Question" value={question} onChange={(e) => setQuestion(e.target.value)}
                  placeholder="e.g. Where is NMB-P8-128 selling outside its channel?" />
           <button type="submit" disabled={busy !== null || !question.trim()}>{busy === "plan" ? "Planning…" : "Plan queries"}</button>
+          <button type="button" className="secondary" onClick={() => setSpecs((s) => [...s, newSpec()])}>Add query by hand</button>
         </form>
         <div className="chips examples">
           {EXAMPLES.map((q) => (

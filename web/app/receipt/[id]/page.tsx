@@ -29,7 +29,7 @@ export default function ReceiptPage() {
       <div className={s.receiptWrap}>
         <article className={s.receipt} aria-label="Receipt">
           <header className={`${s.receiptHead} ${verified || r.status === "AWAITING_PAYMENT" ? "" : s.receiptHeadBad}`}>
-            <div className={`${s.badge} ${verified ? s.badgeOk : s.badgeBad}`}
+            <div className={`${s.badge} ${verified ? s.badgeOk : r.status === "AWAITING_PAYMENT" ? s.badgePending : s.badgeBad}`}
               style={verified ? undefined : { width: 52, height: 52, fontSize: 28 }} aria-hidden>
               {verified ? "✓" : r.status === "AWAITING_PAYMENT" ? "…" : "✕"}
             </div>

@@ -6,7 +6,8 @@ Reads e2e/out/demo/marks.json (written by demo_record.py):
   * each cut_start/cut_end pair is removed, keeping --keep seconds on each side so the viewer sees the work
     start and the result arrive;
   * popup_open/popup_close: Playwright records PayPal's approval window as its own video, so the main video
-    only shows the waiting pay page then. That stretch is replaced by the popup's recording.
+    only shows the waiting pay page then. That stretch is replaced by the popup's recording, minus the
+    popup_cut_start/popup_cut_end stretch (the sandbox login, so no account details are shown).
 Writes e2e/out/demo/demo.mp4.
 """
 import argparse, json, os, subprocess
@@ -19,7 +20,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "demo")
 def plan(marks: list[dict], keep: float) -> list[tuple[int, float, float | None]]:
     """Segments as (input index, start, end): input 0 is the main video, 1.. are spliced popup videos."""
     segs: list[tuple[int, float, float | None]] = []
-    pos, cut_from, popup_from, inputs = 0.0, None, None, 0
+    pos, cut_from, popup_from, inputs, pop_cut = 0.0, None, None, 0, []
     for m in marks:
         if m["kind"] == "cut_start":
             cut_from = m["t"] + keep
@@ -30,11 +31,17 @@ def plan(marks: list[dict], keep: float) -> list[tuple[int, float, float | None]
                 pos = cut_to
             cut_from = None
         elif m["kind"] == "popup_open":
-            popup_from = m["t"]
+            popup_from, pop_cut = m["t"], []
+        elif m["kind"] in ("popup_cut_start", "popup_cut_end") and popup_from is not None:
+            pop_cut.append(m["t"] - popup_from)  # times inside the popup's own recording
         elif m["kind"] == "popup_close" and popup_from is not None and m.get("label"):
             inputs += 1
             segs.append((0, pos, popup_from))
-            segs.append((inputs, 0.0, None))  # the whole popup recording
+            if len(pop_cut) == 2:  # drop the login stretch (account details stay off screen)
+                segs.append((inputs, 0.0, pop_cut[0]))
+                segs.append((inputs, pop_cut[1], None))
+            else:
+                segs.append((inputs, 0.0, None))
             pos, popup_from = m["t"], None
     segs.append((0, pos, None))
     return segs

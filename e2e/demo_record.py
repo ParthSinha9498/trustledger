@@ -192,24 +192,42 @@ def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
     """Buyer approves in PayPal's own window; the page captures and moves to the receipt."""
     page = rec.page
     rec.go(f"/pay/{checkout_id}")
-    rec.caption("The buyer approves in PayPal (sandbox)", 1)
+    page.wait_for_selector("paypal-button", state="visible", timeout=30000)
+    rec.caption("The buyer approves in PayPal (sandbox)", 2.5)  # also lets the PayPal SDK finish initialising
     with page.context.expect_page(timeout=30000) as pop_info:
         rec.click(page.locator("paypal-button").first)
     pop = pop_info.value
+    pop.set_viewport_size({"width": 1280, "height": 720})  # PayPal opens a narrow window; film it full size
     rec.mark("popup_open", "paypal")
     pop.wait_for_load_state("domcontentloaded", timeout=60000)
-    pop.fill("#email", os.environ["SANDBOX_BUYER_EMAIL"], timeout=60000)
-    if pop.locator("#btnNext").is_visible():
-        pop.click("#btnNext")
-    pop.fill("#password", os.environ["SANDBOX_BUYER_PASSWORD"], timeout=30000)
+    pop.locator("#email").wait_for(state="visible", timeout=60000)
+    rec.mark("popup_cut_start", "sandbox login (keeps account details off screen)")
+    pop.locator("#email").fill(os.environ["SANDBOX_BUYER_EMAIL"])
+    pop.wait_for_timeout(600)
+    pop.click("#btnNext")
+    pop.locator("#password").wait_for(state="visible", timeout=30000)
+    pop.locator("#password").fill(os.environ["SANDBOX_BUYER_PASSWORD"])
+    pop.wait_for_timeout(600)
     pop.click("#btnLogin")
-    for sel in ["#payment-submit-btn", "button[data-testid='submit-button-initial']",
-                "text=Complete Purchase", "text=Pay Now", "text=Continue"]:
-        try:
-            pop.locator(sel).first.click(timeout=20000)
+    try:
+        pop.locator("button:has-text('Complete Purchase'), #payment-submit-btn").first.wait_for(timeout=30000)
+    except Exception:
+        pass
+    rec.mark("popup_cut_end", "review page")
+    pop.wait_for_timeout(2500)  # let the viewer read the review page: $899.00, Complete Purchase
+    clicked = False
+    for _ in range(3):
+        for sel in ["#payment-submit-btn", "button[data-testid='submit-button-initial']",
+                    "button:has-text('Complete Purchase')", "button:has-text('Pay Now')",
+                    "button:has-text('Continue to Review Order')", "button:has-text('Continue')"]:
+            try:
+                pop.locator(sel).first.click(timeout=8000)
+                clicked = True
+                break
+            except Exception:
+                continue
+        if clicked or pop.is_closed():
             break
-        except Exception:
-            continue
     popup_video = pop.video.path() if pop.video else None
     try:
         pop.wait_for_event("close", timeout=30000)

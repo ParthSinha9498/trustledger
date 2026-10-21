@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://astropods.com/schema/package.json
+spec: blueprint/v1
+name: trustledger-investigator
+agent:
+  build: { context: ., dockerfile: docker/astro.Dockerfile }
+  interfaces: { messaging: true }
+models:
+  default:
+    provider: gateway
+    models: [claude-haiku-4-5, claude-sonnet-4-6]   # picked at deploy -> MODEL_DEFAULT
+inputs:
+  - { name: API_URL,          datatype: string }
+  - { name: BRAND_NODE_URL,   datatype: string }
+  - { name: PAYPAL_NODE_URL,  datatype: string }
+  - { name: NODE_SHARED_TOKEN, datatype: string, secret: true }
+dev:
+  interfaces:
+    messaging: { adapters: [web] }      # local chat at http://localhost:3100

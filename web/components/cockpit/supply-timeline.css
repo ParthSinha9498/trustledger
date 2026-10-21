@@ -1,0 +1,5 @@
+/* Bryntum Scheduler sizing and off-channel highlight. Theme CSS is imported in SupplyTimeline.tsx. */
+.supply-timeline { height: 460px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.supply-timeline.compact { height: 380px; }
+.supply-timeline .b-sch-event.leak { outline: 2px solid #d92d20; outline-offset: 1px; font-weight: 600; }
+.supply-timeline .b-sch-dependency.leak { stroke: #d92d20; stroke-width: 2px; }

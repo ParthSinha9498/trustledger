@@ -1,0 +1,8 @@
+# BuildKit reads <Dockerfile>.dockerignore next to the Dockerfile (used by docker compose).
+# Keeps host node_modules/.next out of the image so `npm ci` inside the build wins.
+**/node_modules
+**/.next
+.venv
+.env
+**/__pycache__
+e2e

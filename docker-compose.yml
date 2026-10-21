@@ -1,0 +1,95 @@
+# Local dev: docker compose up --build   (copy .env.example to .env first)
+#
+# Host ports are configurable, so a second copy can run next to an existing one, e.g.
+#   PG_PORT=5543 API_PORT=8100 BRAND_PORT=8101 PAYPAL_PORT=8102 WEB_PORT=3100 \
+#   docker compose -p tl-e2e up -d --build
+# NEXT_PUBLIC_API_URL is baked into the web bundle at build time; it defaults to
+# http://localhost:${API_PORT}.
+x-backend: &backend
+  build: { context: ., dockerfile: docker/backend.Dockerfile }
+  image: trustledger-backend:local
+  env_file:
+    - path: .env
+      required: false
+  environment: &backend-env
+    PAYPAL_MODE: ${PAYPAL_MODE:-mock}
+    LLM_MODE: ${LLM_MODE:-mock}
+    NODE_SHARED_TOKEN: ${NODE_SHARED_TOKEN:-dev-token}
+    BRAND_NODE_URL: http://brand-node:8001
+    PAYPAL_NODE_URL: http://paypal-node:8002
+    API_URL: http://api:8000
+    CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:${WEB_PORT:-3000}}
+    PUBLIC_WEB_URL: ${PUBLIC_WEB_URL:-http://localhost:${WEB_PORT:-3000}}
+    # .env holds host-side DB URLs for `uv run`; blank them so each container only sees the one it
+    # is given below.
+    BRAND_DATABASE_URL: ""
+    PAYPAL_DATABASE_URL: ""
+    PLATFORM_DATABASE_URL: ""
+
+# Each service gets only its own database URL (seed is the admin job and gets all three).
+x-db:
+  brand: &brand-db postgresql://postgres:postgres@postgres:5432/trustledger_brand
+  paypal: &paypal-db postgresql://postgres:postgres@postgres:5432/trustledger_paypal_side
+  platform: &platform-db postgresql://postgres:postgres@postgres:5432/trustledger_platform
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment: { POSTGRES_PASSWORD: postgres }
+    ports: [ "${PG_PORT:-5433}:5432" ]
+    volumes: [ "pgdata:/var/lib/postgresql/data" ]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 30
+  seed:
+    <<: *backend
+    command: ["/app/docker/start.sh", "seed"]
+    environment:
+      <<: *backend-env
+      BRAND_DATABASE_URL: *brand-db
+      PAYPAL_DATABASE_URL: *paypal-db
+      PLATFORM_DATABASE_URL: *platform-db
+    depends_on: { postgres: { condition: service_healthy } }
+    restart: "no"
+  brand-node:
+    <<: *backend
+    command: ["/app/docker/start.sh", "brand-node"]
+    environment:
+      <<: *backend-env
+      BRAND_DATABASE_URL: *brand-db
+    depends_on: { seed: { condition: service_completed_successfully } }
+    ports: [ "${BRAND_PORT:-8001}:8001" ]
+  paypal-node:
+    <<: *backend
+    command: ["/app/docker/start.sh", "paypal-node"]
+    environment:
+      <<: *backend-env
+      PAYPAL_DATABASE_URL: *paypal-db
+    depends_on: { seed: { condition: service_completed_successfully } }
+    ports: [ "${PAYPAL_PORT:-8002}:8002" ]
+  api:
+    <<: *backend
+    command: ["/app/docker/start.sh", "api"]
+    environment:
+      <<: *backend-env
+      PLATFORM_DATABASE_URL: *platform-db
+    depends_on: [ brand-node, paypal-node ]
+    ports: [ "${API_PORT:-8000}:8000" ]
+  worker:
+    <<: *backend
+    command: ["/app/docker/start.sh", "worker"]
+    depends_on: [ api ]
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:${API_PORT:-8000}}
+        NEXT_PUBLIC_AG_GRID_LICENSE: ${NEXT_PUBLIC_AG_GRID_LICENSE:-}
+        NEXT_PUBLIC_PAYPAL_CLIENT_ID: ${NEXT_PUBLIC_PAYPAL_CLIENT_ID:-}
+    depends_on: [ api ]
+    ports: [ "${WEB_PORT:-3000}:3000" ]
+
+volumes:
+  pgdata:

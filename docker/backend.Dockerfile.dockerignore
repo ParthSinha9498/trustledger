@@ -1,0 +1,8 @@
+**/node_modules
+**/.next
+.venv
+.env
+**/__pycache__
+.pytest_cache
+web
+e2e

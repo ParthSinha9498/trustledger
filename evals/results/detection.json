@@ -1,0 +1,85 @@
+{
+  "mode": "mock (ScenarioAwareMockLLM)",
+  "scenarios_evaluated": 4,
+  "recall": 1.0,
+  "false_alarm_rate": 0.0,
+  "total_rho_spent": 0.04,
+  "results": [
+    {
+      "scenario": "leaky_distributor",
+      "title": "Leaky Distributor Diversion",
+      "is_problem": true,
+      "status": "complete",
+      "confidence": "unknown",
+      "summary": "Root cause confirmed: NOT_IN_CHANNEL anomaly concentrated at store_c linked to dist_1.\n\nNext actions:\n- Inspect physical inventory at store_c\n- Audit distributor shipment logs",
+      "findings": [
+        "Unauthorized inventory diversion: dist_1 serials scanned at store_c under NOT_IN_CHANNEL."
+      ],
+      "steps_count": 17,
+      "privacy_spent": 0.01,
+      "queries_count": 5,
+      "store_attributed": true,
+      "distributor_attributed": true,
+      "reason_attributed": true,
+      "correct": true,
+      "error": null
+    },
+    {
+      "scenario": "cloned_serial",
+      "title": "Cloned / Resold Genuine Serials",
+      "is_problem": true,
+      "status": "complete",
+      "confidence": "unknown",
+      "summary": "Root cause confirmed: ALREADY_SOLD anomaly concentrated at store_b linked to dist_1.\n\nNext actions:\n- Inspect physical inventory at store_b\n- Audit distributor shipment logs",
+      "findings": [
+        "Cloned serials detected: Genuine dist_1 serials re-scanned at store_b as ALREADY_SOLD."
+      ],
+      "steps_count": 17,
+      "privacy_spent": 0.01,
+      "queries_count": 5,
+      "store_attributed": true,
+      "distributor_attributed": true,
+      "reason_attributed": true,
+      "correct": true,
+      "error": null
+    },
+    {
+      "scenario": "rogue_store",
+      "title": "Rogue Store Counterfeiting",
+      "is_problem": true,
+      "status": "complete",
+      "confidence": "unknown",
+      "summary": "Root cause confirmed: UNKNOWN anomaly concentrated at store_b.\n\nNext actions:\n- Inspect physical inventory at store_b\n- Audit distributor shipment logs",
+      "findings": [
+        "Counterfeit serials concentrated at rogue store store_b marked UNKNOWN."
+      ],
+      "steps_count": 17,
+      "privacy_spent": 0.01,
+      "queries_count": 5,
+      "store_attributed": true,
+      "distributor_attributed": true,
+      "reason_attributed": true,
+      "correct": true,
+      "error": null
+    },
+    {
+      "scenario": "clean",
+      "title": "Clean Control Baseline",
+      "is_problem": false,
+      "status": "complete",
+      "confidence": "low",
+      "summary": "No breach or anomaly identified across stores. Isolated operational anomaly.\n\nNext actions:\n- Resume standard monitoring",
+      "findings": [
+        "No systematic failure cluster or diversion pattern detected. Baseline noise."
+      ],
+      "steps_count": 14,
+      "privacy_spent": 0.01,
+      "queries_count": 4,
+      "store_attributed": true,
+      "distributor_attributed": true,
+      "reason_attributed": true,
+      "correct": true,
+      "error": null
+    }
+  ]
+}

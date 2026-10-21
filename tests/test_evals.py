@@ -2,15 +2,19 @@
 
 Runs completely offline (mock LLM, mock PayPal).
 """
+import os
+
 import pytest
 
 from evals import detection, redteam
 from evals.scenarios import SCENARIOS
 
+PID = os.getpid()  # unique DB names so parallel pytest runs (e.g. two agents) don't collide
+
 
 @pytest.mark.parametrize("scenario_name", list(SCENARIOS.keys()))
 def test_detection_single_scenario(scenario_name: str):
-    res = detection.run_scenario(scenario_name, mock=True, tag_prefix=f"test_{scenario_name}")
+    res = detection.run_scenario(scenario_name, mock=True, tag_prefix=f"test{PID}_{scenario_name}")
     assert res.correct, (
         f"Scenario {scenario_name} failed attribution or clean check: "
         f"store={res.store_attributed}, dist={res.distributor_attributed}, reason={res.reason_attributed}, "
@@ -24,7 +28,7 @@ def test_detection_single_scenario(scenario_name: str):
 
 
 def test_detection_run_all_metrics(tmp_path):
-    summary = detection.run_all(mock=True, out_dir=tmp_path)  # never overwrite committed results
+    summary = detection.run_all(mock=True, out_dir=tmp_path, tag_prefix=f"det{PID}")  # never overwrite committed results
     assert summary["scenarios_evaluated"] == len(SCENARIOS)
     assert summary["recall"] == 1.0, f"Expected 100% recall, got {summary['recall']}"
     assert summary["false_alarm_rate"] == 0.0, f"Expected 0% false alarms, got {summary['false_alarm_rate']}"
@@ -38,7 +42,7 @@ def test_redteam_all_attacks_blocked(tmp_path):
         attempts=11,
         mock=True,
         small=True,
-        tag="test_rt",
+        tag=f"test_rt{PID}",
         membership_trials=40,
         keep_db=False,
         out_dir=tmp_path,

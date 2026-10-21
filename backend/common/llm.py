@@ -75,8 +75,10 @@ class OpenAICompatibleLLM:
                 # Free tiers allow a few requests per minute; wait as long as the provider asks.
                 if attempt == 5:
                     raise
-                m = re.search(r"retry in ([\d.]+)s", str(e))
-                time.sleep(float(m.group(1)) + 1 if m else 15 * (attempt + 1))
+                wait = _retry_after(str(e)) or 15 * (attempt + 1)
+                if wait > 300:  # a daily quota, not a per-minute limit: fail now rather than stall the case
+                    raise
+                time.sleep(wait)
         m = resp.choices[0].message
         calls = [
             ToolCall(id=c.id, name=c.function.name, arguments=json.loads(c.function.arguments or "{}"),
@@ -88,6 +90,15 @@ class OpenAICompatibleLLM:
         usage = {"prompt": u.prompt_tokens, "completion": u.completion_tokens,
                  "cached": (getattr(details, "cached_tokens", None) or 0)} if u else {}
         return Turn(content=m.content or "", tool_calls=calls, usage=usage)
+
+
+def _retry_after(msg: str) -> float | None:
+    """Seconds to wait from a 429 message: Gemini says "retry in 12.3s", Groq "try again in 1m29.8s"."""
+    m = re.search(r"(?:retry|try again) in (?:(\d+)h)?(?:(\d+)m)?([\d.]+)s", msg)
+    if not m:
+        return None
+    h, mins, secs = m.groups()
+    return int(h or 0) * 3600 + int(mins or 0) * 60 + float(secs) + 1
 
 
 def _error_body(e) -> dict:

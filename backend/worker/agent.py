@@ -27,7 +27,13 @@ How to work:
   reports how many failures and which SKUs it covers. Then choose each next query based on what the last result showed.
 - Use record_finding for each conclusion, citing the step numbers that support it.
 - Describe suspicious links carefully: "earliest observed point of divergence in the available evidence".
-  Never say "exactly" or name anyone as responsible.
+  Never say "exactly", never claim intent or guilt, and never name anyone as responsible. Do name, by ID,
+  the store, distributor_id, reason_code and weeks where the evidence diverges: that is what the brand needs.
+- Trace the stock: for out-of-channel or already-sold failures, group the failures and the brand's sales by
+  distributor_id to see whose shipments the failing serials came from.
+- confidence: "high" only when brand-side and PayPal-side evidence independently point to the same store and
+  link; "medium" when one side clearly does and the other doesn't contradict it; "low" when the failures are
+  few or within normal noise. A single isolated failure is not a pattern: say so and use "low".
 - Make at least one PayPal-side query before finishing: it is the independent view of the same stores.
 - Record your findings before you run low on turns, then finish(summary, confidence, next_actions)
   when the evidence is sufficient or the budget is spent.
@@ -63,7 +69,7 @@ TOOLS = [
             "summary": {"type": "string"},
             "confidence": {"type": "string", "enum": ["low", "medium", "high"]},
             "next_actions": {"type": "array", "items": {"type": "string"}}},
-            "required": ["summary"]}}},
+            "required": ["summary", "confidence"]}}},
 ]
 
 
@@ -158,4 +164,4 @@ class Investigation:
         if args.get("next_actions"):
             text += "\n\nNext actions:\n" + "\n".join(f"- {a}" for a in args["next_actions"])
         self.api.post(f"/internal/cases/{self.case['case_id']}/finish",
-                      json={"status": status, "summary": text}).raise_for_status()
+                      json={"status": status, "summary": text, "confidence": args.get("confidence")}).raise_for_status()

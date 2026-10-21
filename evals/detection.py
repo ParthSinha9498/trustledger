@@ -183,17 +183,16 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
     tool_queries = sum(1 for s in steps if s.get("kind") == "tool_call")
 
     if not gt.is_problem:
-        # Clean control: should NOT have high confidence and should NOT falsely blame
-        false_blame = any(_contains(all_text, s) for s in ["store_b", "store_c", "dist_1", "dist_2"])
-        is_confident = case.get("confidence") == "high"
-        correct = (not false_blame) and (not is_confident)
+        # Clean control: the agent will mention the trigger store (every case starts there), so mentions
+        # aren't blame. A false alarm is any confidence above "low" (or none reported).
+        correct = case.get("confidence") == "low"
 
         return ScenarioResult(
             scenario=scenario.name,
             title=scenario.title,
             is_problem=False,
             status=case.get("status", "unknown"),
-            confidence=case.get("confidence", "low"),
+            confidence=case.get("confidence") or "unknown",
             summary=summary,
             findings=findings,
             steps_count=len(steps),
@@ -295,11 +294,18 @@ def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir:
     results: list[ScenarioResult] = []
 
     for name in names:
-        res = run_scenario(name, mock=mock, tag_prefix=tag_prefix)
+        try:
+            res = run_scenario(name, mock=mock, tag_prefix=tag_prefix)
+        except Exception as e:  # e.g. provider quota: record it and keep going, never score it
+            sc = SCENARIOS[name]
+            res = ScenarioResult(scenario=name, title=sc.title, is_problem=sc.ground_truth.is_problem,
+                                 status="error", confidence="unknown", summary="",
+                                 error=f"{type(e).__name__}: {str(e)[:300]}")
         results.append(res)
 
-    problem_scenarios = [r for r in results if r.is_problem]
-    clean_scenarios = [r for r in results if not r.is_problem]
+    scored = [r for r in results if r.error is None]
+    problem_scenarios = [r for r in scored if r.is_problem]
+    clean_scenarios = [r for r in scored if not r.is_problem]
 
     detected_count = sum(1 for r in problem_scenarios if r.correct)
     clean_pass_count = sum(1 for r in clean_scenarios if r.correct)
@@ -312,7 +318,8 @@ def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir:
 
     data = {
         "mode": "mock (ScenarioAwareMockLLM)" if mock else f"live LLM ({os.environ.get('AGENT_MODEL', 'gemini')})",
-        "scenarios_evaluated": len(results),
+        "scenarios_evaluated": len(scored),
+        "scenarios_errored": [r.scenario for r in results if r.error],
         "recall": round(recall, 3),
         "false_alarm_rate": round(false_alarm_rate, 3),
         "total_rho_spent": round(total_rho, 4),

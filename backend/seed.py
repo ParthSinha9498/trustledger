@@ -79,7 +79,7 @@ CREATE TABLE checkouts (checkout_id TEXT PRIMARY KEY, store_id TEXT, serial TEXT
     amount DOUBLE PRECISION, verification_id TEXT, paypal_order_id TEXT, status TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE cases (case_id TEXT PRIMARY KEY, brand_id TEXT, verification_id TEXT, store_id TEXT,
-    sku TEXT, serial TEXT, reason_code TEXT, status TEXT, summary TEXT,
+    sku TEXT, serial TEXT, reason_code TEXT, status TEXT, summary TEXT, confidence TEXT,
     failure_count INT NOT NULL DEFAULT 1, skus TEXT[] NOT NULL DEFAULT '{}',
     run_count INT NOT NULL DEFAULT 0, run_failure_count INT NOT NULL DEFAULT 0, run_skus TEXT[] NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());

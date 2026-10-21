@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "e2e", "out", "story")
 os.makedirs(OUT, exist_ok=True)
 
-CARDS = ["hook", "problem", "phones", "gap", "idea", "s1", "s2", "s3", "s4", "redteam", "onboard", "close"]
+CARDS = ["hook", "problem", "gap", "idea", "s1", "s2", "s3", "s4", "redteam", "s5", "terminal", "code", "onboard", "close"]
 
 def main():
     with sync_playwright() as p:

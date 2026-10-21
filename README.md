@@ -54,7 +54,7 @@ cd web && npm install && npm run dev   # http://localhost:3000
 
 | Category | Component | Status | Details |
 |---|---|---|---|
-| **Real** | **PayPal Orders v2** | Real (Sandbox) | Server-side order creation (`intent: CAPTURE`), `custom_id` verification ID binding, client token exchange, PayPal JS SDK v6 button, capture API, and webhook signature verification. |
+| **Real** | **PayPal Orders v2** | Real (Sandbox) | Orders v2 (create with `intent: CAPTURE` and the verification ID in `custom_id`, get, capture) through the APIMatic-generated PayPal Server SDK (`paypal-server-sdk`), built with APIMatic's PayPal Context Plugin (see [docs/APIMATIC.md](docs/APIMATIC.md)). Also: browser client token exchange, PayPal JS SDK v6 button, and webhook signature verification (these two call REST directly; the server SDK has no endpoints for them). |
 | **Real** | **Differential Privacy** | Real (OpenDP) | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), query response caching (prevents noise averaging), and calculated 95% confidence intervals. |
 | **Real** | **Investigation Loop** | Real / Agentic | Multi-turn agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and cited findings. |
 | **Real** | **Web Frontend** | Real | Next.js 16 (Turbopack) & React 19 app with responsive light/dark mode, AG Grid Community investigations grid, AG Charts Community visualizations, and Bryntum Scheduler supply chain timeline. |

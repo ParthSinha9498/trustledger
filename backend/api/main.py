@@ -2,14 +2,13 @@
 import random
 import uuid
 
-import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel
 
 from backend import config, db
-from backend.api.paypal_client import paypal
+from backend.api.paypal_client import PayPalError, paypal
 from backend.common import http, notify
 from backend.common.auth import require_node_token
 from backend.api import console, paypal_sdk, supply_chain
@@ -136,14 +135,11 @@ def capture(checkout_id: str):
         raise HTTPException(409, "checkout is not awaiting payment")
     try:
         result = paypal.capture_order(chk["paypal_order_id"])
-    except httpx.HTTPStatusError as e:
+    except PayPalError as e:
         # e.g. 422 ORDER_NOT_APPROVED when the buyer hasn't approved yet. Pass PayPal's reason through.
-        try:
-            body = e.response.json()
-        except ValueError:
-            body = {}
+        body = e.body
         issue = ((body.get("details") or [{}])[0]).get("issue") or body.get("name") or "PAYPAL_ERROR"
-        code = 409 if e.response.status_code == 422 else 502
+        code = 409 if e.status_code == 422 else 502
         raise HTTPException(code, {"paypal_issue": issue, "message": body.get("message", str(e))})
     if result.get("status") != "COMPLETED":
         raise HTTPException(502, {"paypal_status": result.get("status")})

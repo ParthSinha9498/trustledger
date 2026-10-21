@@ -12,6 +12,7 @@ dependencies = [
   "openai>=1.50",
   "psycopg[binary]>=3.2",
   "psycopg-pool>=3.2",
+  "paypal-server-sdk==2.4.0",
 ]
 
 [dependency-groups]

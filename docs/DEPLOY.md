@@ -58,12 +58,16 @@ A free Render Postgres instance expires automatically after 30 days. Because hac
    - `trustledger_brand` (or `brand`)
    - `trustledger_paypal_side` (or `paypal_side`)
    - `trustledger_platform` (or `platform`)
-3. Copy the pooled connection strings (`postgres://user:password@ep-...neon.tech/<dbname>?sslmode=require`) for each database:
+3. Copy the **direct (non-pooled)** connection strings (e.g. `postgres://user:password@ep-...neon.tech/<dbname>?sslmode=require`) for each database:
    - `BRAND_DATABASE_URL`
    - `PAYPAL_DATABASE_URL`
    - `PLATFORM_DATABASE_URL`
 
-*(Alternatively, any external managed PostgreSQL service or single self-hosted Postgres 17 instance with 3 distinct databases can be used).*
+> [!IMPORTANT]
+> **Use Direct, Non-Pooled Connection Strings:** Do **not** use Neon's `-pooler` connection strings. TrustLedger uses `psycopg 3`, which automatically switches to server-side prepared statements after 5 executions. PgBouncer transaction pooling does not maintain prepared statements across connections, leading to `prepared statement "..." does not exist` errors. Keep `?sslmode=require`.
+
+> [!NOTE]
+> Neon's free compute automatically suspends after ~5 minutes of idle time. The first database query after compute sleep adds approximately 1–2 seconds of latency while the compute warms up.
 
 ---
 
@@ -79,9 +83,9 @@ A free Render Postgres instance expires automatically after 30 days. Because hac
 
 | Variable | Service | Value / Source |
 |---|---|---|
-| `BRAND_DATABASE_URL` | `trustledger-backend` | Connection string for brand database from Step 1 |
-| `PAYPAL_DATABASE_URL` | `trustledger-backend` | Connection string for PayPal DP database from Step 1 |
-| `PLATFORM_DATABASE_URL`| `trustledger-backend` | Connection string for platform database from Step 1 |
+| `BRAND_DATABASE_URL` | `trustledger-backend` | Direct connection string for brand database from Step 1 |
+| `PAYPAL_DATABASE_URL` | `trustledger-backend` | Direct connection string for PayPal DP database from Step 1 |
+| `PLATFORM_DATABASE_URL`| `trustledger-backend` | Direct connection string for platform database from Step 1 |
 | `PAYPAL_CLIENT_ID` | `trustledger-backend` | PayPal REST App Client ID (developer.paypal.com sandbox) |
 | `PAYPAL_CLIENT_SECRET`| `trustledger-backend` | PayPal REST App Secret |
 | `PAYPAL_WEBHOOK_ID` | `trustledger-backend` | *(Leave blank initially; set after Step 4 below)* |
@@ -96,7 +100,9 @@ A free Render Postgres instance expires automatically after 30 days. Because hac
 
 TrustLedger handles database initialization automatically on container boot:
 - **`SEED_ON_START=auto`** (Default): On boot, `docker/all_in_one.sh` inspects `to_regclass('public.stores')` on `PLATFORM_DATABASE_URL`. If the database is empty, it runs `docker/seed.py`, creating all schemas and populating fictional demonstration data (Nimbus brand catalog, stores, distributors, and initial serials). If already seeded, it skips to preserve active state.
-- **`SEED_ON_START=always`**: Forces a fresh database wipe and reseeds demo fixtures on every boot. Set this in Render's environment settings whenever you want to reset the entire demo back to pristine state.
+- **`SEED_ON_START=always`** (One-Off Demo Reset): Wipes and reseeds demo fixtures on boot.
+  > [!WARNING]
+  > Because Render Free web services spin down and restart on every cold start (after 15 minutes of inactivity), leaving `SEED_ON_START=always` permanently configured would wipe the database every time the service wakes up—including during evaluation! To reset the demo: change `SEED_ON_START` to `always`, let one deploy finish, and then immediately change it back to `auto`.
 - **`SEED_ON_START=never`**: Bypasses any seed check.
 
 ---
@@ -114,7 +120,7 @@ TrustLedger handles database initialization automatically on container boot:
    - `PAYMENT.CAPTURE.COMPLETED`
 5. Save the webhook and copy the generated **Webhook ID**.
 6. In Render, edit environment variables for `trustledger-backend`:
-   - Set `PAYPAL_WEBHOOK_ID=<your-webhook-id>`.
+   - Set `PAYPAL_WEBHOOK_ID` to the copied Webhook ID.
 7. Click **Save Changes** (Render will automatically redeploy with the webhook secret active).
 
 ---
@@ -131,15 +137,26 @@ Render's Free tier spins down web services after 15 minutes of inactivity:
 
 ---
 
-## 7. Verification Checklist
+## 7. LLM Provider Quotas & Judging Readiness
+
+TrustLedger defaults to Groq's OpenAI-compatible endpoint (`openai/gpt-oss-120b` or `llama-3.3-70b-versatile`):
+- **Free Tier Quota:** Groq allows approximately 200,000 tokens per day (sufficient for ~4 full multi-turn agent investigations).
+- **Zero Cost for Case Browsing:** Completed investigations are stored with all citations and step timelines in the PostgreSQL database. Browsing cases, reviewing findings, and running console queries on cached cells consumes zero LLM tokens.
+- **Deduplication:** Subsequent scans of known failed serials join existing cases without re-triggering the investigation agent.
+- **Tip for Judging:** Trigger a Store B scan once prior to judging so that at least one complete investigation case is pre-seeded and immediately viewable.
+
+---
+
+## 8. Verification Checklist
 
 1. **Backend Health Check:**
    - `https://<trustledger-backend-host>.onrender.com/health` returns `{"ok": true, "paypal_mode": "sandbox"}`.
-2. **Store A Checkout:**
+2. **Store A Legitimate Checkout:**
    - Visit `https://<trustledger-web-host>.onrender.com/pos`.
-   - Scan Store A with serial `X123`. Verify: brand verified badge, PayPal checkout button active, payment completes.
-3. **Store B Rejection:**
+   - Scan Store A with serial `X123`. Verify: brand verified badge, PayPal checkout button active.
+   - To complete payment, sign in with a **PayPal sandbox buyer account** (create one at `developer.paypal.com` → Sandbox → Accounts).
+3. **Store B Rejection & Case Creation:**
    - Scan Store B with serial `X123`. Verify: checkout blocked with `NOT_IN_CHANNEL`, PayPal order prevented, investigation opened.
 4. **Brand Cockpit & Bryntum Timeline:**
-   - Visit `/cockpit`: open case displayed in AG Grid with status and confidence.
+   - Visit `/cockpit`: open case displayed in AG Grid with status and confidence score.
    - Click case detail: multi-turn agent tool executions, findings, and Bryntum supply timeline.

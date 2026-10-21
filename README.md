@@ -5,7 +5,7 @@ before the PayPal order is created. Verified: the buyer pays, and the verificati
 order's `custom_id`. Not verified: no PayPal order is ever created, and an AI agent investigates the failure
 using only privacy-protected aggregates.
 
-> **Status:** Complete implementation verified end-to-end. Checkout gate, PayPal sandbox integration, differential privacy engine (OpenDP zCDP), multi-turn investigation agent, and Next.js frontend (AG Grid, AG Charts, Bryntum Scheduler) are fully functional. Full offline test suite passing (49 tests).
+> **Status:** Working end to end locally (mock mode, plus PayPal sandbox order creation). Live agent evaluation in progress; deployment to Render pending. The offline test suite passes.
 
 ## Run it
 

@@ -1,6 +1,8 @@
 # Astropods Deployment & Integration Guide
 
-TrustLedger packages its autonomous supply-chain divergence investigation agent as an [Astropods](https://astropods.com) blueprint (`astropods.yml`), allowing it to run as a hosted, monitored service with streaming chat interfaces, AI Gateway proxying, and distributed OpenTelemetry tracing.
+> **Status:** Adapter and blueprint written; not yet run on Astropods.
+
+TrustLedger packages its autonomous supply-chain divergence investigation agent as an [Astropods](https://astropods.com) blueprint (`astropods.yml`), designed to run as a hosted, monitored service with streaming chat interfaces, AI Gateway proxying, and distributed OpenTelemetry tracing.
 
 ---
 

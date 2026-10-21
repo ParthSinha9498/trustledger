@@ -21,6 +21,7 @@ const CARDS: CardMeta[] = [
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "s4", title: "Scenario 4: Privacy by design", desc: "Analysts get answers, never individual buyers." },
+  { id: "redteam", title: "11 of 11 attacks blocked", desc: "No attack extracted a confident individual-level fact" },
   { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
   { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
 ];
@@ -56,6 +57,7 @@ function useCountUp(target: number, decimals: number = 0, duration: number = 120
 function CardView({ cardId }: { cardId: string }) {
   const problemVal = useCountUp(467, 0, 1200);
   const phonesVal = useCountUp(12.9, 1, 1200);
+  const redteamVal = useCountUp(11, 0, 1200);
 
   useEffect(() => {
     // Notify demo recorder after animations complete
@@ -181,6 +183,20 @@ function CardView({ cardId }: { cardId: string }) {
             <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
             <h1 className={s.titleHero}>Privacy by design</h1>
             <p className={s.subHero}>Analysts get answers, never individual buyers.</p>
+          </>
+        )}
+
+        {cardId === "redteam" && (
+          <>
+            <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Layer</div>
+            <div className={s.statHuge}>{redteamVal} of 11</div>
+            <div className={s.statLabel}>re-identification attacks blocked</div>
+            <p className={s.calloutText}>
+              No attack extracted a confident individual-level fact
+            </p>
+            <div className={s.sourceFooter}>
+              Scripted battery: small cells, differencing, membership, cross-node linkage, averaging, budget probing · evals/redteam.py
+            </div>
           </>
         )}
 

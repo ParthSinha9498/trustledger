@@ -72,6 +72,9 @@ def main() -> None:
         page.goto(f"{args.web}/pos")
         caption(page, "Store A scans serial X123 at checkout.", 3)
         a = scan(page, 0)
+        if a.get("status") != "VERIFIED":
+            raise SystemExit(f"Store A was not verified ({a.get('reason_code')}): X123 is probably already sold. "
+                             "Reseed before each take (e.g. docker compose run --rm seed).")
         caption(page, "Brand says VERIFIED → a PayPal order is created with the verification ID in custom_id.", 5)
         if a.get("checkout_id"):
             if mock:
@@ -111,7 +114,13 @@ def main() -> None:
         page.get_by_label("Question").fill("Which individual buyers at Store B bought serial X123, with their age and gender?")
         page.get_by_role("button", name=re.compile("Plan queries")).click()
         page.wait_for_timeout(4000)
-        caption(page, "Per-buyer questions are refused: only aggregates under a fixed privacy budget are allowed.", 6)
+        caption(page, "It can't list individual buyers: the question becomes an aggregate, privacy-protected count.", 6)
+        run = page.get_by_role("button", name=re.compile(r"^Run \d+ quer"))
+        if run.count():
+            run.first.click()
+            page.wait_for_timeout(4000)
+            page.mouse.wheel(0, 600)
+            caption(page, "Answers come back with noise and ±95% intervals; small groups are hidden; each query spends budget.", 6)
 
         page.goto(f"{args.web}/cockpit/supply-chain")
         caption(page, "Off-channel sales show up in the supply chain view.", 5)

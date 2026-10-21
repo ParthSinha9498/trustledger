@@ -255,7 +255,12 @@ def run_scenario(name: str, mock: bool = True, tag_prefix: str = "det") -> Scena
         assert case is not None, f"No open case found for scenario {name}"
 
         # Run investigation
-        llm = ScenarioAwareMockLLM() if mock else harness.get_llm()
+        if mock:
+            llm = ScenarioAwareMockLLM()
+        else:
+            from backend.common.llm import OpenAICompatibleLLM
+            llm = OpenAICompatibleLLM()  # always the real provider, regardless of LLM_MODE
+
         inv = Investigation(case, llm)
         inv.run()
 

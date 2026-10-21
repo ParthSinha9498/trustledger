@@ -8,7 +8,18 @@ web/.next/
 web/next-env.d.ts
 e2e/out/
 
-# Local assistant notes (kept outside version control)
+# Local assistant and agent-coordination files (kept outside version control)
 CLAUDE.md
+AGENTS.md
+ANTIGRAVITY.md
+HANDOVER.md
+AG_TO_CLAUDE.md
+CLAUDE_TO_AG.md
+comms/
+notes/
 .claude/
+.gemini/
+.agent/
+.agents/
+.antigravity/
 evals/results/live*/

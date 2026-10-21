@@ -206,7 +206,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               example:
-                detail: checkout is not awaiting payment
+                detail:
+                  paypal_issue: ORDER_NOT_APPROVED
+                  message: Order has not been approved by buyer
+        '502':
+          description: PayPal upstream error or capture failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail:
+                  paypal_status: FAILED
       description: Captures the PayPal order, confirms the sale with the brand, and returns the receipt.
   /receipts/{checkout_id}:
     get:
@@ -502,12 +513,23 @@ components:
       type: object
       properties:
         detail:
-          description: Human-readable error.
-          type: string
+          description: Error details, either as a human-readable string or a PayPal error object.
+          oneOf:
+          - type: string
+            example: checkout is not awaiting payment
+          - type: object
+            properties:
+              paypal_issue:
+                type: string
+                example: ORDER_NOT_APPROVED
+              message:
+                type: string
+                example: Order has not been approved by buyer
+              paypal_status:
+                type: string
+                example: FAILED
       required:
       - detail
-      example:
-        detail: bad node token
   securitySchemes:
     NodeToken:
       type: apiKey

@@ -288,13 +288,51 @@ def platform_spec() -> dict:
                 op["operationId"], op["summary"] = doc[0], doc[1]
                 if doc[2]:
                     op["description"] = doc[2]
-    spec.setdefault("components", {}).setdefault("schemas", {})["Error"] = ERROR_SCHEMA
+    platform_error_schema = {
+        "type": "object",
+        "properties": {
+            "detail": {
+                "description": "Error details, either as a human-readable string or a PayPal error object.",
+                "oneOf": [
+                    {"type": "string", "example": "checkout is not awaiting payment"},
+                    {
+                        "type": "object",
+                        "properties": {
+                            "paypal_issue": {"type": "string", "example": "ORDER_NOT_APPROVED"},
+                            "message": {"type": "string", "example": "Order has not been approved by buyer"},
+                            "paypal_status": {"type": "string", "example": "FAILED"},
+                        },
+                    },
+                ],
+            }
+        },
+        "required": ["detail"],
+    }
+    spec.setdefault("components", {}).setdefault("schemas", {})["Error"] = platform_error_schema
     capture_op = spec.get("paths", {}).get("/checkout/{checkout_id}/capture", {}).get("post")
     if capture_op:
         capture_op.setdefault("responses", {})["409"] = {
             "description": "Checkout is not awaiting payment, or buyer has not approved the PayPal order yet.",
-            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"},
-                                             "example": {"detail": "checkout is not awaiting payment"}}},
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/Error"},
+                    "example": {
+                        "detail": {
+                            "paypal_issue": "ORDER_NOT_APPROVED",
+                            "message": "Order has not been approved by buyer",
+                        }
+                    },
+                }
+            },
+        }
+        capture_op["responses"]["502"] = {
+            "description": "PayPal upstream error or capture failed.",
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/Error"},
+                    "example": {"detail": {"paypal_status": "FAILED"}},
+                }
+            },
         }
     return spec
 

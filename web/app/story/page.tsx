@@ -21,7 +21,7 @@ const CARDS: CardMeta[] = [
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "s4", title: "Scenario 4: Privacy by design", desc: "Analysts get answers, never individual buyers." },
-  { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 28% of the time, no better than chance" },
+  { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
   { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
   { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
 ];
@@ -192,7 +192,7 @@ function CardView({ cardId }: { cardId: string }) {
             <div className={s.statHuge}>{redteamVal} of 220</div>
             <div className={s.statLabel}>re-identification attempts blocked</div>
             <p className={s.calloutText}>
-              Best guesses were right 28% of the time, no better than chance
+              Best guesses were right 23% of the time, no better than chance
             </p>
             <div className={s.sourceFooter}>
               20 runs × 11 scripted attacks: small cells, differencing, membership, cross-node linkage, averaging, budget probing · evals/redteam.py --repeat 20

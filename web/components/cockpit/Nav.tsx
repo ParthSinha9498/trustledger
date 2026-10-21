@@ -11,6 +11,7 @@ const LINKS = [
 
 export default function Nav() {
   const path = usePathname() ?? "/";
+  if (path.startsWith("/story")) return null;
   const active = (href: string, exact?: boolean) =>
     exact ? path === href || path.startsWith(`${href}/cases`) : path.startsWith(href);
   return (

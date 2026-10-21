@@ -1,7 +1,7 @@
 #!/bin/sh
 # Start one TrustLedger backend service. Used by render.yaml (dockerCommand) and works locally too.
 #
-#   docker/start.sh api | brand-node | paypal-node | worker | seed
+#   docker/start.sh api | brand-node | paypal-node | worker | seed | all-in-one
 #
 # It also normalizes values that Render Blueprints can only give us in a bare form:
 #   * fromService `hostport` is "name:port" (no scheme)  -> prefix http:// for internal URLs
@@ -36,5 +36,6 @@ case "$service" in
   paypal-node) exec uvicorn backend.paypal_node.main:app --host 0.0.0.0 --port "${PORT:-8002}" ;;
   worker)      exec python -m backend.worker.main ;;
   seed)        exec python docker/seed.py ${SEED_ARGS:-} ;;
+  all-in-one)  exec bash /app/docker/all_in_one.sh ;;
   *) echo "unknown service: $service" >&2; exit 2 ;;
 esac

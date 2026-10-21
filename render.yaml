@@ -1,26 +1,28 @@
-# Render Blueprint for TrustLedger. Spec: https://render.com/docs/blueprint-spec
-# Setup steps (what to click, what to paste, how to seed): docs/DEPLOY.md
+# Render Blueprint for TrustLedger, free plan. Spec: https://render.com/docs/blueprint-spec
+# Setup steps (what to click, what to paste): docs/DEPLOY.md
 #
-# Shape
-#   trustledger-web          web     Next.js (docker/web.Dockerfile), public
-#   trustledger-api          web     FastAPI platform API, public (browser + PayPal webhooks)
-#   trustledger-brand-node   pserv   mock brand: verification API + brand aggregates, private network only
-#   trustledger-paypal-node  pserv   PayPal-side node behind differential privacy, private network only
-#   trustledger-worker       worker  investigation agent
-#   trustledger-seed         cron    admin job: (re)loads fictional seed data; trigger it by hand
-#   3 x Render Postgres      one instance per logical database, so each service holds credentials
-#                            for its own database only (B2). See docs/DEPLOY.md for the one-instance
-#                            alternative.
+# The free plan only offers web services (plus one Postgres that expires after 30 days), so:
+#   trustledger-web       web (free)  Next.js (docker/web.Dockerfile), public
+#   trustledger-backend   web (free)  one container, four processes (docker/all_in_one.sh):
+#                                       api          public on $PORT    platform DB only
+#                                       brand-node   127.0.0.1:8001     brand DB only
+#                                       paypal-node  127.0.0.1:8002     PayPal-side DB only
+#                                       worker       investigation agent, no DB at all
+#                                     The data nodes are never reachable from the internet. It seeds
+#                                     the databases on first start (SEED_ON_START=auto: only when empty).
 #
-# Plans: paid from day one (judging is Dec 1-15; a Free Postgres expires 30 days after creation).
-#   0.5c-512mb ($7/mo) for every service, 0.1c-256mb ($6/mo + storage) for every database.
+# Databases: three Postgres databases (brand, paypal_side, platform), created outside this file and
+# pasted in as URLs, because a free Render Postgres expires 30 days after creation (judging is
+# Dec 1-15). See docs/DEPLOY.md for the options.
+#
+# Free web services sleep after 15 minutes without traffic; the first request then takes ~1 minute.
 
 services:
   # ------------------------------------------------------------------ web (Next.js)
   - type: web
     name: trustledger-web
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     region: oregon
     dockerfilePath: ./docker/web.Dockerfile
     dockerContext: .
@@ -31,34 +33,36 @@ services:
       # Render passes service env vars to the Docker build as build args. web.Dockerfile turns
       # API_PUBLIC_HOST into NEXT_PUBLIC_API_URL=https://<host> (public values only).
       - key: API_PUBLIC_HOST
-        fromService: { type: web, name: trustledger-api, envVarKey: RENDER_EXTERNAL_HOSTNAME }
-      - key: NEXT_PUBLIC_AG_GRID_LICENSE
-        sync: false
+        fromService: { type: web, name: trustledger-backend, envVarKey: RENDER_EXTERNAL_HOSTNAME }
       - key: NEXT_PUBLIC_PAYPAL_CLIENT_ID
         sync: false
 
-  # ------------------------------------------------------------------ api (platform)
+  # ------------------------------------------------------------------ backend (api + nodes + worker)
   - type: web
-    name: trustledger-api
+    name: trustledger-backend
     runtime: docker
-    plan: 0.5c-512mb
+    plan: free
     region: oregon
     dockerfilePath: ./docker/backend.Dockerfile
     dockerContext: .
-    dockerCommand: /app/docker/start.sh api
+    dockerCommand: /app/docker/start.sh all-in-one
     healthCheckPath: /health
     buildFilter:
-      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/seed.py, pyproject.toml, uv.lock]
+      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/all_in_one.sh, docker/seed.py,
+              pyproject.toml, uv.lock]
     envVars:
+      # One URL per logical database; all_in_one.sh hands each process only its own.
+      - key: BRAND_DATABASE_URL
+        sync: false
+      - key: PAYPAL_DATABASE_URL
+        sync: false
       - key: PLATFORM_DATABASE_URL
-        fromDatabase: { name: trustledger-platform-db, property: connectionString }
-      - key: BRAND_NODE_URL      # "host:port" on the private network; start.sh adds http://
-        fromService: { type: pserv, name: trustledger-brand-node, property: hostport }
-      - key: PAYPAL_NODE_URL
-        fromService: { type: pserv, name: trustledger-paypal-node, property: hostport }
+        sync: false
+      - key: SEED_ON_START       # auto (seed only when empty) | always (reset the demo) | never
+        value: auto
       - key: WEB_PUBLIC_HOST     # start.sh derives CORS_ORIGINS and PUBLIC_WEB_URL from it
         fromService: { type: web, name: trustledger-web, envVarKey: RENDER_EXTERNAL_HOSTNAME }
-      - key: NODE_SHARED_TOKEN   # generated once here; the nodes and the worker copy it
+      - key: NODE_SHARED_TOKEN   # still required between processes, even on localhost
         generateValue: true
       - key: PAYPAL_MODE
         value: sandbox
@@ -66,143 +70,21 @@ services:
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
-      - key: PAYPAL_WEBHOOK_ID   # fill in after creating the webhook for https://<api-host>/paypal/webhooks
+      - key: PAYPAL_WEBHOOK_ID   # fill in after creating the webhook for https://<backend-host>/paypal/webhooks
         sync: false
       - key: LLM_MODE
         value: live
-      - key: LLM_API_KEY         # console planner uses the LLM too
+      - key: LLM_API_KEY         # agent + console planner
         sync: false
-      - key: LLM_BASE_URL
-        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: LLM_BASE_URL        # any OpenAI-compatible provider; Groq's free tier is the default
+        value: https://api.groq.com/openai/v1
       - key: AGENT_MODEL
-        value: gemini-3.5-flash
+        value: openai/gpt-oss-120b
       - key: NOTIFY_WEBHOOK_URL  # optional Zapier / Slack hook; leave blank to disable alerts
         sync: false
       - key: BRAND_ID
         value: nimbus
       - key: CURRENT_WEEK
         value: "12"
-
-  # ------------------------------------------------------------------ brand node (private)
-  - type: pserv
-    name: trustledger-brand-node
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    dockerfilePath: ./docker/backend.Dockerfile
-    dockerContext: .
-    dockerCommand: /app/docker/start.sh brand-node
-    buildFilter:
-      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/seed.py, pyproject.toml, uv.lock]
-    envVars:
-      - key: PORT
-        value: "8001"
-      - key: BRAND_DATABASE_URL
-        fromDatabase: { name: trustledger-brand-db, property: connectionString }
-      - key: NODE_SHARED_TOKEN
-        fromService: { type: web, name: trustledger-api, envVarKey: NODE_SHARED_TOKEN }
-      - key: BRAND_ID
-        value: nimbus
-      - key: CURRENT_WEEK
-        value: "12"
-
-  # ------------------------------------------------------------------ PayPal-side node (private)
-  - type: pserv
-    name: trustledger-paypal-node
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    dockerfilePath: ./docker/backend.Dockerfile
-    dockerContext: .
-    dockerCommand: /app/docker/start.sh paypal-node
-    buildFilter:
-      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/seed.py, pyproject.toml, uv.lock]
-    envVars:
-      - key: PORT
-        value: "8002"
-      - key: PAYPAL_DATABASE_URL
-        fromDatabase: { name: trustledger-paypal-db, property: connectionString }
-      - key: NODE_SHARED_TOKEN
-        fromService: { type: web, name: trustledger-api, envVarKey: NODE_SHARED_TOKEN }
-      - key: BRAND_ID
-        value: nimbus
-      - key: CURRENT_WEEK
-        value: "12"
       - key: DAILY_EPSILON
         value: "5.0"
-
-  # ------------------------------------------------------------------ worker (agent loop)
-  - type: worker
-    name: trustledger-worker
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    dockerfilePath: ./docker/backend.Dockerfile
-    dockerContext: .
-    dockerCommand: /app/docker/start.sh worker
-    buildFilter:
-      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/seed.py, pyproject.toml, uv.lock]
-    envVars:
-      # No database URL at all: the worker only talks to the api and to the nodes' /v1/query.
-      - key: API_URL
-        fromService: { type: web, name: trustledger-api, property: hostport }
-      - key: BRAND_NODE_URL
-        fromService: { type: pserv, name: trustledger-brand-node, property: hostport }
-      - key: PAYPAL_NODE_URL
-        fromService: { type: pserv, name: trustledger-paypal-node, property: hostport }
-      - key: NODE_SHARED_TOKEN
-        fromService: { type: web, name: trustledger-api, envVarKey: NODE_SHARED_TOKEN }
-      - key: LLM_MODE
-        value: live
-      - key: LLM_API_KEY
-        sync: false
-      - key: LLM_BASE_URL
-        value: https://generativelanguage.googleapis.com/v1beta/openai/
-      - key: AGENT_MODEL
-        value: gemini-3.5-flash
-      - key: CURRENT_WEEK
-        value: "12"
-
-  # ------------------------------------------------------------------ seed (admin, manual)
-  # The only resource holding all three database URLs. It never runs on deploy: open it in the
-  # dashboard and click "Trigger Run" after the first deploy, and again whenever you want to reset
-  # the demo (it drops and recreates every table). The schedule is a placeholder that fires once a
-  # year, after judging.
-  - type: cron
-    name: trustledger-seed
-    runtime: docker
-    plan: 0.5c-512mb
-    region: oregon
-    schedule: "0 9 1 1 *"
-    dockerfilePath: ./docker/backend.Dockerfile
-    dockerContext: .
-    dockerCommand: /app/docker/start.sh seed
-    buildFilter:
-      paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/seed.py, pyproject.toml, uv.lock]
-    envVars:
-      - key: BRAND_DATABASE_URL
-        fromDatabase: { name: trustledger-brand-db, property: connectionString }
-      - key: PAYPAL_DATABASE_URL
-        fromDatabase: { name: trustledger-paypal-db, property: connectionString }
-      - key: PLATFORM_DATABASE_URL
-        fromDatabase: { name: trustledger-platform-db, property: connectionString }
-
-databases:
-  - name: trustledger-brand-db
-    databaseName: trustledger_brand
-    plan: 0.1c-256mb
-    region: oregon
-    postgresMajorVersion: "17"
-    ipAllowList: []            # private network only
-  - name: trustledger-paypal-db
-    databaseName: trustledger_paypal_side
-    plan: 0.1c-256mb
-    region: oregon
-    postgresMajorVersion: "17"
-    ipAllowList: []
-  - name: trustledger-platform-db
-    databaseName: trustledger_platform
-    plan: 0.1c-256mb
-    region: oregon
-    postgresMajorVersion: "17"
-    ipAllowList: []

@@ -1,157 +1,162 @@
-# TrustLedger Deployment Guide (Render Blueprint)
+# TrustLedger Free-Plan Deployment Guide (Render + Neon)
 
-This guide documents deploying TrustLedger to [Render](https://render.com) using Infrastructure as Code via `render.yaml` (Render Blueprint specification).
-
----
-
-## 1. Blueprint Architecture
-
-The TrustLedger platform deploys as an isolated multi-service cluster defined in `render.yaml`:
-
-```
-                       ┌─────────────────────────┐
-                       │   Internet / End Users  │
-                       └────────────┬────────────┘
-                                    │
-               ┌────────────────────┴────────────────────┐
-               ▼                                         ▼
-   ┌───────────────────────┐                 ┌───────────────────────┐
-   │    trustledger-web    │                 │    trustledger-api    │
-   │   (Public Web App)    ├────────────────►│ (FastAPI Platform API)│
-   │        Next.js        │                 │ (Public + Webhooks)   │
-   └───────────────────────┘                 └───────────┬───────────┘
-                                                         │ Private Network
-                       ┌─────────────────────────────────┼─────────────────────────┐
-                       ▼                                 ▼                         ▼
-           ┌───────────────────────┐         ┌───────────────────────┐ ┌───────────────────────┐
-           │trustledger-brand-node │         │trustledger-paypal-node│ │  trustledger-worker   │
-           │(Private Brand Service)│         │ (Private DP Service)  │ │ (Investigation Agent) │
-           └───────────┬───────────┘         └───────────┬───────────┘ └───────────┬───────────┘
-                       │                                 │                         │
-                       ▼                                 ▼                         │
-           ┌───────────────────────┐         ┌───────────────────────┐             │
-           │  trustledger-brand-db │         │ trustledger-paypal-db │             │
-           │      (Postgres)       │         │      (Postgres)       │             │
-           └───────────────────────┘         └───────────────────────┘             │
-                       ▲                                                           │
-                       │             ┌───────────────────────┐                     │
-                       └─────────────┤   trustledger-seed    │◄────────────────────┘
-                                     │  (Admin Cron / Init)  │
-                                     └───────────┬───────────┘
-                                                 │
-                                                 ▼
-                                     ┌───────────────────────┐
-                                     │trustledger-platform-db│
-                                     │      (Postgres)       │
-                                     └───────────────────────┘
-```
-
-### Services & Resources
-
-| Service / Resource | Type | Exposure | Description |
-|---|---|---|---|
-| `trustledger-web` | Web Service | Public | Next.js frontend UI (`/pos`, `/cockpit`, `/cockpit/console`, `/receipt/[id]`) |
-| `trustledger-api` | Web Service | Public | Platform API, case management, and PayPal webhook listener (`/paypal/webhooks`) |
-| `trustledger-brand-node` | Private Service | Private | Mock brand endpoint for serial authentication and internal brand aggregates |
-| `trustledger-paypal-node` | Private Service | Private | Differential privacy query engine backed by OpenDP |
-| `trustledger-worker` | Background Worker | Private | Autonomous multi-step case investigation agent |
-| `trustledger-seed` | Cron / Job | Admin | Database migration and seeding job (`docker/seed.py`) |
-| `3 x Render Postgres` | Database | Private | Three isolated database instances (`brand`, `paypal_side`, `platform`) |
+This guide walks through deploying TrustLedger completely free of charge on [Render](https://render.com) and [Neon](https://neon.tech) using the free-tier Blueprint specification (`render.yaml`).
 
 ---
 
-## 2. Prerequisites & Setup
+## 1. Free Architecture Overview
 
-### Step 1: Connect Repository to Render
-1. Sign in to your [Render Dashboard](https://dashboard.render.com).
+Render's Free plan offers web services but no background workers or private network services. TrustLedger accommodates this constraint via an all-in-one backend container (`docker/all_in_one.sh`):
+
+```
+                        ┌─────────────────────────┐
+                        │   Internet / End Users  │
+                        └────────────┬────────────┘
+                                     │
+                ┌────────────────────┴────────────────────┐
+                ▼                                         ▼
+    ┌───────────────────────┐                 ┌───────────────────────┐
+    │    trustledger-web    │                 │  trustledger-backend  │
+    │   (Next.js Frontend)  ├────────────────►│ (All-in-One Container)│
+    │      Plan: free       │                 │      Plan: free       │
+    └───────────────────────┘                 └───────────┬───────────┘
+                                                          │
+                       ┌──────────────────────────────────┴──────────────────────────────────┐
+                       │                   Container Localhost Isolation                     │
+                       │                                                                     │
+                       │   api (FastAPI)       0.0.0.0:$PORT    (PLATFORM_DATABASE_URL only) │
+                       │   brand-node          127.0.0.1:8001   (BRAND_DATABASE_URL only)    │
+                       │   paypal-node (DP)    127.0.0.1:8002   (PAYPAL_DATABASE_URL only)   │
+                       │   worker (Agent)      HTTP to above    (No database credentials)    │
+                       └──────────────┬───────────────────┬───────────────────┬──────────────┘
+                                      │                   │                   │
+                                      ▼                   ▼                   ▼
+                               ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+                               │    brand    │     │ paypal_side │     │  platform   │
+                               │ (Postgres)  │     │ (Postgres)  │     │ (Postgres)  │
+                               └─────────────┘     └─────────────┘     └─────────────┘
+                                        External Managed Postgres (Neon Free Tier)
+```
+
+### Process Credential Isolation
+Inside `trustledger-backend`, process supervision (`docker/all_in_one.sh`) launches each service with strict credential filtering using `env -u`:
+- **API**: holds only `PLATFORM_DATABASE_URL`.
+- **Brand Node**: bound to `127.0.0.1:8001` (never exposed externally); holds only `BRAND_DATABASE_URL`.
+- **PayPal DP Node**: bound to `127.0.0.1:8002` (never exposed externally); holds only `PAYPAL_DATABASE_URL`.
+- **Worker**: communicates purely over HTTP using `NODE_SHARED_TOKEN`; holds **no database credentials at all**.
+
+---
+
+## 2. Step 1: Create 3 Postgres Databases on Neon
+
+A free Render Postgres instance expires automatically after 30 days. Because hackathon evaluation and judging runs from Dec 1–15, managed databases should be created outside Render to avoid data loss.
+
+[Neon](https://neon.tech) provides a generous free tier with permanent Postgres databases:
+
+1. Sign up for free at [neon.tech](https://neon.tech) and create a project (e.g. `trustledger`).
+2. In the Neon Console, navigate to **Databases** and create 3 logical databases within the same project:
+   - `trustledger_brand` (or `brand`)
+   - `trustledger_paypal_side` (or `paypal_side`)
+   - `trustledger_platform` (or `platform`)
+3. Copy the **direct (non-pooled)** connection strings (e.g. `postgres://user:password@ep-...neon.tech/<dbname>?sslmode=require`) for each database:
+   - `BRAND_DATABASE_URL`
+   - `PAYPAL_DATABASE_URL`
+   - `PLATFORM_DATABASE_URL`
+
+> [!IMPORTANT]
+> **Use Direct, Non-Pooled Connection Strings:** Do **not** use Neon's `-pooler` connection strings. TrustLedger uses `psycopg 3`, which automatically switches to server-side prepared statements after 5 executions. PgBouncer transaction pooling does not maintain prepared statements across connections, leading to `prepared statement "..." does not exist` errors. Keep `?sslmode=require`.
+
+> [!NOTE]
+> Neon's free compute automatically suspends after ~5 minutes of idle time. The first database query after compute sleep adds approximately 1–2 seconds of latency while the compute warms up.
+
+---
+
+## 3. Step 2: Deploy to Render via Blueprint
+
+1. Sign in to [Render](https://dashboard.render.com).
 2. Click **New +** > **Blueprint**.
-3. Connect your GitHub repository (`trustledger`) and select the branch to deploy (`main`).
-4. Render automatically parses `render.yaml` and lists the 6 services and 3 databases.
+3. Connect your GitHub repository (`trustledger`) and select the `main` branch.
+4. Render parses `render.yaml` and provisions two free web services:
+   - `trustledger-web`
+   - `trustledger-backend`
+5. Fill in the required environment variables marked with `sync: false`:
+
+| Variable | Service | Value / Source |
+|---|---|---|
+| `BRAND_DATABASE_URL` | `trustledger-backend` | Direct connection string for brand database from Step 1 |
+| `PAYPAL_DATABASE_URL` | `trustledger-backend` | Direct connection string for PayPal DP database from Step 1 |
+| `PLATFORM_DATABASE_URL`| `trustledger-backend` | Direct connection string for platform database from Step 1 |
+| `PAYPAL_CLIENT_ID` | `trustledger-backend` | PayPal REST App Client ID (developer.paypal.com sandbox) |
+| `PAYPAL_CLIENT_SECRET`| `trustledger-backend` | PayPal REST App Secret |
+| `PAYPAL_WEBHOOK_ID` | `trustledger-backend` | *(Leave blank initially; set after Step 4 below)* |
+| `LLM_API_KEY` | `trustledger-backend` | Groq API Key (free at console.groq.com) or Gemini API Key |
+| `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | `trustledger-web` | PayPal Sandbox Client ID (loaded in browser SDK) |
+
+6. Click **Apply**. Render will build and deploy both services.
 
 ---
 
-## 3. Environment Variables Configuration
+## 4. Step 3: Automatic Database Seeding & Demo Reset
 
-`render.yaml` automatically generates internal credentials (such as `NODE_SHARED_TOKEN`) and injects cross-service hostnames via Render's service discovery. You only need to populate external credentials (`sync: false`):
-
-### `trustledger-api`
-- `PAYPAL_MODE`: Set to `sandbox` (default) or `live`.
-- `PAYPAL_CLIENT_ID`: PayPal REST App Client ID from developer.paypal.com.
-- `PAYPAL_CLIENT_SECRET`: PayPal REST App Secret.
-- `PAYPAL_WEBHOOK_ID`: *(Leave blank initially; set after registering webhook below)*.
-- `LLM_MODE`: Set to `live` (for live Gemini/Groq model) or `mock` (deterministic test fixtures).
-- `LLM_API_KEY`: Google Gemini API key or Groq API key.
-- `LLM_BASE_URL`: `https://generativelanguage.googleapis.com/v1beta/openai/` (default for Gemini OpenAI compatibility).
-- `AGENT_MODEL`: `gemini-3.5-flash` or `gemini-1.5-flash`.
-- `NOTIFY_WEBHOOK_URL`: Optional Slack incoming webhook or Zapier catch hook for instant alerts.
-
-### `trustledger-worker`
-- Inherits `LLM_API_KEY`, `LLM_BASE_URL`, and `AGENT_MODEL` matching the API configuration.
-
-### `trustledger-web`
-- `NEXT_PUBLIC_PAYPAL_CLIENT_ID`: Your PayPal sandbox client ID (loaded in browser by PayPal JS SDK v6).
-- `NEXT_PUBLIC_AG_GRID_LICENSE`: Optional AG Grid Enterprise key (or evaluation).
+TrustLedger handles database initialization automatically on container boot:
+- **`SEED_ON_START=auto`** (Default): On boot, `docker/all_in_one.sh` inspects `to_regclass('public.stores')` on `PLATFORM_DATABASE_URL`. If the database is empty, it runs `docker/seed.py`, creating all schemas and populating fictional demonstration data (Nimbus brand catalog, stores, distributors, and initial serials). If already seeded, it skips to preserve active state.
+- **`SEED_ON_START=always`** (One-Off Demo Reset): Wipes and reseeds demo fixtures on boot.
+  > [!WARNING]
+  > Because Render Free web services spin down and restart on every cold start (after 15 minutes of inactivity), leaving `SEED_ON_START=always` permanently configured would wipe the database every time the service wakes up—including during evaluation! To reset the demo: change `SEED_ON_START` to `always`, let one deploy finish, and then immediately change it back to `auto`.
+- **`SEED_ON_START=never`**: Bypasses any seed check.
 
 ---
 
-## 4. Database Seeding & Initialization
+## 5. Step 4: Configure PayPal Webhook
 
-Render does not run database seeding on every deploy. Once the initial build finishes:
-
-1. In the Render Dashboard, navigate to the `trustledger-seed` cron job service.
-2. Click **Manual Trigger** > **Trigger Run**.
-3. The job runs `python docker/seed.py`:
-   - Connects to `trustledger-brand-db`, `trustledger-paypal-db`, and `trustledger-platform-db`.
-   - Creates all necessary schemas and tables.
-   - Populates realistic multi-tier supply chain data (Nimbus Brand, distributors, retail store accounts, test serials like `X123`).
-4. You can re-trigger this job at any time to reset demo data back to clean state.
-
----
-
-## 5. PayPal Webhook Configuration
-
-To receive live payment verification and capture notifications:
-
-1. Open your [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/applications/sandbox).
-2. Open your REST API application and scroll to **Webhooks**.
-3. Click **Add Webhook** and configure:
-   - **Webhook URL**: `https://<trustledger-api-hostname>.onrender.com/paypal/webhooks`
-   - **Event types to subscribe**:
-     - `CHECKOUT.ORDER.APPROVED`
-     - `PAYMENT.CAPTURE.COMPLETED`
-4. Save the webhook and copy the generated **Webhook ID**.
-5. Back in Render, edit `trustledger-api` environment variables:
-   - Set `PAYPAL_WEBHOOK_ID=<your-webhook-id>`.
-6. Click **Save Changes** (Render will trigger a zero-downtime redeploy).
+1. Open your [PayPal Developer Sandbox Dashboard](https://developer.paypal.com/dashboard/applications/sandbox).
+2. Select your REST API application and navigate to **Webhooks** > **Add Webhook**.
+3. Enter the webhook URL pointing to your deployed backend service:
+   ```
+   https://<trustledger-backend-host>.onrender.com/paypal/webhooks
+   ```
+4. Subscribe to the following event types:
+   - `CHECKOUT.ORDER.APPROVED`
+   - `PAYMENT.CAPTURE.COMPLETED`
+5. Save the webhook and copy the generated **Webhook ID**.
+6. In Render, edit environment variables for `trustledger-backend`:
+   - Set `PAYPAL_WEBHOOK_ID` to the copied Webhook ID.
+7. Click **Save Changes** (Render will automatically redeploy with the webhook secret active).
 
 ---
 
-## 6. Verifying the Deployment
+## 6. Cold Starts & Pre-Demo Warming
 
-1. **Health Check**:
-   - Visit `https://<trustledger-api-hostname>.onrender.com/health` (should return `{"status": "ok"}`).
-2. **Web Portal Click-Through**:
-   - Navigate to `https://<trustledger-web-hostname>.onrender.com/pos`.
-   - Scan serial `X123` at Store A: verify legitimate checkout flow.
-   - Scan serial `X123` at Store B: verify counterfeit refusal, case creation, and notification trigger.
-3. **Investigation Cockpit**:
-   - Navigate to `/cockpit` to view cases.
-   - Click case detail to observe autonomous agent execution, findings, and Bryntum supply timeline.
+Render's Free tier spins down web services after 15 minutes of inactivity:
+- **Cold start behavior:** If sleeping, the first incoming request takes approximately 50–70 seconds while the container initializes, checks the database seed, and spins up Uvicorn and Next.js. Subsequent requests respond instantly.
+- **Pre-demo warming:** Before conducting a live demo or presentation, send a ping request to both services to warm them up:
+  ```bash
+  curl -I https://<trustledger-backend-host>.onrender.com/health
+  curl -I https://<trustledger-web-host>.onrender.com/
+  ```
 
 ---
 
-## 7. Planned for Free Plan
+## 7. LLM Provider Quotas & Judging Readiness
 
-`render.yaml` currently specifies Render paid resource tiers (`0.5c-512mb` compute and `0.1c-256mb` databases) because the hackathon evaluation window (Dec 1–15) requires persistent databases and background workers.
+TrustLedger defaults to Groq's OpenAI-compatible endpoint (`openai/gpt-oss-120b` or `llama-3.3-70b-versatile`):
+- **Free Tier Quota:** Groq allows approximately 200,000 tokens per day (sufficient for ~4 full multi-turn agent investigations).
+- **Zero Cost for Case Browsing:** Completed investigations are stored with all citations and step timelines in the PostgreSQL database. Browsing cases, reviewing findings, and running console queries on cached cells consumes zero LLM tokens.
+- **Deduplication:** Subsequent scans of known failed serials join existing cases without re-triggering the investigation agent.
+- **Tip for Judging:** Trigger a Store B scan once prior to judging so that at least one complete investigation case is pre-seeded and immediately viewable.
 
-For developers seeking a zero-cost deployment on Render's Free tier, the following optimizations are planned:
+---
 
-1. **Folding the Worker into the API Service**:
-   - Render's Free plan does not offer background worker instances.
-   - Planned architecture will embed the `Investigation` worker loop directly inside the `trustledger-api` process using FastAPI background tasks or an `asyncio` task runner, removing `trustledger-worker` as a separate container.
-2. **Single Postgres Instance Consolidation**:
-   - Rather than 3 independent database instances, consolidate `trustledger_brand`, `trustledger_paypal_side`, and `trustledger_platform` onto a single managed Postgres server with 3 logical schemas.
-   - Logical isolation is maintained while fitting within the free tier single-database allowance.
-3. **Managing Cold Starts & 30-Day Database Expiry**:
-   - Render Free web services spin down after 15 minutes of inactivity (50s cold start). Keep-alive pings can prevent spin-down during active evaluation.
-   - Free Postgres databases expire after 30 days. To maintain continuous availability, use the `trustledger-seed` manual trigger to re-seed demo fixtures if a database rotates.
+## 8. Verification Checklist
+
+1. **Backend Health Check:**
+   - `https://<trustledger-backend-host>.onrender.com/health` returns `{"ok": true, "paypal_mode": "sandbox"}`.
+2. **Store A Legitimate Checkout:**
+   - Visit `https://<trustledger-web-host>.onrender.com/pos`.
+   - Scan Store A with serial `X123`. Verify: brand verified badge, PayPal checkout button active.
+   - To complete payment, sign in with a **PayPal sandbox buyer account** (create one at `developer.paypal.com` → Sandbox → Accounts).
+3. **Store B Rejection & Case Creation:**
+   - Scan Store B with serial `X123`. Verify: checkout blocked with `NOT_IN_CHANNEL`, PayPal order prevented, investigation opened.
+4. **Brand Cockpit & Bryntum Timeline:**
+   - Visit `/cockpit`: open case displayed in AG Grid with status and confidence score.
+   - Click case detail: multi-turn agent tool executions, findings, and Bryntum supply timeline.

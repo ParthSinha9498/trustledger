@@ -1,5 +1,7 @@
 # TrustLedger
 
+[![CI](https://github.com/ParthSinha9498/trustledger/actions/workflows/ci.yml/badge.svg)](https://github.com/ParthSinha9498/trustledger/actions/workflows/ci.yml)
+
 **TrustLedger makes product authenticity a condition of payment.** The brand verifies a serialized product
 before the PayPal order is created. Verified: the buyer pays, and the verification ID is stored in the
 order's `custom_id`. Not verified: no PayPal order is ever created, and an AI agent investigates the failure

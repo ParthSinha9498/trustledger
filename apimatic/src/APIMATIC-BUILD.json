@@ -1,0 +1,51 @@
+{
+  "$schema": "https://titan.apimatic.io/api/build/schema",
+  "buildFileVersion": "1",
+  "generatePortal": {
+    "apiSpecPath": "./spec",
+    "pageTitle": "TrustLedger Brand Verification API",
+    "navTitle": "TrustLedger · Brand onboarding",
+    "logoUrl": "static/images/logo.svg",
+    "logoUrlDark": "static/images/logo-dark.svg",
+    "logoAltText": "TrustLedger",
+    "logoLink": "https://github.com/ParthSinha9498/trustledger",
+    "faviconUrl": "static/images/favicon.svg",
+    "languageConfig": {
+      "http": {},
+      "typescript": {},
+      "python": {},
+      "csharp": {}
+    },
+    "portalSettings": {
+      "titleTemplate": "{title} · TrustLedger Brand Verification",
+      "initialPlatform": "http",
+      "enableConsoleCalls": true,
+      "enableHttpVerbsForAllLangs": true,
+      "aiAssistMenu": {
+        "enable": true
+      },
+      "theme": {
+        "baseTheme": "cosmos",
+        "colorMode": {
+          "defaultMode": "light",
+          "disableSwitch": false
+        },
+        "colors": {
+          "primaryColor": {
+            "light": "#0B6E4F",
+            "dark": "#5FD3A6"
+          },
+          "linkColor": {
+            "light": "#0A5C8F",
+            "dark": "#8CCBF2"
+          }
+        }
+      }
+    }
+  },
+  "mcpServer": {
+    "$type": "nonNull",
+    "isEnabled": false,
+    "preferPublishedSdk": false
+  }
+}

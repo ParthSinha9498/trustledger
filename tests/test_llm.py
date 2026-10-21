@@ -44,6 +44,13 @@ def test_rejected_tool_call_is_retried_with_the_error():
     assert history == [{"role": "user", "content": "investigate"}]  # caller's history untouched
 
 
+def test_unparseable_output_is_retried():
+    seen = []
+    garbled = {"message": "Parsing failed.", "code": "output_parse_failed", "failed_generation": "We have a case"}
+    turn = _llm([_bad_request(garbled), _ok()], seen).next_turn([], tools=[])
+    assert turn.content == "done" and "valid tool call" in seen[1][-1]["content"]
+
+
 def test_gives_up_after_two_fixes_and_ignores_other_400s():
     with pytest.raises(BadRequestError):
         _llm([_bad_request(REJECTED)] * 3, []).next_turn([], tools=[])

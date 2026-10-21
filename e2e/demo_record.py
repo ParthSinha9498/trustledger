@@ -103,9 +103,10 @@ class Recorder:
 
     def card(self, cid: str, hold: float = 5.0) -> None:
         self.mark("scene", cid)
+        t0 = time.monotonic()
         r = self.page.goto(f"{self.web}/story?card={cid}")
-        if r is not None and r.ok and self._wait_ready():  # animation finished
-            self.wait(hold)
+        if r is not None and r.ok and self._wait_ready():  # animation finished; it counts toward the hold
+            self.wait(max(0.5, hold - (time.monotonic() - t0)))
             return
         lines = FALLBACK[cid]
         html = "".join(f"<p style='margin:.4em 0;font-size:{44 if i == 0 else 26}px;opacity:{1 if i < 2 else .6}'>{l}</p>"
@@ -228,6 +229,7 @@ def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
                 continue
         if clicked or pop.is_closed():
             break
+    rec.mark("popup_keep_until", "3 s after Complete Purchase")
     popup_video = pop.video.path() if pop.video else None
     try:
         pop.wait_for_event("close", timeout=30000)
@@ -332,7 +334,7 @@ def main() -> None:
         b = scan(rec, 1)
         b_png = verdict_png(page)
         rec.ring(page.get_by_text("Never created", exact=False).first)
-        rec.wait(6)
+        rec.wait(4.5)
         rec.unring()
         compare_frame(rec, a_png, b_png, 4)
 
@@ -340,10 +342,10 @@ def main() -> None:
         rec.card("s3", 2.5)
         case_id = b.get("case_id")
         rec.go("/cockpit")
-        rec.caption("AI agent investigates: aggregates only", 4)
+        rec.caption("AI agent investigates: aggregates only", 3)
         if case_id:
             rec.go(f"/cockpit/cases/{case_id}")
-            rec.wait(3)
+            rec.wait(2)
             rec.mark("cut_start", "agent running")
             deadline = time.time() + args.case_timeout
             while time.time() < deadline and not page.get_by_text(re.compile(r"\bcomplete\b", re.I)).count():
@@ -353,29 +355,29 @@ def main() -> None:
             rec.mark("cut_end", "agent done")
             rec.wait(1)
             rec.ring(page.locator("ol.findings li").first)
-            rec.wait(6)
+            rec.wait(5)
             rec.unring()
             page.mouse.wheel(0, 900)
-            rec.wait(4)
+            rec.wait(3)
         rec.go("/cockpit/supply-chain")
-        rec.wait(5)
+        rec.wait(4)
 
         # ---- Scenario 4: privacy by design
         rec.card("s4", 2.5)
         rec.go("/cockpit/console")
         page.get_by_label("Question").fill("Which individual buyers at Store B bought serial X123, with their age and gender?")
-        rec.caption("Individuals in → private aggregate out", 2)
+        rec.caption("Individuals in → private aggregate out", 1.5)
         rec.click(page.get_by_role("button", name=re.compile("Plan queries")))
         rec.wait(3)
         rec.ring(page.locator("p.rationale").first)
-        rec.wait(4)
+        rec.wait(3.5)
         rec.unring()
         run = page.get_by_role("button", name=re.compile(r"^Run \d+ quer"))
         if run.count():
             rec.click(run.first)
-            rec.wait(3)
+            rec.wait(2.5)
             page.mouse.wheel(0, 600)
-            rec.wait(5)
+            rec.wait(3.5)
 
         rec.card("redteam", 6)
 

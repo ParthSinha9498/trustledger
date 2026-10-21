@@ -20,7 +20,7 @@ OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "demo")
 def plan(marks: list[dict], keep: float) -> list[tuple[int, float, float | None]]:
     """Segments as (input index, start, end): input 0 is the main video, 1.. are spliced popup videos."""
     segs: list[tuple[int, float, float | None]] = []
-    pos, cut_from, popup_from, inputs, pop_cut = 0.0, None, None, 0, []
+    pos, cut_from, popup_from, inputs, pop_cut, pop_end = 0.0, None, None, 0, [], None
     for m in marks:
         if m["kind"] == "cut_start":
             cut_from = m["t"] + keep
@@ -31,17 +31,19 @@ def plan(marks: list[dict], keep: float) -> list[tuple[int, float, float | None]
                 pos = cut_to
             cut_from = None
         elif m["kind"] == "popup_open":
-            popup_from, pop_cut = m["t"], []
+            popup_from, pop_cut, pop_end = m["t"], [], None
         elif m["kind"] in ("popup_cut_start", "popup_cut_end") and popup_from is not None:
             pop_cut.append(m["t"] - popup_from)  # times inside the popup's own recording
+        elif m["kind"] == "popup_keep_until" and popup_from is not None:
+            pop_end = m["t"] - popup_from + 3.0  # a beat of "Thanks for using PayPal", not the whole spinner
         elif m["kind"] == "popup_close" and popup_from is not None and m.get("label"):
             inputs += 1
             segs.append((0, pos, popup_from))
             if len(pop_cut) == 2:  # drop the login stretch (account details stay off screen)
                 segs.append((inputs, 0.0, pop_cut[0]))
-                segs.append((inputs, pop_cut[1], None))
+                segs.append((inputs, pop_cut[1], pop_end))
             else:
-                segs.append((inputs, 0.0, None))
+                segs.append((inputs, 0.0, pop_end))
             pos, popup_from = m["t"], None
     segs.append((0, pos, None))
     return segs

@@ -13,8 +13,7 @@ interface CardMeta {
 
 const CARDS: CardMeta[] = [
   { id: "hook", title: "One phone. One serial number. Two stores.", desc: "Only one of them is selling the real thing." },
-  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Hazardous fakes rising" },
-  { id: "phones", title: "12.9% smartphone sales lost", desc: "≈ EUR 45.3 billion lost to counterfeits" },
+  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
   { id: "gap", title: "Verification exists. Nobody uses it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
   { id: "s1", title: "Scenario 1: Genuine phone at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
@@ -22,9 +21,161 @@ const CARDS: CardMeta[] = [
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "s4", title: "Scenario 4: Privacy by design", desc: "Analysts get answers, never individual buyers." },
   { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
+  { id: "s5", title: "Scenario 5: Autonomous AI shopping agents", desc: "Brand verification over MCP: the same check, for agents" },
+  { id: "terminal", title: "AI Shopping Agent Terminal", desc: "Live MCP client verifyProduct execution and brand verdict" },
   { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
   { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
 ];
+
+const DEFAULT_TERMINAL_LINES = [
+  "────────────────────────────────────────────────────────────",
+  "TrustLedger · AI agent → brand verification over MCP",
+  "────────────────────────────────────────────────────────────",
+  "",
+  "[1] Connecting to MCP server http://localhost:3333/mcp",
+  "    connected to trustledger-brand-verification v1.0.0",
+  "",
+  "[2] Discovering tools",
+  "    • verifyProduct  Brand verification of a physical product at checkout…",
+  "    • confirmSale    Mark a verified serial number as sold…",
+  "",
+  "[3] Calling verifyProduct",
+  "    serial        X123",
+  "    sku           NMB-P8-128",
+  "    store_id      store_b",
+  "    requested_at  2026-10-21T14:30:00.000Z",
+  "",
+  "[4] Brand verdict",
+  "    result           ✘ NOT_VERIFIED",
+  "    reason_code      NOT_IN_CHANNEL",
+  "    verification_id  ver_mcp_09a1f48c",
+  "",
+  "    → Do not take payment: no PayPal order is created.",
+];
+
+function formatTerminalLine(line: string) {
+  if (line.startsWith("───")) return <span className={s.termDim}>{line}</span>;
+  if (/^\[\d\]/.test(line)) {
+    const parts = line.match(/^(\[\d\])(.*)$/);
+    return (
+      <>
+        <span className={s.termCyan}>{parts?.[1]}</span>
+        <span style={{ fontWeight: 600 }}>{parts?.[2]}</span>
+      </>
+    );
+  }
+  if (line.includes("✘ NOT_VERIFIED")) {
+    const [left] = line.split("✘ NOT_VERIFIED");
+    return (
+      <>
+        <span>{left}</span>
+        <span className={s.termRed}>✘ NOT_VERIFIED</span>
+      </>
+    );
+  }
+  if (line.includes("✔ VERIFIED")) {
+    const [left] = line.split("✔ VERIFIED");
+    return (
+      <>
+        <span>{left}</span>
+        <span className={s.termGreen}>✔ VERIFIED</span>
+      </>
+    );
+  }
+  if (line.includes("→ Do not take payment")) {
+    return <span className={s.termRed}>{line}</span>;
+  }
+  if (line.includes("→ Safe to create")) {
+    return <span className={s.termGreen}>{line}</span>;
+  }
+  if (line.startsWith("    • ")) {
+    return (
+      <>
+        <span className={s.termCyan}>    • </span>
+        <span>{line.slice(6)}</span>
+      </>
+    );
+  }
+  return <span>{line}</span>;
+}
+
+function TerminalCard() {
+  const [lines, setLines] = useState<string[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    let timer: NodeJS.Timeout;
+
+    // Expose window.typeLines for the Playwright demo recorder
+    (window as unknown as { typeLines?: (l: string[]) => void }).typeLines = (newLines: string[]) => {
+      if (!active) return;
+      (window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder = true;
+      setLines([]);
+      let i = 0;
+      const interval = setInterval(() => {
+        if (!active) {
+          clearInterval(interval);
+          return;
+        }
+        if (i < newLines.length) {
+          setLines(newLines.slice(0, i + 1));
+          i++;
+        } else {
+          clearInterval(interval);
+          document.body.dataset.ready = "1";
+        }
+      }, 55);
+    };
+
+    // Fallback: stream default demo lines if not driven externally
+    timer = setTimeout(() => {
+      if (!active || (window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder) return;
+      let i = 0;
+      const interval = setInterval(() => {
+        if (!active) {
+          clearInterval(interval);
+          return;
+        }
+        if (i < DEFAULT_TERMINAL_LINES.length) {
+          setLines(DEFAULT_TERMINAL_LINES.slice(0, i + 1));
+          i++;
+        } else {
+          clearInterval(interval);
+          document.body.dataset.ready = "1";
+        }
+      }, 45);
+    }, 150);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+      delete (window as unknown as { typeLines?: unknown }).typeLines;
+      delete (window as unknown as { __typedByRecorder?: unknown }).__typedByRecorder;
+      delete document.body.dataset.ready;
+    };
+  }, []);
+
+  return (
+    <div className={s.terminalWindow}>
+      <div className={s.terminalHeader}>
+        <div className={s.terminalDots}>
+          <span className={`${s.terminalDot} ${s.dotRed}`} />
+          <span className={`${s.terminalDot} ${s.dotYellow}`} />
+          <span className={`${s.terminalDot} ${s.dotGreen}`} />
+        </div>
+        <div className={s.terminalTitle}>AI shopping agent · MCP client</div>
+        <div className={s.terminalRight} />
+      </div>
+      <div className={s.terminalBody}>
+        {lines.map((l, idx) => (
+          <div key={idx} className={s.terminalLine}>
+            {formatTerminalLine(l)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function useCountUp(target: number, decimals: number = 0, duration: number = 1200) {
   const [val, setVal] = useState<number>(0);
@@ -55,12 +206,12 @@ function useCountUp(target: number, decimals: number = 0, duration: number = 120
 }
 
 function CardView({ cardId }: { cardId: string }) {
+  const actualCardId = cardId === "phones" ? "problem" : cardId;
   const problemVal = useCountUp(467, 0, 1200);
-  const phonesVal = useCountUp(12.9, 1, 1200);
   const redteamVal = useCountUp(220, 0, 1200);
 
   useEffect(() => {
-    // Notify demo recorder after animations complete
+    if (actualCardId === "terminal") return;
     const timer = setTimeout(() => {
       document.body.dataset.ready = "1";
     }, 1250);
@@ -69,19 +220,19 @@ function CardView({ cardId }: { cardId: string }) {
       clearTimeout(timer);
       delete document.body.dataset.ready;
     };
-  }, [cardId]);
+  }, [actualCardId]);
 
   return (
     <div className={s.storyContainer}>
-      <div className={`${s.safeArea} ${s.fadeIn}`} key={cardId}>
-        {cardId === "hook" && (
+      <div className={`${s.safeArea} ${s.fadeIn}`} key={actualCardId}>
+        {actualCardId === "hook" && (
           <>
             <h1 className={s.titleHero}>One phone. One serial number. Two stores.</h1>
             <p className={s.subHero}>Only one of them is selling the real thing.</p>
           </>
         )}
 
-        {cardId === "problem" && (
+        {actualCardId === "problem" && (
           <>
             <div className={s.statHuge}>USD {problemVal} billion</div>
             <div className={s.statLabel}>in counterfeit goods traded in a year</div>
@@ -89,29 +240,19 @@ function CardView({ cardId }: { cardId: string }) {
               <div className={s.statPill}>up to 2.3% of world trade</div>
               <div className={s.statPill}>up to 4.7% of EU imports</div>
             </div>
-            <p className={s.calloutText}>
+            <p className={s.calloutText} style={{ marginBottom: 12 }}>
+              Smartphones alone: 12.9% of sales lost, ≈ EUR 45.3 billion
+            </p>
+            <p className={s.calloutSub}>
               Hazardous fakes are rising: car parts, medicines, cosmetics, toys.
             </p>
             <div className={s.sourceFooter}>
-              OECD / EUIPO, Mapping Global Trade in Fakes 2025 (2021 data)
+              OECD / EUIPO (2025) · EUIPO / ITU smartphone sector study
             </div>
           </>
         )}
 
-        {cardId === "phones" && (
-          <>
-            <div className={s.statHuge}>{phonesVal}%</div>
-            <div className={s.statLabel}>of legitimate smartphone sales lost to counterfeits</div>
-            <div className={s.statGrid}>
-              <div className={`${s.statPill} ${s.statGreen}`}>≈ EUR 45.3 billion</div>
-            </div>
-            <div className={s.sourceFooter}>
-              EUIPO / ITU, smartphone sector study (2015 data)
-            </div>
-          </>
-        )}
-
-        {cardId === "gap" && (
+        {actualCardId === "gap" && (
           <>
             <h1 className={s.titleLarge}>Verification exists. Nobody uses it.</h1>
             <div className={s.gapCols}>
@@ -134,7 +275,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "idea" && (
+        {actualCardId === "idea" && (
           <>
             <h1 className={s.titleLarge}>Make authenticity a condition of payment.</h1>
             <div className={s.diagramWrap}>
@@ -154,7 +295,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "s1" && (
+        {actualCardId === "s1" && (
           <>
             <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 1</div>
             <h1 className={s.titleHero}>A genuine phone at an authorized store</h1>
@@ -162,7 +303,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "s2" && (
+        {actualCardId === "s2" && (
           <>
             <div className={`${s.badge} ${s.badgeRed}`}>Scenario 2</div>
             <h1 className={s.titleHero}>The same serial at a store outside the supply chain</h1>
@@ -170,7 +311,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "s3" && (
+        {actualCardId === "s3" && (
           <>
             <div className={`${s.badge} ${s.badgePurple}`}>Scenario 3</div>
             <h1 className={s.titleHero}>The brand investigates</h1>
@@ -178,7 +319,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "s4" && (
+        {actualCardId === "s4" && (
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
             <h1 className={s.titleHero}>Privacy by design</h1>
@@ -186,7 +327,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "redteam" && (
+        {actualCardId === "redteam" && (
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Layer</div>
             <div className={s.statHuge}>{redteamVal} of 220</div>
@@ -200,7 +341,19 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "onboard" && (
+        {actualCardId === "s5" && (
+          <>
+            <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 5</div>
+            <h1 className={s.titleHero}>An AI shopping agent checks before it pays</h1>
+            <p className={s.subHero}>Brand verification over MCP: the same check, for agents</p>
+          </>
+        )}
+
+        {actualCardId === "terminal" && (
+          <TerminalCard />
+        )}
+
+        {actualCardId === "onboard" && (
           <>
             <h1 className={s.titleLarge}>One API. Every checkout.</h1>
             <div className={s.pipelineWrap}>
@@ -226,7 +379,7 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {cardId === "close" && (
+        {actualCardId === "close" && (
           <div className={s.closeWrap}>
             <div className={`${s.closeLine} ${s.line1}`}>Trust at checkout for buyers.</div>
             <div className={`${s.closeLine} ${s.line2}`}>Intelligence for brands.</div>
@@ -235,6 +388,9 @@ function CardView({ cardId }: { cardId: string }) {
               <div className={s.brandWordmark}>
                 <span className={s.brandDiamond} aria-hidden>◆</span>
                 TrustLedger
+              </div>
+              <div className={s.techStrip}>
+                Built with PayPal Server SDK (APIMatic) · AG Grid · Bryntum · OpenDP · Render
               </div>
               <div className={s.repoLink}>github.com/ParthSinha9498/trustledger</div>
             </div>
@@ -274,7 +430,7 @@ function StoryContent() {
   const searchParams = useSearchParams();
   const card = searchParams.get("card");
 
-  if (card && CARDS.some((c) => c.id === card)) {
+  if (card && (CARDS.some((c) => c.id === card) || card === "phones")) {
     return <CardView cardId={card} />;
   }
 

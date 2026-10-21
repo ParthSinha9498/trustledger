@@ -77,6 +77,7 @@ export type Case = {
   status: string;
   summary: string | null;
   findings: number;
+  confidence?: "low" | "medium" | "high" | string | null;
   created_at: string;
 };
 

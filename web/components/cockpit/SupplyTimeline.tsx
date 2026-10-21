@@ -67,7 +67,7 @@ export default function SupplyTimeline({ data, compact = false }: { data: Supply
         eventStyle="filled"
         eventLayout="stack"
         columns={[
-          { text: "Tier", field: "tier", width: 100 },
+          { text: "Tier", field: "tier", width: 115 },
           { text: "Name", field: "name", width: 190 },
           { text: "Region", field: "region", width: 90 },
         ]}

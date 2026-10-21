@@ -36,6 +36,7 @@ export default function Cockpit() {
     { field: "sku", headerName: "Product", minWidth: 130 },
     { field: "reason_code", headerName: "Reason", valueFormatter: (p) => REASON[p.value as string] ?? p.value },
     { field: "status", headerName: "Status", maxWidth: 150, cellRenderer: (p: { value: string }) => <StatusPill status={p.value} /> },
+    { field: "confidence", headerName: "Confidence", maxWidth: 130, valueFormatter: (p) => p.value ? String(p.value).toUpperCase() : "–" },
     { field: "findings", headerName: "Findings", maxWidth: 110, type: "numericColumn" },
     { field: "created_at", headerName: "Opened", sort: "desc", valueFormatter: (p) => p.value ? new Date(p.value as string).toLocaleString() : "" },
   ], []);

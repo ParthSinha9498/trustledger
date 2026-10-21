@@ -297,7 +297,7 @@ SCENARIOS: dict[str, Scenario] = {
         ground_truth=GroundTruth(
             is_problem=True,
             expected_store="store_b",
-            expected_distributor="dist_1",
+            expected_distributor=None,  # a clone copies a genuine serial; its original distributor isn't the leak
             expected_reason="ALREADY_SOLD",
             week_range=(9, 12),
         ),

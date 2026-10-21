@@ -37,6 +37,7 @@ class ScenarioResult:
     reason_attributed: bool = False
     correct: bool = False
     error: str | None = None
+    trace: list[str] = field(default_factory=list)  # each tool call, for debugging misses
 
 
 # ---------------------------------------------------------------- Offline Rule-Based Mock Agent
@@ -181,19 +182,20 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
 
     gt = scenario.ground_truth
     tool_queries = sum(1 for s in steps if s.get("kind") == "tool_call")
+    trace = [f'{s["payload"].get("tool")} {json.dumps(s["payload"].get("args"), sort_keys=True)}'
+             for s in steps if s.get("kind") == "tool_call"]
 
     if not gt.is_problem:
-        # Clean control: should NOT have high confidence and should NOT falsely blame
-        false_blame = any(_contains(all_text, s) for s in ["store_b", "store_c", "dist_1", "dist_2"])
-        is_confident = case.get("confidence") == "high"
-        correct = (not false_blame) and (not is_confident)
+        # Clean control: the agent will mention the trigger store (every case starts there), so mentions
+        # aren't blame. A false alarm is any confidence above "low" (or none reported).
+        correct = case.get("confidence") == "low"
 
         return ScenarioResult(
             scenario=scenario.name,
             title=scenario.title,
             is_problem=False,
             status=case.get("status", "unknown"),
-            confidence=case.get("confidence", "low"),
+            confidence=case.get("confidence") or "unknown",
             summary=summary,
             findings=findings,
             steps_count=len(steps),
@@ -203,6 +205,7 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
             distributor_attributed=True,
             reason_attributed=True,
             correct=correct,
+            trace=trace,
         )
 
     # Problem scenario: check store, distributor, and reason attribution
@@ -227,6 +230,7 @@ def score_scenario(scenario: Scenario, case: dict, steps: list[dict], budget_spe
         distributor_attributed=dist_ok,
         reason_attributed=reason_ok,
         correct=correct,
+        trace=trace,
     )
 
 
@@ -255,7 +259,12 @@ def run_scenario(name: str, mock: bool = True, tag_prefix: str = "det") -> Scena
         assert case is not None, f"No open case found for scenario {name}"
 
         # Run investigation
-        llm = ScenarioAwareMockLLM() if mock else harness.get_llm()
+        if mock:
+            llm = ScenarioAwareMockLLM()
+        else:
+            from backend.common.llm import OpenAICompatibleLLM
+            llm = OpenAICompatibleLLM()  # always the real provider, regardless of LLM_MODE
+
         inv = Investigation(case, llm)
         inv.run()
 
@@ -282,16 +291,26 @@ def run_scenario(name: str, mock: bool = True, tag_prefix: str = "det") -> Scena
         harness.drop_databases(tag)
 
 
-def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir: Path | None = None) -> dict:
+def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir: Path | None = None,
+            tag_prefix: str | None = None) -> dict:
+    # Live runs get their own databases so a concurrent pytest run (which uses "det") can't drop them.
+    tag_prefix = tag_prefix or ("det" if mock else "live")
     names = scenario_names or list(SCENARIOS.keys())
     results: list[ScenarioResult] = []
 
     for name in names:
-        res = run_scenario(name, mock=mock)
+        try:
+            res = run_scenario(name, mock=mock, tag_prefix=tag_prefix)
+        except Exception as e:  # e.g. provider quota: record it and keep going, never score it
+            sc = SCENARIOS[name]
+            res = ScenarioResult(scenario=name, title=sc.title, is_problem=sc.ground_truth.is_problem,
+                                 status="error", confidence="unknown", summary="",
+                                 error=f"{type(e).__name__}: {str(e)[:300]}")
         results.append(res)
 
-    problem_scenarios = [r for r in results if r.is_problem]
-    clean_scenarios = [r for r in results if not r.is_problem]
+    scored = [r for r in results if r.error is None]
+    problem_scenarios = [r for r in scored if r.is_problem]
+    clean_scenarios = [r for r in scored if not r.is_problem]
 
     detected_count = sum(1 for r in problem_scenarios if r.correct)
     clean_pass_count = sum(1 for r in clean_scenarios if r.correct)
@@ -304,7 +323,8 @@ def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir:
 
     data = {
         "mode": "mock (ScenarioAwareMockLLM)" if mock else f"live LLM ({os.environ.get('AGENT_MODEL', 'gemini')})",
-        "scenarios_evaluated": len(results),
+        "scenarios_evaluated": len(scored),
+        "scenarios_errored": [r.scenario for r in results if r.error],
         "recall": round(recall, 3),
         "false_alarm_rate": round(false_alarm_rate, 3),
         "total_rho_spent": round(total_rho, 4),

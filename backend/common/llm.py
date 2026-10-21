@@ -53,20 +53,35 @@ class OpenAICompatibleLLM:
         )
 
     def next_turn(self, messages: list[dict], tools: list[dict]) -> Turn:
-        from openai import RateLimitError
+        from openai import BadRequestError, RateLimitError
 
+        sent, fixes = list(messages), 0
         for attempt in range(6):
             try:
                 resp = self.client.chat.completions.create(
-                    model=self.model, messages=messages, tools=tools, tool_choice="auto"
+                    model=self.model, messages=sent, tools=tools, tool_choice="auto"
                 )
                 break
+            except BadRequestError as e:
+                # Groq validates tool calls server-side and rejects the whole turn (bad arguments, or output it
+                # couldn't parse). Tell the model and let it try again; the caller's history is left untouched.
+                code = _error_code(e)
+                if code not in ("tool_use_failed", "output_parse_failed") or fixes == 2 or attempt == 5:
+                    raise
+                fixes += 1
+                hint = (f"Your last tool call was rejected: {_error_message(e)} "
+                        "Fix the arguments to match the tool schema and call it again."
+                        if code == "tool_use_failed" else
+                        "Your last reply could not be parsed. Reply with one valid tool call.")
+                sent = sent + [{"role": "user", "content": hint}]
             except RateLimitError as e:
                 # Free tiers allow a few requests per minute; wait as long as the provider asks.
                 if attempt == 5:
                     raise
-                m = re.search(r"retry in ([\d.]+)s", str(e))
-                time.sleep(float(m.group(1)) + 1 if m else 15 * (attempt + 1))
+                wait = _retry_after(str(e)) or 15 * (attempt + 1)
+                if wait > 300:  # a daily quota, not a per-minute limit: fail now rather than stall the case
+                    raise
+                time.sleep(wait)
         m = resp.choices[0].message
         calls = [
             ToolCall(id=c.id, name=c.function.name, arguments=json.loads(c.function.arguments or "{}"),
@@ -78,6 +93,28 @@ class OpenAICompatibleLLM:
         usage = {"prompt": u.prompt_tokens, "completion": u.completion_tokens,
                  "cached": (getattr(details, "cached_tokens", None) or 0)} if u else {}
         return Turn(content=m.content or "", tool_calls=calls, usage=usage)
+
+
+def _retry_after(msg: str) -> float | None:
+    """Seconds to wait from a 429 message: Gemini says "retry in 12.3s", Groq "try again in 1m29.8s" or "520ms"."""
+    m = re.search(r"(?:retry|try again) in ((?:[\d.]+(?:ms|h|m|s))+)", msg, re.IGNORECASE)
+    if not m:
+        return None
+    scale = {"ms": 0.001, "h": 3600, "m": 60, "s": 1}
+    return sum(float(n) * scale[u.lower()] for n, u in re.findall(r"([\d.]+)(ms|h|m|s)", m.group(1), re.I)) + 1
+
+
+def _error_body(e) -> dict:
+    body = getattr(e, "body", None)
+    return (body.get("error", body) if isinstance(body, dict) else {}) or {}
+
+
+def _error_code(e) -> str | None:
+    return _error_body(e).get("code")
+
+
+def _error_message(e) -> str:
+    return str(_error_body(e).get("message") or e)[:500]
 
 
 def get_llm():

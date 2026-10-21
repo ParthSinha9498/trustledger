@@ -125,7 +125,7 @@ flowchart TD
 ### Differential Privacy Red-Teaming
 TrustLedger underwent rigorous differential privacy red-teaming evaluating resistance against privacy extraction attacks:
 - **Result:** **220 of 220 reconstruction attacks blocked** across 20 repeated runs of 11 distinct attack archetypes (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion). Attacker success was **0 of 220** (no attack exceeded the confidence threshold needed for linkage).
-- **Baseline Guess Accuracy:** An attacker guessing blindly achieved **23%**, matching random chance across candidate stores (20–33%).
+- **Best guesses:** when the attacks fell back to unconfident guesses about a buyer's age band or gender, they were right **23%** of the time (25 of 107), in line with chance (20% for age band, 33% for gender). Details: [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 - **Report:** Full methodology, audit logs, and parameters documented in [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 
 ### Live Detection Evaluation

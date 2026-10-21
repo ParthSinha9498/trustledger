@@ -8,7 +8,7 @@ import "./supply-timeline.css";
 
 import { StringHelper, type DependencyModelConfig, type EventModelConfig, type ResourceModelConfig } from "@bryntum/scheduler";
 import { BryntumScheduler } from "@bryntum/scheduler-react";
-import { useMemo } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { weekToDate, type SupplyChain, type SupplyEvent } from "@/lib/api";
 
 const TIER_LABEL = { brand: "Brand", distributor: "Distributor", store: "Store" } as const;
@@ -23,6 +23,7 @@ const KIND_LABEL: Record<SupplyEvent["kind"], string> = {
 const DEP_TYPE = { start_to_start: 0, end_to_start: 2 } as const;
 
 export default function SupplyTimeline({ data, compact = false }: { data: SupplyChain; compact?: boolean }) {
+  const schedulerRef = useRef<BryntumScheduler>(null);
   const byId = useMemo(() => new Map(data.events.map((e) => [e.id, e])), [data.events]);
   const names = useMemo(() => new Map(data.resources.map((r) => [r.id, r.name])), [data.resources]);
 
@@ -37,7 +38,7 @@ export default function SupplyTimeline({ data, compact = false }: { data: Supply
   const events = useMemo<EventModelConfig[]>(() => data.events.map((e) => ({
     id: e.id,
     resourceId: e.resource_id,
-    name: e.kind === "off_channel" ? `${e.units} units off-channel` : `${e.batch_id} · ${e.units}`,
+    name: e.kind === "off_channel" ? `${e.units} units off-channel` : e.batch_id,
     startDate: weekToDate(e.start_week),
     endDate: weekToDate(e.end_week),
     eventColor: KIND_COLOR[e.kind],
@@ -54,12 +55,31 @@ export default function SupplyTimeline({ data, compact = false }: { data: Supply
 
   const start = weekToDate(Math.max(1, data.week_range.from));
   const end = weekToDate(data.week_range.to + 1);
+  // Center view on the recent ~12 weeks with "now" visible
+  const recentDate = useMemo(() => {
+    return weekToDate(Math.max(1, data.week_range.to - 6));
+  }, [data.week_range.to]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const inst = schedulerRef.current?.instance;
+      if (inst && typeof inst.scrollToDate === "function") {
+        inst.scrollToDate(recentDate, { block: "center", animate: false });
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [recentDate]);
 
   return (
     <div className={`supply-timeline${compact ? " compact" : ""}`}>
       <BryntumScheduler
+        ref={schedulerRef}
         startDate={start}
         endDate={end}
+        visibleDate={{
+          date: recentDate,
+          block: "center",
+        }}
         viewPreset="weekAndMonth"
         rowHeight={compact ? 40 : 46}
         barMargin={5}

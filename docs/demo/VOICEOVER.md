@@ -8,7 +8,7 @@ the explanation. Every claim is backed in the product or by a cited source.
 |---|---|---|
 | 1 | Hook (4) | One phone. One serial number. Two stores. |
 | 2 | Problem (7) | Counterfeits are a four-hundred-and-sixty-seven-billion-dollar trade. In smartphones, one sale in eight is lost to fakes. |
-| 3 | Gap (6) | Verification exists, but it's optional and separate from paying. So nobody uses it. |
+| 3 | Gap (6) | Verification exists, but it's optional and separate from paying. So most buyers skip it. |
 | 4 | Idea (6) | TrustLedger makes authenticity a condition of payment. |
 | 5 | How it works (10) | The brand's data stays with the brand. PayPal's stays with PayPal. Questions travel to the data, and only private aggregates come back. |
 | 6 | Scenario 1 (18) | Store A scans serial X123. The brand confirms it, and only then does PayPal create the order, with the verification ID inside. The buyer approves, and the receipt is brand verified. |

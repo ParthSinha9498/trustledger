@@ -351,7 +351,7 @@ function CardView({ cardId }: { cardId: string }) {
                     <div style={{ color: "#a7f3d0" }}>← Aggregate</div>
                   </div>
                 </div>
-                <p style={{ margin: 0, fontSize: 20, color: "#f8fafc", fontWeight: 600, lineHeight: 1.4 }}>
+                <p style={{ margin: 0, fontSize: 20, color: "var(--fg)", fontWeight: 600, lineHeight: 1.4 }}>
                   JSON query specs only (no SQL).<br />
                   <span style={{ color: "#38bdf8" }}>The AI agent never sees a raw record.</span>
                 </p>
@@ -377,7 +377,7 @@ function CardView({ cardId }: { cardId: string }) {
                 </div>
               </div>
             </div>
-            <div className={s.sourceFooter} style={{ marginTop: 22, fontSize: 20, fontWeight: 600, color: "#f8fafc" }}>
+            <div className={s.sourceFooter} style={{ marginTop: 22, fontSize: 20, fontWeight: 600, color: "var(--fg)" }}>
               0 records leave a node · No person is identifiable
             </div>
           </>

@@ -65,12 +65,12 @@ export default function CaseDetailPage() {
           <h1>Case {c.case_id}</h1>
           <div className="meta">
             <StatusPill status={c.status} />
-            <span className="pill"><span className="muted">Store</span>&nbsp;<strong>{c.store_id}</strong></span>
-            <span className="pill"><span className="muted">Product</span>&nbsp;<strong>{c.sku}</strong></span>
-            {c.serial && <span className="pill"><span className="muted">Serial</span>&nbsp;<code>{c.serial}</code></span>}
-            <span className="pill"><span className="muted">Confidence</span>&nbsp;<strong>{c.confidence ? c.confidence.toUpperCase() : "–"}</strong></span>
-            <span className="pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
-            <span className="pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
+            <span className="pill case-pill"><span className="muted">Store</span>&nbsp;<strong>{c.store_id}</strong></span>
+            <span className="pill case-pill"><span className="muted">Product</span>&nbsp;<strong>{c.sku}</strong></span>
+            {c.serial && <span className="pill case-pill"><span className="muted">Serial</span>&nbsp;<code>{c.serial}</code></span>}
+            <span className="pill case-pill"><span className="muted">Confidence</span>&nbsp;<strong>{c.confidence ? c.confidence.toUpperCase() : "–"}</strong></span>
+            <span className="pill case-pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
+            <span className="pill case-pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
         </div>
         <div className="case-budget">

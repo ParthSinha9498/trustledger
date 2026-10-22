@@ -139,8 +139,12 @@ def test_insight_questions_plan_and_answer(env):
         assert "Dropped" not in plan["rationale"]
         result = api.post("/console/run", json={"specs": plan["specs"]}).json()["results"][0]
         assert "refused" not in result, (question, result)
-        assert result["rows"], question
-        if node == "paypal":
+        if node == "brand":
+            assert result["rows"], question  # exact business counts: always present
+        else:
+            # A private release: on the small test seed some or all cells can fall under the noise-scaled display
+            # floor, so require a release (rows or hidden cells), not visible rows.
+            assert result["rows"] or result.get("suppressed_cells", 0) > 0, (question, result)
             assert all("ci95" in row for row in result["rows"])
         if metric == "sum_amount":  # spend per buyer: each released cell has a noisy buyer count and the mean
             assert all({"buyers", "mean_spend"} <= set(row) for row in result["rows"])

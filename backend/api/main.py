@@ -48,6 +48,17 @@ def stores():
         return c.execute("SELECT * FROM stores ORDER BY store_id").fetchall()
 
 
+@app.get("/demo/serial")
+def demo_serial(store_id: str):
+    """Demo only: an unsold demo serial (and its product) at this store, from the brand node."""
+    with http.client(config.brand_node_url()) as c:
+        r = c.get("/v1/demo/serial", params={"store_id": store_id})
+    if r.status_code == 404:
+        raise HTTPException(404, r.json().get("detail", "no demo stock"))
+    r.raise_for_status()
+    return r.json()
+
+
 # ---------------------------------------------------------------- checkout gate
 
 class ScanRequest(BaseModel):

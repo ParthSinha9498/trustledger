@@ -10,6 +10,9 @@ store all year; each store sells most of a batch in the weeks after it arrives, 
 
 Planted scenarios (all recent, relative to WEEKS):
   * Demo serial X123: in the latest Distributor 1 -> Store A batch, not yet sold.
+  * Demo stock: the unsold units delivered to Store A and Store B are renamed XA000001... and XB000001...
+    so anyone trying the demo can tell which store's stock a serial is. No units are added, so every
+    aggregate is unchanged.
   * Diversion: Distributor 1 stock (from batches 6-12 weeks old) sold at Store C, which Distributor 1 never
     supplied, during the last 6 weeks.
   * Clone attempts: serials from Distributor 1 batches tried at Store B in the last 4 weeks.
@@ -43,6 +46,8 @@ SUPPLY = {"dist_1": ["store_a", "store_d", "store_f"], "dist_2": ["store_b", "st
 AGE_BANDS = ["18-24", "25-34", "35-44", "45-54", "55+"]
 GENDERS = ["female", "male", "other"]
 DEMO_SERIAL = "X123"
+# Unsold stock at these stores gets a readable prefix (see the docstring).
+DEMO_PREFIX = {"store_a": "XA", "store_b": "XB"}
 # Who buys what (weights per age band, same order as AGE_BANDS): the mainstream P8 128GB skews 25-34, the
 # premium P8 256GB 35-44, the budget A5 to the youngest and oldest buyers.
 BUYER_MIX = {
@@ -219,6 +224,17 @@ def build(small: bool = False, seed: int = 42) -> None:
                            rng.randint(weeks - 3, weeks)))
     b.executemany("INSERT INTO verification_log (verification_id, serial, sku, store_id, result, reason_code, week) "
                   "VALUES (%s,%s,%s,%s,%s,%s,%s)", clone_rows)
+
+    # Demo stock: rename unsold units at Store A / Store B (serials and any log rows that mention them).
+    b.execute("CREATE TEMP TABLE rename_tmp (old TEXT PRIMARY KEY, new TEXT)")
+    for store_id, prefix in DEMO_PREFIX.items():
+        b.execute(
+            "INSERT INTO rename_tmp SELECT s.serial, %s || lpad(row_number() OVER (ORDER BY s.serial)::text, 6, '0') "
+            "FROM serials s JOIN channel_shipments cs ON cs.batch_id = s.batch_id "
+            "WHERE cs.store_id = %s AND s.sold_store_id IS NULL AND s.serial <> %s",
+            (prefix, store_id, DEMO_SERIAL))
+    b.execute("UPDATE serials s SET serial = r.new FROM rename_tmp r WHERE s.serial = r.old")
+    b.execute("UPDATE verification_log v SET serial = r.new FROM rename_tmp r WHERE v.serial = r.old")
     brand_conn.close()
     paypal_conn.close()
 

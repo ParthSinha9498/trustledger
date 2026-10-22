@@ -74,6 +74,24 @@ def verify(req: VerifyRequest) -> VerifyResponse:
     return VerifyResponse(verification_id=vid, result=result, reason_code=reason)
 
 
+DEMO_PREFIX = {"store_a": "XA", "store_b": "XB"}  # matches backend/seed.py
+
+
+@app.get("/v1/demo/serial", dependencies=[Depends(require_node_token)])
+def demo_serial(store_id: str):
+    """Demo only: one random unsold demo serial for a store, so a tester never picks a sold one."""
+    prefix = DEMO_PREFIX.get(store_id)
+    if not config.demo_mode() or prefix is None:
+        raise HTTPException(404, "no demo stock for this store")
+    with db.connect("brand") as c:
+        row = c.execute(
+            "SELECT serial, sku FROM serials WHERE serial LIKE %s AND sold_store_id IS NULL "
+            "ORDER BY random() LIMIT 1", (prefix + "%",)).fetchone()
+    if row is None:
+        raise HTTPException(404, "demo stock sold out")
+    return {"serial": row["serial"], "sku": row["sku"]}
+
+
 @app.post("/v1/verify/{verification_id}/confirm", dependencies=[Depends(require_node_token)])
 def confirm(verification_id: str, req: ConfirmRequest):
     """Called after PayPal capture: the brand marks the serial sold."""

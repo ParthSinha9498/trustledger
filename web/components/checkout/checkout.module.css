@@ -23,10 +23,11 @@
 .tile {
   text-align: left; background: var(--bg); color: var(--fg); border: 1px solid var(--line);
   border-radius: 10px; padding: 10px 12px; font-weight: 600; cursor: pointer; display: grid; gap: 2px;
+  justify-items: start; align-content: start;
   transition: border-color 120ms, box-shadow 120ms;
 }
 .tile:hover { border-color: var(--accent); }
-.tile small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.tile small { font-weight: 400; color: var(--muted); font-size: 12px; text-align: left; }
 .tileOn { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
 .tile:disabled { opacity: 0.6; cursor: default; }
 

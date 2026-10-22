@@ -13,11 +13,12 @@ const theme = themeQuartz.withParams({
   headerBackgroundColor: "var(--bg)",
   accentColor: "var(--accent)",
   browserColorScheme: "inherit",
-  fontFamily: "inherit",
+  fontFamily: "var(--font-sans)",
   fontSize: 13,
   headerFontWeight: 600,
-  wrapperBorderRadius: 8,
+  wrapperBorderRadius: 10,
   spacing: 6,
+  rowHoverColor: "var(--chip)",
 });
 
 export default function Grid<T>({ rows, columns, height = 360, onRowClick, autoHeight = false }: {

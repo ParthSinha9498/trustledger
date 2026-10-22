@@ -3,7 +3,7 @@
 #
 #   api          0.0.0.0:$PORT   public (browser, PayPal webhooks)   PLATFORM_DATABASE_URL only
 #   brand-node   127.0.0.1:8001  localhost only                      BRAND_DATABASE_URL only
-#   paypal-node  127.0.0.1:8002  localhost only                      PAYPAL_DATABASE_URL only
+#   paypal-node  127.0.0.1:8002  localhost only                      PAYPAL_DATABASE_URL + PAYER_HASH_KEY only
 #   worker       -               talks to the three over HTTP         no database URL at all
 #
 # Each process gets only its own credentials (env -u), so service isolation still holds inside the
@@ -17,6 +17,7 @@ only() {  # only VAR -- cmd...: run cmd with every database URL except VAR remov
   local keep="$1"; shift 2
   local unset=()
   for v in "${DB_VARS[@]}"; do [ "$v" = "$keep" ] || unset+=(-u "$v"); done
+  [ "$keep" = PAYPAL_DATABASE_URL ] || unset+=(-u PAYER_HASH_KEY)  # the payer-hash secret stays in the PayPal-side node
   env "${unset[@]}" "$@"
 }
 

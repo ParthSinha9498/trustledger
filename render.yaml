@@ -64,6 +64,8 @@ services:
         fromService: { type: web, name: trustledger-web, envVarKey: RENDER_EXTERNAL_HOSTNAME }
       - key: NODE_SHARED_TOKEN   # still required between processes, even on localhost
         generateValue: true
+      - key: PAYER_HASH_KEY      # secret for the keyed hash of payer IDs; only the PayPal-side process gets it
+        generateValue: true
       - key: PAYPAL_MODE
         value: sandbox
       - key: PAYPAL_CLIENT_ID

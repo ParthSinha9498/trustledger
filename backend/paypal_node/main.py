@@ -10,6 +10,7 @@ own auth context. This demo uses one shared node token; a production deployment 
 node credentials so brand_id is bound to the authenticated caller rather than chosen by it.
 """
 import hashlib
+import hmac
 import itertools
 import json
 import uuid
@@ -216,7 +217,9 @@ def ingest(req: IngestRequest):
 
     New data changes the data version, so cached answers are recomputed (and charged) next time.
     """
-    key = hashlib.sha256(f"payer:{req.payer_ref}".encode()).hexdigest()[:16]
+    # Keyed hash: without the node's secret, a payer ID can't be turned into its key, so a guessed ID can't be
+    # checked against the data (a plain hash of a guessable ID could be).
+    key = hmac.new(config.payer_hash_key(), f"payer:{req.payer_ref}".encode(), hashlib.sha256).hexdigest()[:16]
     with db.connect("paypal_side") as c, c.transaction():
         store = c.execute("SELECT region, city FROM catalog_stores WHERE store_id=%s", (req.store_id,)).fetchone()
         c.execute(

@@ -10,6 +10,11 @@ def node_token() -> str:
     return env("NODE_SHARED_TOKEN", "dev-token")
 
 
+def payer_hash_key() -> bytes:
+    """Secret for the keyed hash of payer IDs. Only the PayPal-side node holds it (docker/all_in_one.sh)."""
+    return env("PAYER_HASH_KEY", "dev-payer-key").encode()
+
+
 def brand_id() -> str:
     return env("BRAND_ID", "nimbus")
 

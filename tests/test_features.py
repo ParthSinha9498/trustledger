@@ -88,6 +88,12 @@ def test_ingest_invalidates_cache_and_hashes_payer(env):
     with db.connect("paypal_side") as c:
         dump = json.dumps(c.execute("SELECT * FROM transactions WHERE order_id='ORD-1'").fetchall(), default=str)
     assert "ORD-1" in dump and "PAYER-SECRET-42" not in dump  # payer id stored only as a hash
+    # Keyed hash: a plain hash of a guessed payer ID doesn't match what's stored.
+    import hashlib, hmac
+    from backend import config
+    plain = hashlib.sha256(b"payer:PAYER-SECRET-42").hexdigest()[:16]
+    keyed = hmac.new(config.payer_hash_key(), b"payer:PAYER-SECRET-42", hashlib.sha256).hexdigest()[:16]
+    assert plain not in dump and keyed in dump
 
 
 def test_ingest_needs_node_token(env):

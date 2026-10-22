@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import BudgetMeter from "@/components/cockpit/BudgetMeter";
+import DataBoundary from "@/components/cockpit/DataBoundary";
 import StatusPill from "@/components/cockpit/StatusPill";
 import StepTimeline, { Cites, citationsOf, linkSteps } from "@/components/cockpit/StepTimeline";
 import SupplyChainPanel from "@/components/cockpit/SupplyChainPanel";
@@ -111,6 +112,12 @@ export default function CaseDetailPage() {
           ) : <p className="muted">No findings recorded yet.</p>}
         </section>
       </div>
+
+      <section className="card">
+        <h2>What the agent could see</h2>
+        <p className="muted">Each question travels to the node that owns the data; only an aggregate comes back. Raw records never leave the brand or PayPal.</p>
+        <DataBoundary steps={c.steps} />
+      </section>
 
       <section className="card">
         <h2>Supply chain for {c.sku}</h2>

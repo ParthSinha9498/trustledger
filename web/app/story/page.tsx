@@ -16,16 +16,19 @@ const CARDS: CardMeta[] = [
   { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
   { id: "gap", title: "Verification exists. Nobody uses it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
+  { id: "how", title: "How it works: Data never moves", desc: "Two locked nodes · Questions in · Private aggregates out" },
   { id: "s1", title: "Scenario 1: Genuine phone at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
-  { id: "s4", title: "Scenario 4: Privacy by design", desc: "Analysts get answers, never individual buyers." },
-  { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
-  { id: "s5", title: "Scenario 5: Autonomous AI shopping agents", desc: "Brand verification over MCP: the same check, for agents" },
+  { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
+  { id: "s4", title: "Scenario 4: Brand insights", desc: "Verified transaction insights with formal differential privacy." },
+  { id: "guarantee", title: "Formal privacy guarantee", desc: "Every buyer protected across all of a brand's questions: zCDP ρ 0.25 ≈ ε 4.2" },
+  { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Seller POS SDK via APIMatic" },
+  { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
   { id: "terminal", title: "AI Shopping Agent Terminal", desc: "Live MCP client verifyProduct execution and brand verdict" },
   { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
   { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
-  { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
+  { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
 ];
 
 const DEFAULT_TERMINAL_LINES = [
@@ -466,6 +469,53 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
+        {actualCardId === "how" && (
+          <>
+            <div className={`${s.badge} ${s.badgeBlue}`}>Architecture</div>
+            <h1 className={s.titleLarge}>How it works: Data never moves</h1>
+            <div className={s.nodeCardGrid}>
+              <div className={s.nodeCard}>
+                <div className={s.nodeCardHeader}>
+                  <div className={s.nodeCardTitle}>Brand Node</div>
+                  <span className={s.statPill} style={{ fontSize: 11 }}>Private DB</span>
+                </div>
+                <p className={s.calloutSub} style={{ margin: 0, textAlign: "left" }}>
+                  Serials, batches, shipments, and checkout logs remain locked inside.
+                </p>
+                <div style={{ marginTop: "auto", fontSize: 13, color: "#38bdf8", fontWeight: 600 }}>
+                  Answers: VERIFIED / NOT_VERIFIED
+                </div>
+              </div>
+
+              <div className={`${s.nodeCard} ${s.nodeCardCenter}`}>
+                <div style={{ fontSize: 24, color: "#38bdf8", fontWeight: 700 }}>
+                  Questions in →<br />← Aggregates out
+                </div>
+                <p style={{ margin: "10px 0 0", fontSize: 13, color: "#94a3b8", lineHeight: 1.4 }}>
+                  JSON query specs only (no SQL).<br />
+                  <strong style={{ color: "#ffffff" }}>The AI agent never sees a raw record.</strong>
+                </p>
+              </div>
+
+              <div className={s.nodeCard}>
+                <div className={s.nodeCardHeader}>
+                  <div className={s.nodeCardTitle}>PayPal Node</div>
+                  <span className={s.statPill} style={{ fontSize: 11 }}>DP Boundary</span>
+                </div>
+                <p className={s.calloutSub} style={{ margin: 0, textAlign: "left" }}>
+                  Transactions, keyed hashed buyer IDs, and demographics remain locked inside.
+                </p>
+                <div style={{ marginTop: "auto", fontSize: 13, color: "#34d399", fontWeight: 600 }}>
+                  Answers: Noisy aggregates with ±95% CI
+                </div>
+              </div>
+            </div>
+            <div className={s.sourceFooter} style={{ marginTop: 24 }}>
+              Zero raw buyer records leave a node · No person is identifiable
+            </div>
+          </>
+        )}
+
         {actualCardId === "s1" && (
           <>
             <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 1</div>
@@ -490,11 +540,81 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
+        {actualCardId === "business" && (
+          <>
+            <div className={`${s.badge} ${s.badgeTeal}`}>Business Model</div>
+            <h1 className={s.titleHero}>How does this pay for itself?</h1>
+            <div className={s.statHuge}>USD 150B+</div>
+            <div className={s.statLabel}>a year spent on market insights (ESOMAR, 2024 data)</div>
+            <p className={s.calloutText} style={{ marginTop: 18, marginBottom: 8 }}>
+              Survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus.
+            </p>
+            <p className={s.calloutSub} style={{ color: "#38bdf8", fontSize: 20, fontWeight: 700 }}>
+              TrustLedger answers from verified purchases with mathematical differential privacy.
+            </p>
+          </>
+        )}
+
         {actualCardId === "s4" && (
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
-            <h1 className={s.titleHero}>Privacy by design</h1>
-            <p className={s.subHero}>Analysts get answers, never individual buyers.</p>
+            <h1 className={s.titleHero}>Brand insights in seconds</h1>
+            <p className={s.subHero}>Verified transaction analytics with formal differential privacy instead of waiting weeks.</p>
+          </>
+        )}
+
+        {actualCardId === "guarantee" && (
+          <>
+            <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Guarantee</div>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Formal mathematical guarantee</h1>
+            <p className={s.subHero} style={{ fontSize: 24, marginBottom: 20 }}>Every buyer protected across all of a brand&apos;s questions</p>
+            <div className={s.guaranteeBox}>
+              <div className={s.formulaHighlight}>zCDP ρ = 0.25 ≈ ε 4.2 (δ = 10⁻⁸)</div>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", fontSize: 15, color: "#cbd5e1" }}>
+                <span>✓ Single privacy unit</span>
+                <span>✓ OpenDP Gaussian noise (±95% CI)</span>
+                <span>✓ Lifetime budget meter</span>
+                <span>✓ Small groups hidden</span>
+              </div>
+            </div>
+            <div className={s.sourceFooter} style={{ marginTop: 20 }}>
+              Internal red-team: 11 attack types, none extracted a confident individual-level fact (evals/results/redteam_repeated.md)
+            </div>
+          </>
+        )}
+
+        {actualCardId === "levels" && (
+          <>
+            <div className={`${s.badge} ${s.badgeBlue}`}>Ecosystem</div>
+            <h1 className={s.titleLarge}>One standard. Three simple integrations.</h1>
+            <div className={s.levelsRow}>
+              <div className={s.levelBox}>
+                <div style={{ fontSize: 13, color: "#60a5fa", fontWeight: 700 }}>1. FOR BRANDS</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#ffffff" }}>Verification API</div>
+                <p style={{ margin: 0, fontSize: 14, color: "#94a3b8", lineHeight: 1.45 }}>
+                  Brand verification endpoint + local brand node holding serial inventory.
+                </p>
+              </div>
+
+              <div className={s.levelBox}>
+                <div style={{ fontSize: 13, color: "#34d399", fontWeight: 700 }}>2. FOR PAYPAL</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#ffffff" }}>Checkout Gate</div>
+                <p style={{ margin: 0, fontSize: 14, color: "#94a3b8", lineHeight: 1.45 }}>
+                  Creates payment only on brand verification. Binds verification ID in custom_id.
+                </p>
+              </div>
+
+              <div className={`${s.levelBox} ${s.levelBoxHighlight}`}>
+                <div style={{ fontSize: 13, color: "#38bdf8", fontWeight: 700 }}>3. FOR SELLERS / POS</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#ffffff" }}>One SDK Call</div>
+                <p style={{ margin: 0, fontSize: 14, color: "#94a3b8", lineHeight: 1.45 }}>
+                  Single verifyProduct call at scan. SDK generated from OpenAPI spec by APIMatic.
+                </p>
+              </div>
+            </div>
+            <div className={s.sourceFooter} style={{ marginTop: 24 }}>
+              Self-sustaining model: brands pay for insights, checkout verification is free for shoppers
+            </div>
           </>
         )}
 
@@ -556,8 +676,8 @@ function CardView({ cardId }: { cardId: string }) {
 
         {actualCardId === "close" && (
           <div className={s.closeWrap}>
-            <div className={`${s.closeLine} ${s.line1}`}>Trust at checkout for buyers.</div>
-            <div className={`${s.closeLine} ${s.line2}`}>Intelligence for brands.</div>
+            <div className={`${s.closeLine} ${s.line1}`}>Brands pay for insights; the checkout check is free for shoppers.</div>
+            <div className={`${s.closeLine} ${s.line2}`}>Trust for buyers · Intelligence for brands.</div>
             <div className={`${s.closeLine} ${s.line3}`}>A more trusted network for PayPal.</div>
             <div className={s.brandFooter}>
               <div className={s.brandWordmark}>

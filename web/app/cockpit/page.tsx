@@ -35,6 +35,11 @@ export default function Cockpit() {
     { field: "store_id", headerName: "Store", maxWidth: 130 },
     { field: "sku", headerName: "Product", minWidth: 130 },
     { field: "reason_code", headerName: "Reason", valueFormatter: (p) => REASON[p.value as string] ?? p.value },
+    { field: "agent_mode", headerName: "Mode", maxWidth: 140, valueFormatter: (p) => {
+        if (p.data?.status === "failed" && p.value === "live") return "Interrupted";
+        return p.value === "replay" ? "Replay" : "Live";
+      }
+    },
     { field: "status", headerName: "Status", maxWidth: 150, cellRenderer: (p: { value: string }) => <StatusPill status={p.value} /> },
     { field: "confidence", headerName: "Confidence", maxWidth: 130, valueFormatter: (p) => p.value ? String(p.value).toUpperCase() : "–" },
     { field: "findings", headerName: "Findings", maxWidth: 110, type: "numericColumn" },
@@ -42,7 +47,7 @@ export default function Cockpit() {
   ], []);
 
   const counts = useMemo(() => {
-    const c = { open: 0, investigating: 0, complete: 0, failed: 0 } as Record<string, number>;
+    const c = { open: 0, investigating: 0, waiting_capacity: 0, complete: 0, failed: 0 } as Record<string, number>;
     for (const x of cases ?? []) c[x.status] = (c[x.status] ?? 0) + 1;
     return c;
   }, [cases]);

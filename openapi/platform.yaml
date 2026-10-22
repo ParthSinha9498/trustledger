@@ -33,6 +33,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /console/samples:
+    get:
+      tags:
+      - console
+      summary: Get Samples
+      operationId: get_samples_console_samples_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
   /console/run:
     post:
       tags:
@@ -414,6 +426,30 @@ components:
           - type: string
           - type: 'null'
           title: Confidence
+        agent_mode:
+          type: string
+          title: Agent Mode
+          default: live
+        agent_model:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Agent Model
+        agent_reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Agent Reason
+        source_case_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source Case Id
+        replay_recorded_at:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Replay Recorded At
       type: object
       required:
       - status
@@ -468,6 +504,11 @@ components:
           type: boolean
           title: Explain
           default: false
+        sample_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sample Id
       type: object
       required:
       - specs

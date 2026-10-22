@@ -42,15 +42,21 @@ class Turn:
 
 
 class OpenAICompatibleLLM:
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, api_key: str | None = None, base_url: str | None = None) -> None:
         from openai import OpenAI
 
-        self.model = model or config.env("AGENT_MODEL", "gemini-3.5-flash")
+        self.model = model or config.env("AGENT_MODEL")
+        if not self.model:
+            raise RuntimeError("AGENT_MODEL environment variable must be set (no default provided)")
         self.client = OpenAI(
-            api_key=config.env("LLM_API_KEY", ""),
-            base_url=config.env("LLM_BASE_URL", GEMINI_BASE),
+            api_key=api_key if api_key is not None else config.env("LLM_API_KEY", ""),
+            base_url=base_url or config.env("LLM_BASE_URL", GEMINI_BASE),
             max_retries=2,  # transient errors; 429s are paced in next_turn
         )
+
+    def complete(self, messages: list[dict]) -> str:
+        resp = self.client.chat.completions.create(model=self.model, messages=messages)
+        return (resp.choices[0].message.content or "").strip()
 
     def next_turn(self, messages: list[dict], tools: list[dict]) -> Turn:
         from openai import BadRequestError, RateLimitError
@@ -95,6 +101,47 @@ class OpenAICompatibleLLM:
         return Turn(content=m.content or "", tool_calls=calls, usage=usage)
 
 
+class ChainedLLM:
+    """Tries the primary model; on 429, timeout, or error, falls back to the fallback model if configured."""
+
+    def __init__(self, primary: OpenAICompatibleLLM, fallback: OpenAICompatibleLLM | None = None, is_smaller: bool = False) -> None:
+        self.primary = primary
+        self.fallback = fallback
+        self.is_smaller = is_smaller
+        self.active_llm = primary
+        self.used_fallback = False
+
+    @property
+    def model(self) -> str:
+        return self.active_llm.model
+
+    def next_turn(self, messages: list[dict], tools: list[dict]) -> Turn:
+        if self.used_fallback and self.fallback:
+            return self.fallback.next_turn(messages, tools)
+        try:
+            return self.primary.next_turn(messages, tools)
+        except Exception as e:
+            if not self.fallback:
+                raise
+            print(f"Primary model {self.primary.model} failed ({e}); falling back to {self.fallback.model} (sticky for run)", flush=True)
+            self.active_llm = self.fallback
+            self.used_fallback = True
+            return self.fallback.next_turn(messages, tools)
+
+    def complete(self, messages: list[dict]) -> str:
+        if self.used_fallback and self.fallback:
+            return self.fallback.complete(messages)
+        try:
+            return self.primary.complete(messages)
+        except Exception as e:
+            if not self.fallback:
+                raise
+            print(f"Primary model {self.primary.model} complete failed ({e}); falling back to {self.fallback.model} (sticky for run)", flush=True)
+            self.active_llm = self.fallback
+            self.used_fallback = True
+            return self.fallback.complete(messages)
+
+
 def _retry_after(msg: str) -> float | None:
     """Seconds to wait from a 429 message: Gemini says "retry in 12.3s", Groq "try again in 1m29.8s" or "520ms"."""
     m = re.search(r"(?:retry|try again) in ((?:[\d.]+(?:ms|h|m|s))+)", msg, re.IGNORECASE)
@@ -122,4 +169,24 @@ def get_llm():
         from backend.worker.mock_llm import ScriptedLLM
 
         return ScriptedLLM()
-    return OpenAICompatibleLLM()
+
+    agent_model = config.env("AGENT_MODEL")
+    if not agent_model:
+        raise RuntimeError("AGENT_MODEL environment variable must be set when LLM_MODE is 'live'")
+
+    primary = OpenAICompatibleLLM(
+        model=agent_model,
+        api_key=config.env("LLM_API_KEY", ""),
+        base_url=config.env("LLM_BASE_URL", GEMINI_BASE),
+    )
+    fallback_model = config.env("LLM_FALLBACK_MODEL")
+    if fallback_model:
+        fallback = OpenAICompatibleLLM(
+            model=fallback_model,
+            api_key=config.env("LLM_FALLBACK_API_KEY") or config.env("LLM_API_KEY", ""),
+            base_url=config.env("LLM_FALLBACK_BASE_URL") or config.env("LLM_BASE_URL", GEMINI_BASE),
+        )
+        is_smaller = config.env("LLM_FALLBACK_IS_SMALLER", "0").lower() in ("1", "true", "yes")
+        return ChainedLLM(primary, fallback, is_smaller=is_smaller)
+    return primary
+

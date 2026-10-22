@@ -159,9 +159,18 @@ class Investigation:
             # Implicit prompt caching: the fixed prompt + tools prefix and earlier turns are billed at a discount.
             self.log("usage", usage)
 
-    def _finish(self, status: str, args: dict) -> None:
+    def _finish(self, status: str, args: dict, agent_mode: str = "live", agent_model: str | None = None, agent_reason: str | None = None) -> None:
         text = args.get("summary", "")
         if args.get("next_actions"):
             text += "\n\nNext actions:\n" + "\n".join(f"- {a}" for a in args["next_actions"])
-        self.api.post(f"/internal/cases/{self.case['case_id']}/finish",
-                      json={"status": status, "summary": text, "confidence": args.get("confidence")}).raise_for_status()
+        payload = {
+            "status": status,
+            "summary": text,
+            "confidence": args.get("confidence"),
+            "agent_mode": agent_mode,
+            "agent_model": agent_model or getattr(self.llm, "model", "live"),
+            "agent_reason": agent_reason,
+        }
+        if agent_reason is None and getattr(self.llm, "used_fallback", False) and getattr(self.llm, "is_smaller", False):
+            payload["agent_reason"] = "Running on a smaller model due to free-tier limits"
+        self.api.post(f"/internal/cases/{self.case['case_id']}/finish", json=payload).raise_for_status()

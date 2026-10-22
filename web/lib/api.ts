@@ -78,6 +78,11 @@ export type Case = {
   summary: string | null;
   findings: number;
   confidence?: "low" | "medium" | "high" | string | null;
+  agent_mode?: "live" | "replay" | string;
+  agent_model?: string | null;
+  agent_reason?: string | null;
+  source_case_id?: string | null;
+  replay_recorded_at?: string | null;
   created_at: string;
 };
 

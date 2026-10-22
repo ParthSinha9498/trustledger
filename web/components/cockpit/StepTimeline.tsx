@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { QueryResult, Step } from "@/lib/api";
 import ResultView from "./ResultView";
 import { label } from "./format";
@@ -120,26 +120,68 @@ function StepBody({ step }: { step: Step }) {
   }
 }
 
-export default function StepTimeline({ steps }: { steps: Step[] }) {
+export default function StepTimeline({ steps, isReplay = false }: { steps: Step[]; isReplay?: boolean }) {
+  const [playbackCount, setPlaybackCount] = useState<number | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    if (!playing) return;
+    const interval = setInterval(() => {
+      setPlaybackCount((curr: number | null) => {
+        const next = (curr ?? 0) + 1;
+        if (next >= steps.length) {
+          setPlaying(false);
+          return null; // show all
+        }
+        return next;
+      });
+    }, 350);
+    return () => clearInterval(interval);
+  }, [playing, steps.length]);
+
   if (!steps.length) return <p className="muted">Waiting for the agent to start…</p>;
+
+  const visibleSteps = playbackCount !== null ? steps.slice(0, playbackCount) : steps;
+
   return (
-    <ol className="timeline">
-      {steps.map((s) => {
-        const k = KIND[s.kind] ?? { label: s.kind, cls: "" };
-        return (
-          <li key={s.n} id={`step-${s.n}`} className={`tl-item ${k.cls}`}>
-            <div className="tl-marker" aria-hidden />
-            <div className="tl-content">
-              <div className="tl-head">
-                <span className="tl-n">#{s.n}</span>
-                <span className={`kind ${k.cls}`}>{k.label}</span>
-                {s.at && <time className="muted small">{new Date(s.at).toLocaleTimeString()}</time>}
+    <>
+      {isReplay && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button
+            type="button"
+            className="secondary small"
+            onClick={() => {
+              if (playing) {
+                setPlaying(false);
+                setPlaybackCount(null);
+              } else {
+                setPlaybackCount(1);
+                setPlaying(true);
+              }
+            }}
+          >
+            {playing ? `Playing step ${playbackCount ?? 1} of ${steps.length}… (Stop)` : "Replay Steps"}
+          </button>
+        </div>
+      )}
+      <ol className="timeline">
+        {visibleSteps.map((s) => {
+          const k = KIND[s.kind] ?? { label: s.kind, cls: "" };
+          return (
+            <li key={s.n} id={`step-${s.n}`} className={`tl-item ${k.cls}`}>
+              <div className="tl-marker" aria-hidden />
+              <div className="tl-content">
+                <div className="tl-head">
+                  <span className="tl-n">#{s.n}</span>
+                  <span className={`kind ${k.cls}`}>{k.label}</span>
+                  {s.at && <time className="muted small">{new Date(s.at).toLocaleTimeString()}</time>}
+                </div>
+                <StepBody step={s} />
               </div>
-              <StepBody step={s} />
-            </div>
-          </li>
-        );
-      })}
-    </ol>
+            </li>
+          );
+        })}
+      </ol>
+    </>
   );
 }

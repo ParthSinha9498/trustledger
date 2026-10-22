@@ -66,6 +66,7 @@ services:
     environment:
       <<: *backend-env
       PAYPAL_DATABASE_URL: *paypal-db
+      PAYER_HASH_KEY: ${PAYER_HASH_KEY:-dev-payer-key}   # only this node gets the payer-hash secret
     depends_on: { seed: { condition: service_completed_successfully } }
     ports: [ "${PAYPAL_PORT:-8002}:8002" ]
   api:

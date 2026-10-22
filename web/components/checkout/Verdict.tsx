@@ -37,17 +37,17 @@ export function VerifiedVerdict({ verificationId, paypalOrderId, children }: {
         </div>
       </div>
       <div className={s.flow}>
-        <div className={`${s.step} ${s.stepOk}`}><strong>✓ Brand check</strong>Verified</div>
+        <div className={`${s.step} ${s.stepOk}`}><strong>✓ Brand check</strong>Authorized & in-channel</div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepOk}`}><strong>✓ PayPal order created</strong>custom_id = verification ID</div>
+        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterOk}`}><strong>✓ PayPal order created</strong>custom_id = verification ID</div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={s.step}><strong>Pay</strong>Buyer approves</div>
+        <div className={s.step}><strong>Pay with PayPal</strong>Buyer approves</div>
       </div>
       <dl className={s.facts}>
         <dt>Verification ID</dt><dd>{verificationId}</dd>
         <dt>PayPal order</dt><dd>{paypalOrderId}</dd>
       </dl>
-      <p className={s.note}>The PayPal order was created with this verification ID in its <code>custom_id</code>, so the payment record points to the verification event.</p>
+      <p className={s.note}>The PayPal order was created with this verification ID in its <code>custom_id</code>, so the payment record points directly to the verification event.</p>
       {children}
     </div>
   );
@@ -65,20 +65,23 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
       <div className={s.verdictHead}>
         <div className={`${s.badge} ${s.badgeBad}`} aria-hidden>✕</div>
         <div>
-          <h3 className={s.verdictTitle}>Not verified</h3>
-          <div className="muted">Payment blocked at {storeName}</div>
+          <h3 className={s.verdictTitle}>Payment Blocked</h3>
+          <div className="muted">Authenticity condition failed at {storeName}</div>
         </div>
       </div>
       <p className={s.reason}>{reason}</p>
-      <p className="muted" style={{ margin: 0 }}>Tell the buyer before any money moves. Do not sell this unit.</p>
+      <p className="muted" style={{ margin: 0 }}>Customer informed before any money moves. Unit is withheld from sale.</p>
       <div className={s.flow}>
         <div className={`${s.step} ${s.stepBad}`}><strong>✕ Brand check</strong>{reasonCode ?? "Not verified"}</div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepNever}`}><strong>PayPal order</strong>Never created</div>
+        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}><strong>🛑 PayPal order</strong>Never created</div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepBad}`}><strong>Investigation</strong>Opened for the brand</div>
+        <div className={`${s.step} ${s.stepBad}`}><strong>Investigation</strong>Opened in cockpit</div>
       </div>
-      <p className={s.noPayment}>No PayPal payment was created. An investigation has opened for the brand.</p>
+      <p className={s.noPayment}>
+        <span aria-hidden>🛡️</span>
+        No PayPal order or transaction was created. Fraud prevented before payment authorization.
+      </p>
       <dl className={s.facts}>
         <dt>Serial</dt><dd>{serial}</dd>
         {reasonCode && (<><dt>Reason code</dt><dd>{reasonCode}</dd></>)}

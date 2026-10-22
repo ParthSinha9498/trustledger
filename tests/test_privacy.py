@@ -37,7 +37,7 @@ def test_response_reports_noise_and_never_buyer_fields(env):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["noise"]["mechanism"] == "zCDP private release"
-    assert body["noise"]["unlimited_queries"] is True
+    assert body["noise"]["private_release"] is True
     assert all("ci95" in row for row in body["rows"])
     assert "payer_key" not in r.text and "txn_id" not in r.text
 
@@ -45,8 +45,8 @@ def test_response_reports_noise_and_never_buyer_fields(env):
 def test_sum_releases_count_sum_and_mean(env):
     body = ask(env, {"metric": "sum_amount", "group_by": ["store_id"]}).json()
     row = body["rows"][0]
-    assert {"value", "buyers", "mean_spend", "ci95"} <= set(row)
-    assert body["noise"]["unlimited_queries"] is True
+    assert {"value", "buyers", "mean_spend", "ci95", "ci95_mean_spend"} <= set(row)
+    assert body["noise"]["private_release"] is True
 
 
 def test_unlimited_questions_spend_zero_extra_rho(env):
@@ -70,7 +70,7 @@ def test_unlimited_questions_spend_zero_extra_rho(env):
 
     final_budget = env["paypal"].get("/v1/budget", params={"brand_id": "nimbus"}).json()
     assert final_budget["spent"] == initial_spent
-    assert final_budget["unlimited_queries"] is True
+    assert final_budget["private_release"] is True
 
 
 def test_uncovered_spec_refused(env):
@@ -93,6 +93,84 @@ def test_release_status_endpoint(env):
     assert b["rho_spent"] == 0.20
     assert b["eps_equivalent"] == 3.69
     assert b["marginal_count"] == 6
-    assert b["unlimited_queries"] is True
+    assert b["private_release"] is True
+
+
+def test_repeated_query_returns_identical_rows(env):
+    """Same spec -> identical rows byte for byte."""
+    spec = {"metric": "buyers", "group_by": ["store_id"]}
+    r1 = ask(env, spec).json()
+    r2 = ask(env, spec).json()
+    assert r1["rows"] == r2["rows"]
+    assert r1["noise"] == r2["noise"]
+
+
+def test_second_build_release_refused(env):
+    """A second build_release is refused because 0.20 + 0.20 > 0.25 total budget."""
+    import pytest
+    with pytest.raises(ValueError, match="Insufficient privacy budget"):
+        privacy.build_release("nimbus")
+
+
+def test_router_refuses_uncovered_filters(env):
+    """age_band/gender filter on M1 (which has week) returns NOT_IN_RELEASE, not empty suppressed answer."""
+    r = ask(env, {
+        "metric": "buyers",
+        "group_by": ["store_id", "week"],
+        "filters": {"age_band": ["18-24"]}
+    })
+    assert r.status_code == 403
+    assert r.json()["detail"]["refused"] == "NOT_IN_RELEASE"
+
+    r2 = ask(env, {
+        "metric": "buyers",
+        "group_by": ["store_id", "week"],
+        "filters": {"gender": ["female"]}
+    })
+    assert r2.status_code == 403
+    assert r2.json()["detail"]["refused"] == "NOT_IN_RELEASE"
+
+
+def test_mean_spend_has_delta_method_ci(env):
+    """mean_spend row must contain ci95_mean_spend from delta method."""
+    r = ask(env, {"metric": "sum_amount", "group_by": ["store_id"]})
+    assert r.status_code == 200
+    rows = r.json()["rows"]
+    assert len(rows) > 0
+    for row in rows:
+        assert "mean_spend" in row
+        assert "ci95_mean_spend" in row
+        assert row["ci95_mean_spend"] >= 0.0
+
+
+def test_k_truncation_bounds_buyer_contribution(env):
+    """Verify that K-truncation SQL query bounds single buyer contribution to at most K cells."""
+    from backend import db
+    with db.connect("paypal_side") as c:
+        # Insert a buyer into 10 store/sku/week cells
+        payer = "k_trunc_test_payer"
+        for w in range(1, 11):
+            c.execute("INSERT INTO transactions VALUES (%s,%s,'nimbus','store_a','NMB-P8-128',50,'US-WEST','Seattle',%s,%s,'35-44','female','simulated')",
+                      (f"KT_TX_{w}", f"KT_ORD_{w}", w, payer))
+        # Run K-truncation CTE on M1 (k=3)
+        sql = """
+            WITH buyer_cells AS (
+                SELECT payer_key, store_id, sku, week, LEAST(SUM(amount), 1000) AS spend
+                FROM transactions
+                WHERE brand_id = 'nimbus' AND payer_key = %s
+                GROUP BY payer_key, store_id, sku, week
+            ),
+            truncated AS (
+                SELECT *, ROW_NUMBER() OVER (
+                    PARTITION BY payer_key
+                    ORDER BY md5(payer_key || concat_ws('|', store_id, sku, week::text) || 'm1')
+                ) AS rn
+                FROM buyer_cells
+            )
+            SELECT COUNT(*) AS kept FROM truncated WHERE rn <= 3
+        """
+        kept = c.execute(sql, (payer,)).fetchone()["kept"]
+        assert kept == 3  # bounded to K=3 out of 10 cells
+
 
 

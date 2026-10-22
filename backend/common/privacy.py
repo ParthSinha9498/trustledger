@@ -151,8 +151,10 @@ def release(keys: list[tuple], counts: list[int], sums: list[float], metric: str
                 suppressed += 1
                 continue
             s = max(s, 0.0)
+            mean_val = round(s / n, 2)
+            se_mean = math.sqrt(sigma_s**2 + (mean_val**2) * (sigma_n**2)) / n
             rows.append({"key": key, "value": round(s, 2), "ci95": round(1.96 * sigma_s, 2),
-                         "buyers": int(n), "mean_spend": round(s / n, 2)})
+                         "buyers": int(n), "mean_spend": mean_val, "ci95_mean_spend": round(1.96 * se_mean, 2)})
         noise = {"sigma": round(sigma_s, 2), "sigma_buyers": round(sigma_n, 2)}
     else:
         raise ValueError(metric)
@@ -185,13 +187,6 @@ def build_release(brand: str, release_id: str | None = None) -> dict:
         if c.execute("SELECT 1 FROM private_releases WHERE release_id=%s", (rel_id,)).fetchone():
             rel_id = f"{rel_id}_{uuid.uuid4().hex[:6]}"
 
-    # Check ledger spend first
-    with db.connect("paypal_side") as c:
-        row = c.execute("SELECT rho_spent FROM privacy_ledger WHERE brand_id=%s", (brand,)).fetchone()
-        spent = row["rho_spent"] if row else 0.0
-        if spent + RELEASE_RHO > total_rho() + 1e-9:
-            raise ValueError(f"Insufficient privacy budget for private release: spent {spent}, needs {RELEASE_RHO}, total {total_rho()}")
-
     AGE_BANDS = ["18-24", "25-34", "35-44", "45-54", "55+"]
     GENDERS = ["female", "male", "other"]
 
@@ -211,6 +206,13 @@ def build_release(brand: str, release_id: str | None = None) -> dict:
     marginals_data = []
 
     with db.connect("paypal_side") as c, c.transaction():
+        # Atomically check and lock ledger budget inside the write transaction
+        c.execute("INSERT INTO privacy_ledger (brand_id) VALUES (%s) ON CONFLICT DO NOTHING", (brand,))
+        row = c.execute("SELECT rho_spent FROM privacy_ledger WHERE brand_id=%s FOR UPDATE", (brand,)).fetchone()
+        spent = row["rho_spent"] if row else 0.0
+        if spent + RELEASE_RHO > total_rho() + 1e-9:
+            raise ValueError(f"Insufficient privacy budget for private release: spent {spent}, needs {RELEASE_RHO}, total {total_rho()}")
+
         for m in WORKLOAD:
             m_id = m["id"]
             dims = m["dims"]

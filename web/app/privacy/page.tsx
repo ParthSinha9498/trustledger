@@ -116,7 +116,7 @@ export default function PrivacyPage() {
           <div className="card" style={{ margin: 0 }}>
             <h3 style={{ margin: "0 0 6px", fontSize: "15px" }}>4. Private release (budget spent once)</h3>
             <p className="muted small" style={{ margin: 0, lineHeight: 1.5 }}>
-              Each brand operates under a private release measured once under zCDP with <strong>ρ = 0.20 (≈ ε 3.69 at δ = 10⁻⁸)</strong>. Under post-processing immunity (Dwork &amp; Roth 2014), analysts can ask unlimited questions over the measured marginals without consuming any extra budget.
+              Each brand operates under a private release measured once under zCDP with <strong>ρ = 0.20 (≈ ε 3.69 at δ = 10⁻⁸)</strong>. Under post-processing immunity (Dwork &amp; Roth 2014), queries are answered from the private release: no further budget spent.
             </p>
           </div>
 

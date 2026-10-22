@@ -45,15 +45,17 @@ def wire_services() -> dict:
     return {"api": TestClient(api_app, headers={"X-Node-Token": config.node_token()})}
 
 
-def reset_privacy_state() -> None:
+def reset_privacy_state(brand: str = "nimbus") -> None:
     """Fresh budget and empty release cache (a labelled 'dataset reset' between eval attempts)."""
     from backend import db
+    from backend.common import privacy
 
     with db.connect("paypal_side") as c:
         c.execute("UPDATE privacy_ledger SET rho_spent = 0")
         c.execute("DELETE FROM query_cache")
         c.execute("DELETE FROM private_release_marginals")
         c.execute("DELETE FROM private_releases")
+    privacy.build_release(brand)
 
 
 def bump_data_version() -> None:

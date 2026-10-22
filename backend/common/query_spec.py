@@ -29,7 +29,10 @@ class Filters(BaseModel):
     model_config = ConfigDict(extra="forbid")
     sku: list[str] | None = None
     region: list[str] | None = None
+    city: list[str] | None = None
     store_id: list[str] | None = None
+    age_band: list[str] | None = None
+    gender: list[str] | None = None
     week_from: int | None = Field(default=None, ge=1)
     week_to: int | None = Field(default=None, ge=1)
 

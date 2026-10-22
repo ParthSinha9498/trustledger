@@ -50,9 +50,9 @@ def budget(brand: str) -> dict:
         "total": total,
         "daily": total,  # kept for older clients; the budget is per dataset, not per day
         "eps_equivalent_total": round(privacy.eps_equivalent(total), 2),
-        "queries_left_estimate": 999999,
-        "unlimited_queries": True,
         "release_rho": privacy.RELEASE_RHO,
+        "private_release": True,
+        "guarantee": "Answered from the private release: no further budget spent",
     }
 
 
@@ -137,7 +137,7 @@ class MarginalReleaseEngine:
                 (self.brand_id,)
             ).fetchone()
         if not row:
-            row = privacy.build_release(self.brand_id)
+            raise SpecRefused("NOT_IN_RELEASE", f"No private release found for brand '{self.brand_id}'")
         return row
 
     def query(self, spec: QuerySpec) -> dict:
@@ -151,18 +151,25 @@ class MarginalReleaseEngine:
         filter_dims = set()
         f_store_id = getattr(f, "store_id", None)
         f_region = getattr(f, "region", None)
+        f_city = getattr(f, "city", None)
         f_sku = getattr(f, "sku", None)
         f_week_from = getattr(f, "week_from", None)
         f_week_to = getattr(f, "week_to", None)
+        f_age_band = getattr(f, "age_band", None)
+        f_gender = getattr(f, "gender", None)
 
         if f_store_id:
             filter_dims.add("store_id")
-        if f_region:
+        if f_region or f_city:
             filter_dims.add("store_id")
         if f_sku:
             filter_dims.add("sku")
         if f_week_from is not None or f_week_to is not None:
             filter_dims.add("week")
+        if f_age_band:
+            filter_dims.add("age_band")
+        if f_gender:
+            filter_dims.add("gender")
 
         # Map region/city in group_by to store_id for marginal coverage check
         req_dims = set()
@@ -171,6 +178,13 @@ class MarginalReleaseEngine:
                 req_dims.add("store_id")
             else:
                 req_dims.add(d)
+
+        with db.connect("paypal_side") as c:
+            cat_stores = c.execute("SELECT store_id, region, city FROM catalog_stores WHERE brand_id=%s", (self.brand_id,)).fetchall()
+            cat_skus = c.execute("SELECT sku FROM catalog_skus WHERE brand_id=%s", (self.brand_id,)).fetchall()
+
+        num_stores = len(cat_stores) or 6
+        num_skus = len(cat_skus) or 3
 
         # Check each marginal in WORKLOAD
         candidates = []
@@ -186,21 +200,33 @@ class MarginalReleaseEngine:
             if not filter_dims.issubset(m_dims):
                 continue
 
-            # Cells summed per output group
+            # Cells summed per output group: computed dynamically from catalog domain
             summed_dims = m_dims - req_dims
             n = 1
             if "store_id" in summed_dims:
-                n *= 6
+                if f_store_id:
+                    n_store = len(f_store_id)
+                elif f_region:
+                    n_store = max(1, len([s for s in cat_stores if s["region"] in f_region]))
+                elif f_city:
+                    n_store = max(1, len([s for s in cat_stores if s["city"] in f_city]))
+                elif "region" in dims:
+                    n_store = max(1, num_stores // max(1, len(set(s["region"] for s in cat_stores))))
+                elif "city" in dims:
+                    n_store = max(1, num_stores // max(1, len(set(s["city"] for s in cat_stores))))
+                else:
+                    n_store = num_stores
+                n *= n_store
             if "sku" in summed_dims:
-                n *= (len(f_sku) if f_sku else 3)
+                n *= (len(f_sku) if f_sku else num_skus)
             if "week" in summed_dims:
                 w_lo = f_week_from or 1
                 w_hi = f_week_to or config.current_week()
                 n *= max(1, (w_hi - w_lo + 1))
             if "age_band" in summed_dims:
-                n *= len(AGE_BANDS)
+                n *= (len(f_age_band) if f_age_band else len(AGE_BANDS))
             if "gender" in summed_dims:
-                n *= len(GENDERS)
+                n *= (len(f_gender) if f_gender else len(GENDERS))
 
             rho_val = m["rho"] if spec.metric == "buyers" else m["rho_sum"]
             l2_val = math.sqrt(m["k"]) if spec.metric == "buyers" else (privacy.SUM_CLAMP * math.sqrt(m["k"]))
@@ -221,8 +247,8 @@ class MarginalReleaseEngine:
 
         with db.connect("paypal_side") as c:
             store_meta = {}
-            if any(d in ("region", "city") for d in dims) or f_region:
-                for r in c.execute("SELECT store_id, region, city FROM catalog_stores WHERE brand_id=%s", (self.brand_id,)):
+            if any(d in ("region", "city") for d in dims) or f_region or f_city:
+                for r in cat_stores:
                     store_meta[r["store_id"]] = {"region": r["region"], "city": r["city"]}
 
             cells = c.execute(
@@ -242,9 +268,6 @@ class MarginalReleaseEngine:
                 continue
             if f_week_to is not None and key.get("week") is not None and key.get("week") > f_week_to:
                 continue
-            f_city = getattr(f, "city", None)
-            f_age_band = getattr(f, "age_band", None)
-            f_gender = getattr(f, "gender", None)
             if f_region and key.get("store_id"):
                 if store_meta.get(key["store_id"], {}).get("region") not in f_region:
                     continue
@@ -277,6 +300,7 @@ class MarginalReleaseEngine:
         suppressed = 0
         actual_n = best["n"]
 
+        # Privacy order: Clamp individual spend first (LEAST(SUM(amount), SUM_CLAMP)), add calibrated noise, and then apply display floor suppression (clamp-before-suppression).
         for g_key, data in grouped.items():
             cell_n = data["count"] or actual_n
             sigma_query_b = data["sigma_b"] * math.sqrt(cell_n)
@@ -299,7 +323,14 @@ class MarginalReleaseEngine:
                 row_dict["value"] = clamped_s
                 row_dict["ci95"] = ci95_s
                 row_dict["buyers"] = clamped_b
-                row_dict["mean_spend"] = round(clamped_s / clamped_b, 2) if clamped_b > 0 else 0.0
+                if clamped_b > 0:
+                    mean_val = round(clamped_s / clamped_b, 2)
+                    se_mean = math.sqrt(sigma_query_s**2 + (mean_val**2) * (sigma_query_b**2)) / clamped_b
+                    row_dict["mean_spend"] = mean_val
+                    row_dict["ci95_mean_spend"] = round(1.96 * se_mean, 2)
+                else:
+                    row_dict["mean_spend"] = 0.0
+                    row_dict["ci95_mean_spend"] = 0.0
             rows.append(row_dict)
 
         rows.sort(key=lambda r: [str(r.get(d, "")) for d in dims])
@@ -316,7 +347,8 @@ class MarginalReleaseEngine:
             "sigma": round(sigma_rep, 2),
             "ci95": round(1.96 * sigma_rep, 1),
             "display_floor": round(max(10.0, 2.0 * sigma_rep), 1),
-            "unlimited_queries": True,
+            "private_release": True,
+            "guarantee": "Answered from the private release: no further budget spent",
         }
 
         return {
@@ -338,7 +370,7 @@ def release_status(brand_id: str):
             (brand_id,)
         ).fetchone()
     if not row:
-        row = privacy.build_release(brand_id)
+        raise HTTPException(404, "No private release found for brand")
     return {
         "release_id": row["release_id"],
         "brand_id": row["brand_id"],
@@ -347,7 +379,8 @@ def release_status(brand_id: str):
         "delta": privacy.DELTA,
         "marginal_count": len(privacy.WORKLOAD),
         "created_at": str(row["created_at"]),
-        "unlimited_queries": True,
+        "private_release": True,
+        "guarantee": "Answered from the private release: no further budget spent",
     }
 
 

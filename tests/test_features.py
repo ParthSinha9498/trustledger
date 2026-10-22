@@ -85,7 +85,7 @@ def test_ingest_invalidates_cache_and_hashes_payer(env):
     again = env["paypal"].post("/v1/query", json=q).json()
     assert again["cached"] is False  # new data version: cache invalidated
     assert again["budget"]["spent"] == first["budget"]["spent"]  # private release spends 0 extra rho
-    assert again["budget"]["unlimited_queries"] is True
+    assert again["budget"]["private_release"] is True
     with db.connect("paypal_side") as c:
         dump = json.dumps(c.execute("SELECT * FROM transactions WHERE order_id='ORD-1'").fetchall(), default=str)
     assert "ORD-1" in dump and "PAYER-SECRET-42" not in dump  # payer id stored only as a hash

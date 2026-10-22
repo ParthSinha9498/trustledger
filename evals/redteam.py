@@ -31,6 +31,10 @@ import random
 import statistics
 import sys
 from dataclasses import asdict, dataclass, field
+from pathlib import Path
+
+# Ensure repo root is on sys.path for direct execution: python evals/redteam.py
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from evals import harness
 
@@ -599,20 +603,19 @@ def check_ledger(brand_id: str) -> dict:
     persists = abs(before["spent"] - after["spent"]) < 1e-9 and after["spent"] > 0
 
     # Two accounts (two clients, two purposes) for one brand share one budget.
-    old = os.environ.get("PRIVACY_TOTAL_RHO")
-    os.environ["PRIVACY_TOTAL_RHO"] = str(round(before["spent"] + 0.01, 4))
+    b = TestClient(app, headers=hdr)
+    ok_a = a.post("/v1/query", json={"brand_id": brand_id, "spec": {"metric": "buyers", "group_by": ["week"]},
+                                     "purpose": "acct-a"}).status_code
+    r_b = b.post("/v1/query", json={"brand_id": brand_id, "spec": {"metric": "buyers", "group_by": ["gender"]},
+                                    "purpose": "acct-b"})
+    # Verify account B cannot build a second release because brand's budget is already consumed
     try:
-        b = TestClient(app, headers=hdr)
-        ok_a = a.post("/v1/query", json={"brand_id": brand_id, "spec": {"metric": "buyers", "group_by": ["week"]},
-                                         "purpose": "acct-a"}).status_code
-        r_b = b.post("/v1/query", json={"brand_id": brand_id, "spec": {"metric": "buyers", "group_by": ["gender"]},
-                                        "purpose": "acct-b"})
-        shared = ok_a == 200 and r_b.status_code == 200
-    finally:
-        if old is None:
-            os.environ.pop("PRIVACY_TOTAL_RHO", None)
-        else:
-            os.environ["PRIVACY_TOTAL_RHO"] = old
+        from backend.common import privacy
+        privacy.build_release(brand_id)
+        second_refused = False
+    except ValueError:
+        second_refused = True
+    shared = ok_a == 200 and r_b.status_code == 200 and second_refused
     other = a.post("/v1/query", json={"brand_id": "other_brand", "spec": {"metric": "buyers", "group_by": ["store_id"]}})
     isolated = other.status_code != 200 or not other.json().get("rows")
     return {"name": "ledger_persistence_and_accounts", "passed": persists and shared and isolated,

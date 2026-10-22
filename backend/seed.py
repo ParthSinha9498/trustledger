@@ -43,6 +43,13 @@ SUPPLY = {"dist_1": ["store_a", "store_d", "store_f"], "dist_2": ["store_b", "st
 AGE_BANDS = ["18-24", "25-34", "35-44", "45-54", "55+"]
 GENDERS = ["female", "male", "other"]
 DEMO_SERIAL = "X123"
+# Who buys what (weights per age band, same order as AGE_BANDS): the mainstream P8 128GB skews 25-34, the
+# premium P8 256GB 35-44, the budget A5 to the youngest and oldest buyers.
+BUYER_MIX = {
+    "NMB-P8-128": [15, 35, 28, 14, 8],
+    "NMB-P8-256": [8, 28, 34, 20, 10],
+    "NMB-A5-64": [38, 20, 10, 10, 22],
+}
 
 BRAND_SCHEMA = """
 DROP TABLE IF EXISTS products, partners, batches, channel_shipments, serials, verification_log;
@@ -162,13 +169,16 @@ def build(small: bool = False, seed: int = 42) -> None:
     for i in range(n_buyers):
         key = hashlib.sha256(f"buyer-{seed}-{i}".encode()).hexdigest()[:16]
         buyers.append((key, rng.choice(AGE_BANDS), rng.choice(GENDERS)))
+    by_age: dict[str, list] = {a: [b for b in buyers if b[1] == a] for a in AGE_BANDS}
     price = {x[0]: x[3] for x in PRODUCTS}
 
     txns, sold = [], []
 
     def sell(store_id: str, serial: str, sku: str, week: int) -> None:
         tid = f"T{len(txns):06d}"
-        key, age, gender = rng.choice(buyers)
+        # Each product sells to a different age mix (see BUYER_MIX), so demographic questions have real answers.
+        band = rng.choices(AGE_BANDS, weights=BUYER_MIX[sku])[0]
+        key, age, gender = rng.choice(by_age[band] or buyers)
         s = _store(store_id)
         txns.append((tid, f"SIM-{tid}", BRAND, store_id, sku, price[sku], s[3], s[4], week, key, age, gender, "simulated"))
         sold.append((store_id, week, f"SIM-{tid}", serial))

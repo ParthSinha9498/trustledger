@@ -65,6 +65,20 @@ export default function CaseDetailPage() {
           <h1>Case {c.case_id}</h1>
           <div className="meta">
             <StatusPill status={c.status} />
+            {c.agent_mode === "replay" ? (
+              <span className="pill case-pill pill-warn" title="Replay of a recorded live run">
+                <span className="muted">Mode</span>&nbsp;
+                <strong>Replay of recorded live run</strong>&nbsp;
+                <code>{c.agent_model || "openai/gpt-oss-120b"}</code>
+                &nbsp;· {new Date(c.created_at).toLocaleDateString()}
+              </span>
+            ) : (
+              <span className="pill case-pill pill-ok" title="Live AI investigation">
+                <span className="muted">Mode</span>&nbsp;
+                <strong>Live AI investigation</strong>&nbsp;
+                <code>{c.agent_model || "live"}</code>
+              </span>
+            )}
             <span className="pill case-pill"><span className="muted">Store</span>&nbsp;<strong>{c.store_id}</strong></span>
             <span className="pill case-pill"><span className="muted">Product</span>&nbsp;<strong>{c.sku}</strong></span>
             {c.serial && <span className="pill case-pill"><span className="muted">Serial</span>&nbsp;<code>{c.serial}</code></span>}
@@ -72,6 +86,11 @@ export default function CaseDetailPage() {
             <span className="pill case-pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
             <span className="pill case-pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
+          {c.agent_reason && (
+            <div style={{ marginTop: 10, padding: "6px 12px", borderRadius: "var(--radius-sm)", background: "var(--card-elevated)", border: "1px solid var(--line)", fontSize: 13, color: "var(--fg)", display: "inline-block" }}>
+              <strong>Notice:</strong> {c.agent_reason}
+            </div>
+          )}
         </div>
         <div className="case-budget">
           <BudgetMeter budget={budget} />

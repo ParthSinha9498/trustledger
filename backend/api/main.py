@@ -245,6 +245,9 @@ class FinishIn(BaseModel):
     status: str        # complete | failed
     summary: str
     confidence: str | None = None  # low | medium | high, from the agent
+    agent_mode: str = "live"       # live | replay
+    agent_model: str | None = None
+    agent_reason: str | None = None
 
 
 @app.post("/internal/cases/claim", dependencies=[Depends(require_node_token)])
@@ -274,8 +277,11 @@ def add_step(case_id: str, step: StepIn):
 @app.post("/internal/cases/{case_id}/finish", dependencies=[Depends(require_node_token)])
 def finish_case(case_id: str, body: FinishIn):
     with db.connect("platform") as pc:
-        case = pc.execute("UPDATE cases SET status=%s, summary=%s, confidence=%s, updated_at=now() WHERE case_id=%s RETURNING *",
-                          (body.status, body.summary, body.confidence, case_id)).fetchone()
+        case = pc.execute(
+            """UPDATE cases SET status=%s, summary=%s, confidence=%s, agent_mode=%s, agent_model=%s, agent_reason=%s, updated_at=now()
+               WHERE case_id=%s RETURNING *""",
+            (body.status, body.summary, body.confidence, body.agent_mode, body.agent_model, body.agent_reason, case_id)
+        ).fetchone()
         # Failures that arrived during the run may have grown the problem enough to warrant another run.
         if case and body.status == "complete" and material_change(case):
             pc.execute("UPDATE cases SET status='open' WHERE case_id=%s", (case_id,))

@@ -200,12 +200,22 @@ class LiveConsoleLLM:
 
     def __init__(self, llm=None) -> None:
         if llm is None:
-            from backend.common.llm import OpenAICompatibleLLM
+            from backend.common.llm import get_llm
 
-            llm = OpenAICompatibleLLM(config.env("CONSOLE_MODEL"))
+            llm = get_llm()
         self.llm = llm
 
     def plan(self, question: str) -> tuple[list[dict], str]:
+        # One-click sample questions use verified stored query plans; never call a model
+        samples = [
+            "Where did the P8 128GB sell, by region, in the last 8 weeks?",
+            "Which age bands buy the P8 128GB vs the A5?",
+            "How did weekly buyers change at Store C over the last 12 weeks?",
+            "What is the spend per buyer by region?",
+        ]
+        if any(question.strip().lower() == s.lower() for s in samples):
+            return mock_plan(question)
+
         system = PLAN_SYSTEM.replace("{current_week}", str(config.current_week()))
         messages = [{"role": "system", "content": system}, {"role": "user", "content": question}]
         turn = self.llm.next_turn(messages, PLAN_TOOLS)
@@ -235,7 +245,9 @@ class MockConsoleLLM:
 def get_console_llm():
     if config.env("LLM_MODE", "live") == "mock":
         return MockConsoleLLM()
-    return LiveConsoleLLM()
+    from backend.common.llm import get_llm
+
+    return LiveConsoleLLM(get_llm())
 
 
 # ---------------------------------------------------------------- plan

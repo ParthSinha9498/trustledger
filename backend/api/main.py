@@ -242,9 +242,14 @@ class StepIn(BaseModel):
 
 
 class FinishIn(BaseModel):
-    status: str        # complete | failed
+    status: str        # complete | failed | waiting_capacity
     summary: str
     confidence: str | None = None  # low | medium | high, from the agent
+    agent_mode: str = "live"       # live | replay
+    agent_model: str | None = None
+    agent_reason: str | None = None
+    source_case_id: str | None = None
+    replay_recorded_at: str | None = None
 
 
 @app.post("/internal/cases/claim", dependencies=[Depends(require_node_token)])
@@ -254,7 +259,8 @@ def claim_case():
         row = pc.execute(
             """UPDATE cases SET status='investigating', run_count = run_count + 1,
                    run_failure_count = failure_count, run_skus = skus
-               WHERE case_id = (SELECT case_id FROM cases WHERE status='open'
+               WHERE case_id = (SELECT case_id FROM cases
+                                WHERE status = 'open' OR (status = 'waiting_capacity' AND (retry_after IS NULL OR retry_after <= now()))
                                 ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
                RETURNING *"""
         ).fetchone()
@@ -274,11 +280,24 @@ def add_step(case_id: str, step: StepIn):
 @app.post("/internal/cases/{case_id}/finish", dependencies=[Depends(require_node_token)])
 def finish_case(case_id: str, body: FinishIn):
     with db.connect("platform") as pc:
-        case = pc.execute("UPDATE cases SET status=%s, summary=%s, confidence=%s, updated_at=now() WHERE case_id=%s RETURNING *",
-                          (body.status, body.summary, body.confidence, case_id)).fetchone()
+        case = pc.execute(
+            """UPDATE cases SET status=%s, summary=%s, confidence=%s, agent_mode=%s, agent_model=%s,
+                   agent_reason=%s, source_case_id=%s, replay_recorded_at=%s,
+                   retry_after=(CASE WHEN %s = 'waiting_capacity' THEN now() + interval '15 minutes' ELSE NULL END),
+                   updated_at=now()
+               WHERE case_id=%s RETURNING *""",
+            (body.status, body.summary, body.confidence, body.agent_mode, body.agent_model,
+             body.agent_reason, body.source_case_id, body.replay_recorded_at, body.status, case_id)
+        ).fetchone()
         # Failures that arrived during the run may have grown the problem enough to warrant another run.
         if case and body.status == "complete" and material_change(case):
             pc.execute("UPDATE cases SET status='open' WHERE case_id=%s", (case_id,))
     if case:
-        notify.case_event("case_completed" if body.status == "complete" else "case_failed", case, body.summary)
+        if body.status == "complete":
+            event_type = "case_completed"
+        elif body.status == "waiting_capacity":
+            event_type = "case_deferred"
+        else:
+            event_type = "case_failed"
+        notify.case_event(event_type, case, body.summary)
     return {"ok": True}

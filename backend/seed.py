@@ -97,6 +97,8 @@ CREATE TABLE cases (case_id TEXT PRIMARY KEY, brand_id TEXT, verification_id TEX
     sku TEXT, serial TEXT, reason_code TEXT, status TEXT, summary TEXT, confidence TEXT,
     failure_count INT NOT NULL DEFAULT 1, skus TEXT[] NOT NULL DEFAULT '{}',
     run_count INT NOT NULL DEFAULT 0, run_failure_count INT NOT NULL DEFAULT 0, run_skus TEXT[] NOT NULL DEFAULT '{}',
+    agent_mode TEXT NOT NULL DEFAULT 'live', agent_model TEXT, agent_reason TEXT,
+    source_case_id TEXT, replay_recorded_at TEXT, retry_after TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE case_failures (verification_id TEXT PRIMARY KEY, case_id TEXT, serial TEXT, sku TEXT,
     at TIMESTAMPTZ NOT NULL DEFAULT now());

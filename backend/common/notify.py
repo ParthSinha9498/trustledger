@@ -43,5 +43,7 @@ def _text(event: str, case: dict, summary: str | None, dashboard: str) -> str:
     if event == "case_opened":
         return (f":rotating_light: Verification failed at {case.get('store_id')} for {case.get('sku')} "
                 f"({case.get('reason_code')}). No payment was created. Investigation opened: {link}")
+    if event == "case_deferred":
+        return f":hourglass: Investigation {case['case_id']} deferred: waiting for AI capacity.\n{(summary or '')[:600]}\n{link}"
     status = "completed" if event == "case_completed" else "failed"
     return f":mag: Investigation {case['case_id']} {status}.\n{(summary or '')[:600]}\n{link}"

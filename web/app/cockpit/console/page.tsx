@@ -67,8 +67,8 @@ export default function InsightsPage() {
       planned = (r.specs ?? []).map((s) => ({ node: s.node, spec: { ...s.spec, group_by: s.spec?.group_by ?? [], filters: s.spec?.filters ?? {} } }));
       setSpecs(planned);
       setRationale(r.rationale ?? null);
-    } catch (e) {
-      setErr(`Couldn't plan this question: ${errorText(e)}. You can add queries by hand below.`);
+    } catch {
+      setErr("Live planning unavailable right now, try an example question.");
       setBusy(null);
       return;
     }

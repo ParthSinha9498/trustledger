@@ -63,6 +63,7 @@ export default function Cockpit() {
         <div className="stat links">
           <Link href="/cockpit/console">Ask a question →</Link>
           <Link href="/cockpit/supply-chain">Supply chain →</Link>
+          <Link href="/privacy">How privacy is protected →</Link>
         </div>
       </div>
       <section className="card">

@@ -110,15 +110,12 @@ def main():
         page.goto("http://localhost:3000/cockpit/console")
         page.add_style_tag(content=hide_devtools)
         time.sleep(1.5)
-        # Click the PayPal demographic question
-        pp_btn = page.wait_for_selector("button:has-text('buyers of NMB-P8-128')", timeout=10000)
+        # Click the PayPal demographic example question (Brand Insights plans and runs it in one step)
+        pp_btn = page.wait_for_selector("button:has-text('Which age bands buy')", timeout=10000)
         pp_btn.click()
-        # Wait for planning to complete and Run button to become active
-        run_btn = page.wait_for_selector("button:has-text('Run')", timeout=15000)
-        run_btn.click()
-        # Wait for results table with CI or noise metadata
+        # Wait for the answer with its "vs. survey" line
         try:
-            page.wait_for_selector("text=Results, text=±", timeout=12000)
+            page.wait_for_selector("text=A survey: weeks", timeout=15000)
         except Exception:
             pass
         time.sleep(2.0)

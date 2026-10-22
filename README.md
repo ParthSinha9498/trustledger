@@ -179,7 +179,7 @@ cd web && npm install && npm run dev
 Visit **http://localhost:3000** to explore the application:
 - `/pos`: Test retail verification (Store A = Verified, Store B = Blocked)
 - `/cockpit`: View live investigations and agent findings
-- `/cockpit/console`: Query the differential privacy console
+- `/cockpit/console` (alias `/cockpit/insights`): Brand Insights, business questions answered from verified purchases with privacy guarantees
 - `/cockpit/supply-chain`: Explore the Bryntum timeline
 - `/story`: Walk through the pitch deck
 

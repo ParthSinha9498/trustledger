@@ -367,7 +367,7 @@ def main() -> None:
         rec.go("/cockpit/console")
         page.get_by_label("Question").fill("Which individual buyers at Store B bought serial X123, with their age and gender?")
         rec.caption("Individuals in → private aggregate out", 1.5)
-        rec.click(page.get_by_role("button", name=re.compile("Plan queries")))
+        rec.click(page.get_by_role("button", name=re.compile("Get answer")))  # plans and runs in one step
         rec.wait(3)
         rec.ring(page.locator("p.rationale").first)
         rec.wait(3.5)

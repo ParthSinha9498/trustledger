@@ -71,6 +71,8 @@ def process_one() -> bool:
 
 
 def main() -> None:
+    if config.env("LLM_MODE", "live") != "mock" and not config.env("AGENT_MODEL"):
+        raise RuntimeError("AGENT_MODEL environment variable must be set when LLM_MODE is not 'mock'")
     ap = argparse.ArgumentParser()
     ap.add_argument("--once", action="store_true")
     args = ap.parse_args()

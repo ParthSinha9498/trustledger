@@ -246,7 +246,7 @@ class MockConsoleLLM:
         return mock_plan(question)
 
     def explain(self, guarded: list[dict]) -> str:
-        return mock_explain(guarded)
+        return mock_explain(guarded, with_label=True)
 
 
 def get_console_llm():
@@ -364,7 +364,7 @@ def _label(row: dict, dims: list[str]) -> str:
     return ", ".join(f"{d}={row.get(d)}" for d in dims) or "total"
 
 
-def mock_explain(guarded: list[dict]) -> str:
+def mock_explain(guarded: list[dict], with_label: bool = False) -> str:
     """Templated explanation for LLM_MODE=mock, built from the guarded view only."""
     lines = []
     for g in guarded:
@@ -393,7 +393,8 @@ def mock_explain(guarded: list[dict]) -> str:
             else:
                 lines.append(f"PayPal-side data (differentially private): every cell of {what} was below the "
                              f"display floor ({sup} suppressed), so nothing can be read from it.")
-    return " ".join(lines) or "No results to explain."
+    body = " ".join(lines) or "No results to explain."
+    return f"Template explanation (no AI): {body}" if with_label else body
 
 
 @router.get("/samples")
@@ -407,7 +408,7 @@ def run(req: RunRequest):
     explanation = None
     if req.explain:
         if req.sample_id:
-            explanation = mock_explain(guarded_view(results))
+            explanation = mock_explain(guarded_view(results), with_label=True)
         else:
             explanation = get_console_llm().explain(guarded_view(results))
     return {"results": results, "budget": _paypal_budget(), "explanation": explanation}

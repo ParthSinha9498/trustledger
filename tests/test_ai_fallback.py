@@ -100,3 +100,44 @@ def test_worker_falls_back_to_replay_when_budget_exhausted(env, monkeypatch):
     assert case["status"] == "waiting_capacity"
     assert case["agent_reason"] == "Privacy budget used up: that's the guarantee working"
     assert len(case["steps"]) == 0
+
+
+def test_waiting_capacity_sets_retry_after_and_prevents_immediate_reclaim(env, monkeypatch):
+    api = env["api"]
+    events = []
+    monkeypatch.setattr("backend.common.notify.case_event", lambda ev, c, s=None: events.append((ev, c["case_id"], s)))
+
+    scan = api.post("/checkout/scan", json={"store_id": "store_b", "serial": "X999", "sku": "NMB-P8-128", "amount": 899.0}).json()
+    case_id = scan.get("case_id")
+    assert case_id is not None
+
+    # Force 429 so it finishes as waiting_capacity
+    def failing_llm():
+        m = MagicMock()
+        m.next_turn.side_effect = RuntimeError("429 Too Many Requests")
+        return m
+
+    monkeypatch.setattr("backend.worker.main.get_llm", failing_llm)
+    worked = process_one()
+    assert worked is True
+
+    # Check case in DB has retry_after populated
+    case = api.get(f"/cases/{case_id}").json()
+    assert case["status"] == "waiting_capacity"
+    assert case.get("retry_after") is not None
+    assert any(ev[0] == "case_deferred" and ev[1] == case_id for ev in events)
+
+    # Immediate reclaim must NOT return this case (backoff active)
+    from backend import config
+    claim_res = api.post("/internal/cases/claim", headers={"X-Node-Token": config.node_token()}).json()
+    assert claim_res.get("case") is None
+
+
+def test_agent_model_required_for_live_mode(monkeypatch):
+    from backend.common import llm
+    monkeypatch.delenv("AGENT_MODEL", raising=False)
+    monkeypatch.setenv("LLM_MODE", "live")
+    import pytest
+    with pytest.raises(RuntimeError, match="AGENT_MODEL"):
+        llm.get_llm()
+

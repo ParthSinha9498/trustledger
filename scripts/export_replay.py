@@ -51,7 +51,7 @@ def export_case_replay(case_id: str, out_path: str | Path | None = None) -> Path
     }
 
     if out_path is None:
-        target_dir = Path("backend/fixtures/replays")
+        target_dir = Path("tests/fixtures/replays")
         target_dir.mkdir(parents=True, exist_ok=True)
         out_path = target_dir / f"{case_id}.json"
     else:

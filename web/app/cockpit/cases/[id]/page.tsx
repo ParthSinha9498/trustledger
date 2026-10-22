@@ -65,7 +65,13 @@ export default function CaseDetailPage() {
           <h1>Case {c.case_id}</h1>
           <div className="meta">
             <StatusPill status={c.status} />
-            {c.agent_mode === "replay" ? (
+            {c.status === "failed" && c.agent_mode === "live" ? (
+              <span className="pill case-pill pill-warn" title="Interrupted live attempt">
+                <span className="muted">Mode</span>&nbsp;
+                <strong>Interrupted live attempt</strong>
+                {c.agent_model ? <>&nbsp;<code>{c.agent_model}</code></> : null}
+              </span>
+            ) : c.agent_mode === "replay" ? (
               <span className="pill case-pill pill-warn" title="Replay">
                 <span className="muted">Mode</span>&nbsp;
                 <strong>
@@ -88,7 +94,11 @@ export default function CaseDetailPage() {
             <span className="pill case-pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
             <span className="pill case-pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
-          {c.status === "waiting_capacity" ? (
+          {c.status === "failed" && c.agent_mode === "live" ? (
+            <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: "var(--radius-sm)", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.4)", fontSize: 13, color: "var(--fg)" }}>
+              <strong>Interrupted live attempt:</strong> {c.agent_reason || c.summary || "Live investigation was interrupted before completion."}
+            </div>
+          ) : c.status === "waiting_capacity" ? (
             <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: "var(--radius-sm)", background: "rgba(234, 179, 8, 0.1)", border: "1px solid rgba(234, 179, 8, 0.4)", fontSize: 13, color: "var(--fg)" }}>
               <strong>{c.agent_reason || "Capacity reached"}:</strong> This case will be investigated live when capacity frees up.
             </div>

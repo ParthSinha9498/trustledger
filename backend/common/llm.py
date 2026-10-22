@@ -46,6 +46,8 @@ class OpenAICompatibleLLM:
         from openai import OpenAI
 
         self.model = model or config.env("AGENT_MODEL")
+        if not self.model:
+            raise RuntimeError("AGENT_MODEL environment variable must be set (no default provided)")
         self.client = OpenAI(
             api_key=api_key if api_key is not None else config.env("LLM_API_KEY", ""),
             base_url=base_url or config.env("LLM_BASE_URL", GEMINI_BASE),
@@ -168,8 +170,12 @@ def get_llm():
 
         return ScriptedLLM()
 
+    agent_model = config.env("AGENT_MODEL")
+    if not agent_model:
+        raise RuntimeError("AGENT_MODEL environment variable must be set when LLM_MODE is 'live'")
+
     primary = OpenAICompatibleLLM(
-        model=config.env("AGENT_MODEL"),
+        model=agent_model,
         api_key=config.env("LLM_API_KEY", ""),
         base_url=config.env("LLM_BASE_URL", GEMINI_BASE),
     )

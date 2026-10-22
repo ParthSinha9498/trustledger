@@ -1,0 +1,760 @@
+{
+  "replay_id": "replay-case_af739ac755",
+  "kind": "case",
+  "source_case_id": "case_af739ac755",
+  "model": "openai/gpt-oss-120b",
+  "recorded_at": "2026-10-21",
+  "summary": "An investigation of case_af739ac755 revealed that store_b accumulated 27 NOT_IN_CHANNEL and 14 ALREADY_SOLD verification failures across weeks 39 through 42 for SKUs NMB-P8-128, NMB-A5-64, and NMB-P8-256. Brand supply chain records confirm distributor dist_2 is the sole authorized supplier to store_b, having shipped 3,500 units and recorded 2,958 sales solely for SKU NMB-P8-256. No authorized shipments or brand sales were recorded for store_b for SKUs NMB-P8-128 or NMB-A5-64. PayPal transaction data independently confirms active commercial volume (2,314 buyers) at store_b. The evidence identifies store_b, distributor_id dist_2, reason_codes NOT_IN_CHANNEL and ALREADY_SOLD, during weeks 39 through 42 as the earliest observed point of divergence in the available evidence.\n\nNext actions:\n- Audit inventory records and physical stock at store_b for unauthorized sources of SKUs NMB-P8-128 and NMB-A5-64.\n- Request detailed serial-level distribution logs from distributor_id dist_2 for shipments delivered to store_b between weeks 39 and 42.\n- Reconcile point-of-sale scanner data at store_b for reason_code ALREADY_SOLD and NOT_IN_CHANNEL verification failures during weeks 39 to 42.",
+  "confidence": "high",
+  "steps": [
+    {
+      "step_id": "case_af739ac755:s1",
+      "case_id": "case_af739ac755",
+      "n": 1,
+      "kind": "tool_call",
+      "payload": {
+        "args": {},
+        "tool": "get_case"
+      },
+      "at": "2026-10-21T10:24:15.043440+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s2",
+      "case_id": "case_af739ac755",
+      "n": 2,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "get_case",
+        "result": {
+          "sku": "NMB-P8-128",
+          "skus": [
+            "NMB-P8-128"
+          ],
+          "store_id": "store_b",
+          "reason_code": "NOT_IN_CHANNEL",
+          "current_week": 42,
+          "failure_count": 1,
+          "investigation_run": 1
+        },
+        "for_step": 1
+      },
+      "at": "2026-10-21T10:24:15.059157+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s3",
+      "case_id": "case_af739ac755",
+      "n": 3,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "verification_failures",
+          "group_by": [
+            "store_id",
+            "reason_code"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:24:23.534367+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s4",
+      "case_id": "case_af739ac755",
+      "n": 4,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "value": 27,
+              "store_id": "store_b",
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "value": 14,
+              "store_id": "store_b",
+              "reason_code": "ALREADY_SOLD"
+            }
+          ],
+          "exact": true,
+          "metric": "verification_failures",
+          "group_by": [
+            "store_id",
+            "reason_code"
+          ]
+        },
+        "for_step": 3
+      },
+      "at": "2026-10-21T10:24:23.563166+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s5",
+      "case_id": "case_af739ac755",
+      "n": 5,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "verification_failures",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "sku",
+            "reason_code"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:24:37.185922+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s6",
+      "case_id": "case_af739ac755",
+      "n": 6,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "sku": "NMB-P8-128",
+              "value": 11,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "sku": "NMB-A5-64",
+              "value": 8,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "sku": "NMB-P8-256",
+              "value": 8,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "sku": "NMB-A5-64",
+              "value": 7,
+              "reason_code": "ALREADY_SOLD"
+            },
+            {
+              "sku": "NMB-P8-128",
+              "value": 4,
+              "reason_code": "ALREADY_SOLD"
+            },
+            {
+              "sku": "NMB-P8-256",
+              "value": 3,
+              "reason_code": "ALREADY_SOLD"
+            }
+          ],
+          "exact": true,
+          "metric": "verification_failures",
+          "group_by": [
+            "sku",
+            "reason_code"
+          ]
+        },
+        "for_step": 5
+      },
+      "at": "2026-10-21T10:24:37.203859+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s7",
+      "case_id": "case_af739ac755",
+      "n": 7,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "sold_units",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "distributor_id",
+            "sku"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:24:52.972221+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s8",
+      "case_id": "case_af739ac755",
+      "n": 8,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "sku": "NMB-P8-256",
+              "value": 2958,
+              "distributor_id": "dist_2"
+            }
+          ],
+          "exact": true,
+          "metric": "sold_units",
+          "group_by": [
+            "distributor_id",
+            "sku"
+          ]
+        },
+        "for_step": 7
+      },
+      "at": "2026-10-21T10:24:52.997089+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s9",
+      "case_id": "case_af739ac755",
+      "n": 9,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "sold_units",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "distributor_id"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:24:57.828405+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s10",
+      "case_id": "case_af739ac755",
+      "n": 10,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "value": 2958,
+              "distributor_id": "dist_2"
+            }
+          ],
+          "exact": true,
+          "metric": "sold_units",
+          "group_by": [
+            "distributor_id"
+          ]
+        },
+        "for_step": 9
+      },
+      "at": "2026-10-21T10:24:57.851953+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s11",
+      "case_id": "case_af739ac755",
+      "n": 11,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "shipped_units",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "distributor_id"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:25:00.093040+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s12",
+      "case_id": "case_af739ac755",
+      "n": 12,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "value": 3500,
+              "distributor_id": "dist_2"
+            }
+          ],
+          "exact": true,
+          "metric": "shipped_units",
+          "group_by": [
+            "distributor_id"
+          ]
+        },
+        "for_step": 11
+      },
+      "at": "2026-10-21T10:25:00.120942+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s13",
+      "case_id": "case_af739ac755",
+      "n": 13,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "shipped_units",
+          "group_by": [
+            "distributor_id",
+            "sku"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:26:10.787052+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s14",
+      "case_id": "case_af739ac755",
+      "n": 14,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "sku": "NMB-P8-128",
+              "value": 3501,
+              "distributor_id": "dist_1"
+            },
+            {
+              "sku": "NMB-P8-256",
+              "value": 3500,
+              "distributor_id": "dist_1"
+            },
+            {
+              "sku": "NMB-P8-256",
+              "value": 3500,
+              "distributor_id": "dist_2"
+            },
+            {
+              "sku": "NMB-P8-128",
+              "value": 3500,
+              "distributor_id": "dist_2"
+            },
+            {
+              "sku": "NMB-A5-64",
+              "value": 3500,
+              "distributor_id": "dist_1"
+            },
+            {
+              "sku": "NMB-A5-64",
+              "value": 3500,
+              "distributor_id": "dist_2"
+            }
+          ],
+          "exact": true,
+          "metric": "shipped_units",
+          "group_by": [
+            "distributor_id",
+            "sku"
+          ]
+        },
+        "for_step": 13
+      },
+      "at": "2026-10-21T10:26:10.833942+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s15",
+      "case_id": "case_af739ac755",
+      "n": 15,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "verification_failures",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "week",
+            "reason_code"
+          ]
+        },
+        "tool": "query_brand_node"
+      },
+      "at": "2026-10-21T10:26:13.912653+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s16",
+      "case_id": "case_af739ac755",
+      "n": 16,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_brand_node",
+        "result": {
+          "node": "brand",
+          "rows": [
+            {
+              "week": 41,
+              "value": 10,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "week": 39,
+              "value": 7,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "week": 42,
+              "value": 6,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "week": 41,
+              "value": 5,
+              "reason_code": "ALREADY_SOLD"
+            },
+            {
+              "week": 40,
+              "value": 4,
+              "reason_code": "NOT_IN_CHANNEL"
+            },
+            {
+              "week": 39,
+              "value": 3,
+              "reason_code": "ALREADY_SOLD"
+            },
+            {
+              "week": 42,
+              "value": 3,
+              "reason_code": "ALREADY_SOLD"
+            },
+            {
+              "week": 40,
+              "value": 3,
+              "reason_code": "ALREADY_SOLD"
+            }
+          ],
+          "exact": true,
+          "metric": "verification_failures",
+          "group_by": [
+            "week",
+            "reason_code"
+          ]
+        },
+        "for_step": 15
+      },
+      "at": "2026-10-21T10:26:13.936192+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s17",
+      "case_id": "case_af739ac755",
+      "n": 17,
+      "kind": "tool_call",
+      "payload": {
+        "args": {},
+        "tool": "get_budget"
+      },
+      "at": "2026-10-21T10:26:16.552942+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s18",
+      "case_id": "case_af739ac755",
+      "n": 18,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "get_budget",
+        "result": {
+          "unit": "rho (zCDP)",
+          "daily": 0.25,
+          "spent": 0.0,
+          "total": 0.25,
+          "remaining": 0.25,
+          "eps_equivalent_total": 4.16,
+          "queries_left_estimate": 24
+        },
+        "for_step": 17
+      },
+      "at": "2026-10-21T10:26:16.588712+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s19",
+      "case_id": "case_af739ac755",
+      "n": 19,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "buyers",
+          "group_by": [
+            "store_id"
+          ]
+        },
+        "tool": "query_paypal_node"
+      },
+      "at": "2026-10-21T10:26:25.504452+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s20",
+      "case_id": "case_af739ac755",
+      "n": 20,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_paypal_node",
+        "result": {
+          "node": "paypal",
+          "rows": [
+            {
+              "ci95": 27.7,
+              "value": 2198,
+              "store_id": "store_a"
+            },
+            {
+              "ci95": 27.7,
+              "value": 2314,
+              "store_id": "store_b"
+            },
+            {
+              "ci95": 27.7,
+              "value": 2702,
+              "store_id": "store_c"
+            },
+            {
+              "ci95": 27.7,
+              "value": 2149,
+              "store_id": "store_d"
+            },
+            {
+              "ci95": 27.7,
+              "value": 2224,
+              "store_id": "store_e"
+            },
+            {
+              "ci95": 27.7,
+              "value": 2099,
+              "store_id": "store_f"
+            }
+          ],
+          "noise": {
+            "k": 4,
+            "rho": 0.01,
+            "clamp": 1000.0,
+            "delta": 1e-08,
+            "sigma": 14.14,
+            "mechanism": "gaussian (zCDP)",
+            "display_floor": 28.3,
+            "eps_equivalent": 0.752
+          },
+          "budget": {
+            "unit": "rho (zCDP)",
+            "daily": 0.25,
+            "spent": 0.01,
+            "total": 0.25,
+            "remaining": 0.24,
+            "eps_equivalent_total": 4.16,
+            "queries_left_estimate": 23
+          },
+          "cached": false,
+          "metric": "buyers",
+          "group_by": [
+            "store_id"
+          ],
+          "suppressed_cells": 0
+        },
+        "for_step": 19
+      },
+      "at": "2026-10-21T10:26:25.591707+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s21",
+      "case_id": "case_af739ac755",
+      "n": 21,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "metric": "buyers",
+          "filters": {
+            "store_id": [
+              "store_b"
+            ]
+          },
+          "group_by": [
+            "sku"
+          ]
+        },
+        "tool": "query_paypal_node"
+      },
+      "at": "2026-10-21T10:26:28.321188+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s22",
+      "case_id": "case_af739ac755",
+      "n": 22,
+      "kind": "tool_result",
+      "payload": {
+        "tool": "query_paypal_node",
+        "result": {
+          "node": "paypal",
+          "rows": [
+            {
+              "sku": "NMB-P8-256",
+              "ci95": 27.7,
+              "value": 2372
+            }
+          ],
+          "noise": {
+            "k": 4,
+            "rho": 0.01,
+            "clamp": 1000.0,
+            "delta": 1e-08,
+            "sigma": 14.14,
+            "mechanism": "gaussian (zCDP)",
+            "display_floor": 28.3,
+            "eps_equivalent": 0.752
+          },
+          "budget": {
+            "unit": "rho (zCDP)",
+            "daily": 0.25,
+            "spent": 0.02,
+            "total": 0.25,
+            "remaining": 0.23,
+            "eps_equivalent_total": 4.16,
+            "queries_left_estimate": 23
+          },
+          "cached": false,
+          "metric": "buyers",
+          "group_by": [
+            "sku"
+          ],
+          "suppressed_cells": 2
+        },
+        "for_step": 21
+      },
+      "at": "2026-10-21T10:26:28.374776+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s23",
+      "case_id": "case_af739ac755",
+      "n": 23,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "text": "Verification failures at store_b total 27 NOT_IN_CHANNEL and 14 ALREADY_SOLD across SKUs NMB-P8-128, NMB-A5-64, and NMB-P8-256 during weeks 39 through 42.",
+          "citations": [
+            "step 1",
+            "step 3",
+            "step 5",
+            "step 15"
+          ]
+        },
+        "tool": "record_finding"
+      },
+      "at": "2026-10-21T10:26:48.066813+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s24",
+      "case_id": "case_af739ac755",
+      "n": 24,
+      "kind": "finding",
+      "payload": {
+        "text": "Verification failures at store_b total 27 NOT_IN_CHANNEL and 14 ALREADY_SOLD across SKUs NMB-P8-128, NMB-A5-64, and NMB-P8-256 during weeks 39 through 42.",
+        "citations": [
+          "step 1",
+          "step 3",
+          "step 5",
+          "step 15"
+        ]
+      },
+      "at": "2026-10-21T10:26:48.084062+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s25",
+      "case_id": "case_af739ac755",
+      "n": 25,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "text": "Stock tracing indicates distributor dist_2 is the sole authorized supplier to store_b, with 3,500 shipped units and 2,958 sold units strictly for SKU NMB-P8-256. Brand sales and shipment records show no authorized inventory supplied to store_b for SKUs NMB-P8-128 or NMB-A5-64, making store_b during weeks 39 to 42 the earliest observed point of divergence in the available evidence for reason codes NOT_IN_CHANNEL and ALREADY_SOLD.",
+          "citations": [
+            "step 7",
+            "step 9",
+            "step 11",
+            "step 13"
+          ]
+        },
+        "tool": "record_finding"
+      },
+      "at": "2026-10-21T10:28:03.790995+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s26",
+      "case_id": "case_af739ac755",
+      "n": 26,
+      "kind": "finding",
+      "payload": {
+        "text": "Stock tracing indicates distributor dist_2 is the sole authorized supplier to store_b, with 3,500 shipped units and 2,958 sold units strictly for SKU NMB-P8-256. Brand sales and shipment records show no authorized inventory supplied to store_b for SKUs NMB-P8-128 or NMB-A5-64, making store_b during weeks 39 to 42 the earliest observed point of divergence in the available evidence for reason codes NOT_IN_CHANNEL and ALREADY_SOLD.",
+        "citations": [
+          "step 7",
+          "step 9",
+          "step 11",
+          "step 13"
+        ]
+      },
+      "at": "2026-10-21T10:28:03.808310+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s27",
+      "case_id": "case_af739ac755",
+      "n": 27,
+      "kind": "tool_call",
+      "payload": {
+        "args": {
+          "text": "PayPal transaction data independently confirms steady buyer volume at store_b (2,314 distinct buyers), consistent with active retail operations at the store where verification failures occurred.",
+          "citations": [
+            "step 19",
+            "step 21"
+          ]
+        },
+        "tool": "record_finding"
+      },
+      "at": "2026-10-21T10:28:06.254349+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s28",
+      "case_id": "case_af739ac755",
+      "n": 28,
+      "kind": "finding",
+      "payload": {
+        "text": "PayPal transaction data independently confirms steady buyer volume at store_b (2,314 distinct buyers), consistent with active retail operations at the store where verification failures occurred.",
+        "citations": [
+          "step 19",
+          "step 21"
+        ]
+      },
+      "at": "2026-10-21T10:28:06.270917+00:00"
+    },
+    {
+      "step_id": "case_af739ac755:s29",
+      "case_id": "case_af739ac755",
+      "n": 29,
+      "kind": "usage",
+      "payload": {
+        "turns": 15,
+        "cached": 0,
+        "prompt": 57400,
+        "completion": 855
+      },
+      "at": "2026-10-21T10:28:11.854002+00:00"
+    }
+  ]
+}

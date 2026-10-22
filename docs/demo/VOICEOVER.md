@@ -1,4 +1,4 @@
-# Demo voice-over script (v2, agreed with Antigravity in DEMO-3)
+# Demo voice-over script
 
 Target: about 2:25 of picture, read at a calm ~150 words per minute (about 330 words). Each block matches one
 scene; the seconds are the scene's length. Rule: a scene lasts at least words ÷ 2.5 + 0.5 s, so static

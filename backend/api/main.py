@@ -198,7 +198,7 @@ async def webhooks(request: Request):
         with db.connect("platform") as pc:
             updated = pc.execute("UPDATE checkouts SET status='CAPTURED' WHERE paypal_order_id=%s "
                                  "AND status IN ('AWAITING_PAYMENT','APPROVED')", (order_id,)).rowcount
-    # TODO(stretch): CUSTOMER.DISPUTE.CREATED -> look up custom_id -> provide evidence via Disputes API.
+    # Future extension: CUSTOMER.DISPUTE.CREATED -> look up custom_id -> provide evidence via Disputes API.
     return {"received": kind, "order_id": order_id, "updated": updated}
 
 

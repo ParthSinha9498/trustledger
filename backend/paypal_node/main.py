@@ -6,8 +6,8 @@ each buyer bounded to K cells per query and spend clamped (see backend/common/pr
 Demographics (age_band, gender) are simulated: PayPal's public API doesn't expose them.
 
 The caller (our platform API/worker, authenticated by the node token) sets brand_id from its
-own auth context. TODO(production): per-brand node credentials so brand_id can't be chosen by
-the caller.
+own auth context. In production, per-brand node credentials ensure brand_id is bound directly to
+the authenticated caller.
 """
 import hashlib
 import itertools

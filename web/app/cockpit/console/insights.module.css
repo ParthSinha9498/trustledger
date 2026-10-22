@@ -5,7 +5,124 @@
 .ask { flex-wrap: wrap; }
 .ask input { min-width: min(100%, 260px); }
 
-/* "vs. survey" line above each answer */
-.vsSurvey { margin: 0 0 10px; font-size: 14px; }
-.vsSurvey strong { font-weight: 600; }
-.survey { color: var(--muted); }
+/* Hero Answer Card */
+.heroAnswerCard {
+  border: 1.5px solid var(--accent-border);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  padding: 24px 28px;
+  position: relative;
+}
+
+.heroHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.heroHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heroAnswerTitle {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--fg);
+}
+
+.resultHeroBlock {
+  padding: 8px 0;
+}
+
+.resultHeroBlock + .resultHeroBlock {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line);
+}
+
+/* Standout hero banner for the speed & accuracy claim */
+.heroBanner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  background: linear-gradient(90deg, var(--accent-bg), var(--chip));
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.heroTiming {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timingHighlight {
+  color: var(--accent);
+  font-weight: 750;
+  font-size: 18px;
+}
+
+.vsSurveyHero {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--card);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+}
+
+.surveyTag {
+  color: var(--warn);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.chartHeroContainer {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Secondary Plan Editor Section */
+.secondarySection {
+  opacity: 0.92;
+  border: 1px dashed var(--line);
+  background: var(--card);
+}
+
+.secondaryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.secondaryTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+

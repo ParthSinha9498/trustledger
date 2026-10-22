@@ -1,5 +1,57 @@
 /* Bryntum Scheduler sizing and off-channel highlight. Theme CSS is imported in SupplyTimeline.tsx. */
-.supply-timeline { height: 460px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+@import "@bryntum/scheduler/svalbard-dark.css" (prefers-color-scheme: dark);
+
+.supply-timeline {
+  height: 460px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--card);
+}
 .supply-timeline.compact { height: 380px; }
 .supply-timeline .b-sch-event.leak { outline: 2px solid #d92d20; outline-offset: 1px; font-weight: 600; }
 .supply-timeline .b-sch-dependency.leak { stroke: #d92d20; stroke-width: 2px; }
+
+/* Theme Bryntum Scheduler in dark mode using our design tokens */
+@media (prefers-color-scheme: dark) {
+  .supply-timeline {
+    border-color: var(--line);
+    background: var(--card);
+  }
+  .supply-timeline .b-grid-headers,
+  .supply-timeline .b-grid-header {
+    background: var(--chip) !important;
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .supply-timeline .b-grid-body-container,
+  .supply-timeline .b-grid-row,
+  .supply-timeline .b-grid-cell {
+    background: var(--card) !important;
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .supply-timeline .b-timeline-subgrid,
+  .supply-timeline .b-grid-subgrid {
+    background: var(--card) !important;
+  }
+  .supply-timeline .b-sch-timeaxis-column {
+    background: var(--chip) !important;
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .supply-timeline .b-sch-header-timeaxis-cell {
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .supply-timeline .b-grid-row:hover {
+    background: var(--chip-hover) !important;
+  }
+  .supply-timeline .b-grid-row:hover .b-grid-cell {
+    background: var(--chip-hover) !important;
+  }
+  .supply-timeline .b-column-line {
+    border-color: var(--line-subtle) !important;
+  }
+}
+

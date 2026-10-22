@@ -124,7 +124,7 @@ export default function InsightsPage() {
           <div className={styles.heroHeader}>
             <div className={styles.heroHeaderLeft}>
               <h2 className={styles.heroAnswerTitle}>Answer</h2>
-              <span className="pill pill-ok">Verified Insights</span>
+              <span className="pill pill-ok">From verified purchases</span>
             </div>
             <button type="button" className="secondary" disabled={busy !== null} onClick={() => run(true)}>
               {busy === "explain" ? "Explaining…" : "Explain"}

@@ -36,7 +36,9 @@ export default function Cockpit() {
     { field: "sku", headerName: "Product", minWidth: 130 },
     { field: "reason_code", headerName: "Reason", valueFormatter: (p) => REASON[p.value as string] ?? p.value },
     { field: "agent_mode", headerName: "Mode", maxWidth: 140, valueFormatter: (p) => {
-        if (p.data?.status === "failed" && p.value === "live") return "Interrupted";
+        const isInterrupted = (p.data?.status === "failed" && p.value === "live") ||
+          (p.data?.status === "waiting_capacity" && ((p.data?.step_count ?? 0) > 0 || (p.data?.findings ?? 0) > 0));
+        if (isInterrupted) return "Interrupted";
         return p.value === "replay" ? "Replay" : "Live";
       }
     },

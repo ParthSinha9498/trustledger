@@ -120,7 +120,7 @@ function StepBody({ step }: { step: Step }) {
   }
 }
 
-export default function StepTimeline({ steps }: { steps: Step[] }) {
+export default function StepTimeline({ steps, isReplay = false }: { steps: Step[]; isReplay?: boolean }) {
   const [playbackCount, setPlaybackCount] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -145,23 +145,25 @@ export default function StepTimeline({ steps }: { steps: Step[] }) {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <button
-          type="button"
-          className="secondary small"
-          onClick={() => {
-            if (playing) {
-              setPlaying(false);
-              setPlaybackCount(null);
-            } else {
-              setPlaybackCount(1);
-              setPlaying(true);
-            }
-          }}
-        >
-          {playing ? `Playing step ${playbackCount ?? 1} of ${steps.length}… (Stop)` : "Replay Steps"}
-        </button>
-      </div>
+      {isReplay && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+          <button
+            type="button"
+            className="secondary small"
+            onClick={() => {
+              if (playing) {
+                setPlaying(false);
+                setPlaybackCount(null);
+              } else {
+                setPlaybackCount(1);
+                setPlaying(true);
+              }
+            }}
+          >
+            {playing ? `Playing step ${playbackCount ?? 1} of ${steps.length}… (Stop)` : "Replay Steps"}
+          </button>
+        </div>
+      )}
       <ol className="timeline">
         {visibleSteps.map((s) => {
           const k = KIND[s.kind] ?? { label: s.kind, cls: "" };

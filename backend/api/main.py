@@ -242,12 +242,14 @@ class StepIn(BaseModel):
 
 
 class FinishIn(BaseModel):
-    status: str        # complete | failed
+    status: str        # complete | failed | waiting_capacity
     summary: str
     confidence: str | None = None  # low | medium | high, from the agent
     agent_mode: str = "live"       # live | replay
     agent_model: str | None = None
     agent_reason: str | None = None
+    source_case_id: str | None = None
+    replay_recorded_at: str | None = None
 
 
 @app.post("/internal/cases/claim", dependencies=[Depends(require_node_token)])
@@ -257,7 +259,7 @@ def claim_case():
         row = pc.execute(
             """UPDATE cases SET status='investigating', run_count = run_count + 1,
                    run_failure_count = failure_count, run_skus = skus
-               WHERE case_id = (SELECT case_id FROM cases WHERE status='open'
+               WHERE case_id = (SELECT case_id FROM cases WHERE status IN ('open', 'waiting_capacity')
                                 ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
                RETURNING *"""
         ).fetchone()
@@ -278,9 +280,11 @@ def add_step(case_id: str, step: StepIn):
 def finish_case(case_id: str, body: FinishIn):
     with db.connect("platform") as pc:
         case = pc.execute(
-            """UPDATE cases SET status=%s, summary=%s, confidence=%s, agent_mode=%s, agent_model=%s, agent_reason=%s, updated_at=now()
+            """UPDATE cases SET status=%s, summary=%s, confidence=%s, agent_mode=%s, agent_model=%s,
+                   agent_reason=%s, source_case_id=%s, replay_recorded_at=%s, updated_at=now()
                WHERE case_id=%s RETURNING *""",
-            (body.status, body.summary, body.confidence, body.agent_mode, body.agent_model, body.agent_reason, case_id)
+            (body.status, body.summary, body.confidence, body.agent_mode, body.agent_model,
+             body.agent_reason, body.source_case_id, body.replay_recorded_at, case_id)
         ).fetchone()
         # Failures that arrived during the run may have grown the problem enough to warrant another run.
         if case and body.status == "complete" and material_change(case):

@@ -40,9 +40,18 @@ class NodeSpec(BaseModel):
     spec: dict
 
 
+SAMPLE_QUESTIONS = [
+    {"id": "q1", "question": "Where did the P8 128GB sell, by region, in the last 8 weeks?"},
+    {"id": "q2", "question": "Which age bands buy the P8 128GB vs the A5?"},
+    {"id": "q3", "question": "How did weekly buyers change at Store C over the last 12 weeks?"},
+    {"id": "q4", "question": "What is the spend per buyer by region?"},
+]
+
+
 class RunRequest(BaseModel):
     specs: list[NodeSpec] = Field(max_length=MAX_SPECS_PER_RUN)
     explain: bool = False
+    sample_id: str | None = None
 
 
 def check_spec(node: str, raw: dict) -> QuerySpec:
@@ -200,20 +209,18 @@ class LiveConsoleLLM:
 
     def __init__(self, llm=None) -> None:
         if llm is None:
-            from backend.common.llm import get_llm
+            from backend.common.llm import OpenAICompatibleLLM, get_llm
 
-            llm = get_llm()
+            console_model = config.env("CONSOLE_MODEL")
+            if console_model:
+                llm = OpenAICompatibleLLM(model=console_model)
+            else:
+                llm = get_llm()
         self.llm = llm
 
     def plan(self, question: str) -> tuple[list[dict], str]:
         # One-click sample questions use verified stored query plans; never call a model
-        samples = [
-            "Where did the P8 128GB sell, by region, in the last 8 weeks?",
-            "Which age bands buy the P8 128GB vs the A5?",
-            "How did weekly buyers change at Store C over the last 12 weeks?",
-            "What is the spend per buyer by region?",
-        ]
-        if any(question.strip().lower() == s.lower() for s in samples):
+        if any(question.strip().lower() == s["question"].lower() for s in SAMPLE_QUESTIONS):
             return mock_plan(question)
 
         system = PLAN_SYSTEM.replace("{current_week}", str(config.current_week()))
@@ -245,8 +252,11 @@ class MockConsoleLLM:
 def get_console_llm():
     if config.env("LLM_MODE", "live") == "mock":
         return MockConsoleLLM()
-    from backend.common.llm import get_llm
+    from backend.common.llm import OpenAICompatibleLLM, get_llm
 
+    console_model = config.env("CONSOLE_MODEL")
+    if console_model:
+        return LiveConsoleLLM(OpenAICompatibleLLM(model=console_model))
     return LiveConsoleLLM(get_llm())
 
 
@@ -386,12 +396,20 @@ def mock_explain(guarded: list[dict]) -> str:
     return " ".join(lines) or "No results to explain."
 
 
+@router.get("/samples")
+def get_samples():
+    return SAMPLE_QUESTIONS
+
+
 @router.post("/run")
 def run(req: RunRequest):
     results = [run_one(s.node, s.spec) for s in req.specs]
     explanation = None
     if req.explain:
-        explanation = get_console_llm().explain(guarded_view(results))
+        if req.sample_id:
+            explanation = mock_explain(guarded_view(results))
+        else:
+            explanation = get_console_llm().explain(guarded_view(results))
     return {"results": results, "budget": _paypal_budget(), "explanation": explanation}
 
 

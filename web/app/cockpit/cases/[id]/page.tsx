@@ -66,17 +66,19 @@ export default function CaseDetailPage() {
           <div className="meta">
             <StatusPill status={c.status} />
             {c.agent_mode === "replay" ? (
-              <span className="pill case-pill pill-warn" title="Replay of a recorded live run">
+              <span className="pill case-pill pill-warn" title="Replay">
                 <span className="muted">Mode</span>&nbsp;
-                <strong>Replay of recorded live run</strong>&nbsp;
-                <code>{c.agent_model || "openai/gpt-oss-120b"}</code>
-                &nbsp;· {new Date(c.created_at).toLocaleDateString()}
+                <strong>
+                  {c.agent_model && c.agent_model !== "scripted" && c.agent_model !== "mock"
+                    ? `Replay of a recorded live run · ${c.agent_model} · ${c.replay_recorded_at || new Date(c.created_at).toLocaleDateString()}`
+                    : `Replay of a recorded run · ${c.agent_model || "recorded"} · ${c.replay_recorded_at || new Date(c.created_at).toLocaleDateString()}`}
+                </strong>
               </span>
             ) : (
               <span className="pill case-pill pill-ok" title="Live AI investigation">
                 <span className="muted">Mode</span>&nbsp;
-                <strong>Live AI investigation</strong>&nbsp;
-                <code>{c.agent_model || "live"}</code>
+                <strong>Live AI investigation</strong>
+                {c.agent_model ? <>&nbsp;<code>{c.agent_model}</code></> : null}
               </span>
             )}
             <span className="pill case-pill"><span className="muted">Store</span>&nbsp;<strong>{c.store_id}</strong></span>
@@ -86,11 +88,15 @@ export default function CaseDetailPage() {
             <span className="pill case-pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
             <span className="pill case-pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
-          {c.agent_reason && (
+          {c.status === "waiting_capacity" ? (
+            <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: "var(--radius-sm)", background: "rgba(234, 179, 8, 0.1)", border: "1px solid rgba(234, 179, 8, 0.4)", fontSize: 13, color: "var(--fg)" }}>
+              <strong>{c.agent_reason || "Capacity reached"}:</strong> This case will be investigated live when capacity frees up.
+            </div>
+          ) : c.agent_reason ? (
             <div style={{ marginTop: 10, padding: "6px 12px", borderRadius: "var(--radius-sm)", background: "var(--card-elevated)", border: "1px solid var(--line)", fontSize: 13, color: "var(--fg)", display: "inline-block" }}>
               <strong>Notice:</strong> {c.agent_reason}
             </div>
-          )}
+          ) : null}
         </div>
         <div className="case-budget">
           <BudgetMeter budget={budget} />
@@ -147,7 +153,7 @@ export default function CaseDetailPage() {
         <h2>Investigation steps</h2>
         <p className="muted">Every query the agent ran and what came back. Results are aggregates only: exact for brand business data, differentially private for PayPal-side buyer data.</p>
         {/* AG Charts Community has no map series, so results chart by region/store as bars. */}
-        <StepTimeline steps={c.steps} />
+        <StepTimeline steps={c.steps} isReplay={c.agent_mode === "replay"} />
       </section>
     </main>
   );

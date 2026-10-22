@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """Export a finished case from the platform DB as a replay fixture JSON.
 
+Direct database access is used intentionally here: this is an administrative
+ops/export script, not runtime application code.
+
 Usage:
     python scripts/export_replay.py <case_id> [output_path]
 """
@@ -40,7 +43,7 @@ def export_case_replay(case_id: str, out_path: str | Path | None = None) -> Path
         "replay_id": f"replay-{case_id}",
         "kind": "case",
         "source_case_id": case_id,
-        "model": case.get("agent_model") or "openai/gpt-oss-120b",
+        "model": case.get("agent_model") or "",
         "recorded_at": recorded_at,
         "summary": case.get("summary") or "Investigation completed.",
         "confidence": case.get("confidence") or "high",

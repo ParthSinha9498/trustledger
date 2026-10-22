@@ -36,23 +36,33 @@ def process_one() -> bool:
     case_id = case["case_id"]
     brand_id = case.get("brand_id", config.brand_id())
 
-    # If privacy budget is exhausted, play recorded replay with guarantee reason
+    # If privacy budget is exhausted, defer with guarantee reason
     if _is_budget_exhausted(brand_id):
-        print(f"worker: budget exhausted for {brand_id}; playing replay for {case_id}", flush=True)
-        play_case_replay(case_id, "Privacy budget used up: that's the guarantee working")
+        reason = "Privacy budget used up: that's the guarantee working"
+        print(f"worker: budget exhausted for {brand_id}; deferring {case_id} ({reason})", flush=True)
+        play_case_replay(case_id, reason)
         return True
 
-    # Try live/chained LLM investigation; if both fail (429/timeout/error), fall back to replay
+    # Try live/chained LLM investigation; if both fail (429/timeout/error), defer with honest reason
     try:
         inv = Investigation(case, get_llm())
         inv.run()
     except Exception as e:
-        print(f"worker: live investigation failed for {case_id} ({e}); falling back to replay", flush=True)
+        err_str = str(e).lower()
+        err_cls = type(e).__name__.lower()
+        if "429" in err_str or "rate limit" in err_str or "ratelimit" in err_cls or "quota" in err_str:
+            reason = "Demo AI free-tier quota reached"
+        elif "timeout" in err_str or "timeout" in err_cls or "timed out" in err_str:
+            reason = "AI provider timed out"
+        else:
+            reason = "AI unavailable right now"
+
+        print(f"worker: live investigation failed for {case_id} ({e}); deferring with reason: {reason}", flush=True)
         traceback.print_exc()
         try:
-            play_case_replay(case_id, "Demo AI free-tier quota reached")
+            play_case_replay(case_id, reason)
         except Exception as re:
-            print(f"worker: replay failed ({re}); marking case failed", flush=True)
+            print(f"worker: deferral failed ({re}); marking case failed", flush=True)
             with http.client(config.api_url()) as c:
                 c.post(f"/internal/cases/{case_id}/finish",
                        json={"status": "failed", "summary": f"Investigation failed: {e}",

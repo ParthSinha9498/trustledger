@@ -45,7 +45,7 @@ class OpenAICompatibleLLM:
     def __init__(self, model: str | None = None, api_key: str | None = None, base_url: str | None = None) -> None:
         from openai import OpenAI
 
-        self.model = model or config.env("AGENT_MODEL", "gemini-3.5-flash")
+        self.model = model or config.env("AGENT_MODEL")
         self.client = OpenAI(
             api_key=api_key if api_key is not None else config.env("LLM_API_KEY", ""),
             base_url=base_url or config.env("LLM_BASE_URL", GEMINI_BASE),
@@ -114,29 +114,27 @@ class ChainedLLM:
         return self.active_llm.model
 
     def next_turn(self, messages: list[dict], tools: list[dict]) -> Turn:
+        if self.used_fallback and self.fallback:
+            return self.fallback.next_turn(messages, tools)
         try:
-            res = self.primary.next_turn(messages, tools)
-            self.active_llm = self.primary
-            self.used_fallback = False
-            return res
+            return self.primary.next_turn(messages, tools)
         except Exception as e:
             if not self.fallback:
                 raise
-            print(f"Primary model {self.primary.model} failed ({e}); falling back to {self.fallback.model}", flush=True)
+            print(f"Primary model {self.primary.model} failed ({e}); falling back to {self.fallback.model} (sticky for run)", flush=True)
             self.active_llm = self.fallback
             self.used_fallback = True
             return self.fallback.next_turn(messages, tools)
 
     def complete(self, messages: list[dict]) -> str:
+        if self.used_fallback and self.fallback:
+            return self.fallback.complete(messages)
         try:
-            res = self.primary.complete(messages)
-            self.active_llm = self.primary
-            self.used_fallback = False
-            return res
+            return self.primary.complete(messages)
         except Exception as e:
             if not self.fallback:
                 raise
-            print(f"Primary model {self.primary.model} complete failed ({e}); falling back to {self.fallback.model}", flush=True)
+            print(f"Primary model {self.primary.model} complete failed ({e}); falling back to {self.fallback.model} (sticky for run)", flush=True)
             self.active_llm = self.fallback
             self.used_fallback = True
             return self.fallback.complete(messages)
@@ -171,7 +169,7 @@ def get_llm():
         return ScriptedLLM()
 
     primary = OpenAICompatibleLLM(
-        model=config.env("AGENT_MODEL", "gemini-3.5-flash"),
+        model=config.env("AGENT_MODEL"),
         api_key=config.env("LLM_API_KEY", ""),
         base_url=config.env("LLM_BASE_URL", GEMINI_BASE),
     )

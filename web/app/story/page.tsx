@@ -377,7 +377,7 @@ function CardView({ cardId }: { cardId: string }) {
                 </div>
               </div>
             </div>
-            <div className={s.sourceFooter} style={{ marginTop: 22, fontSize: 16 }}>
+            <div className={s.sourceFooter} style={{ marginTop: 22, fontSize: 20, fontWeight: 600, color: "#f8fafc" }}>
               0 records leave a node · No person is identifiable
             </div>
           </>

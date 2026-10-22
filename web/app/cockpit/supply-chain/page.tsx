@@ -16,7 +16,7 @@ export default function SupplyChainPage() {
           <p className="muted">Batches moving from the brand to distributors to stores, by week. Red bars are units that sold at a store outside the batch&apos;s channel.</p>
         </div>
       </div>
-      <section className="card">
+      <section className="card elevated">
         <div className="row filters">
           <label>Product
             <select value={sku} onChange={(e) => setSku(e.target.value)}>

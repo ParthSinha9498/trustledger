@@ -66,7 +66,7 @@ export default function Cockpit() {
           <Link href="/privacy">How privacy is protected →</Link>
         </div>
       </div>
-      <section className="card">
+      <section className="card elevated">
         {err && <div className="refusal">Couldn&apos;t load cases: {err}</div>}
         {cases && cases.length === 0 ? (
           <p className="muted">No cases yet. A failed verification at the store checkout (try serial X123 at Store B) opens one.</p>

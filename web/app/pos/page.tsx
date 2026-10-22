@@ -34,6 +34,16 @@ export default function Pos() {
   const product = SKUS.find((p) => p.sku === sku)!;
   const storeName = stores.find((st) => st.store_id === storeId)?.name ?? storeId;
 
+  async function tryGenuine() {
+    reset();
+    try {
+      const d = await api<{ serial: string; sku: string }>(`/demo/serial?store_id=${encodeURIComponent(storeId)}`);
+      setSerial(d.serial); setSku(d.sku);
+    } catch {
+      setError("Demo stock is at Store A (XA…) and Store B (XB…). Pick one of those stores.");
+    }
+  }
+
   function reset() { setResult(null); setChecked(null); setError(null); }
 
   async function verify() {
@@ -92,6 +102,13 @@ export default function Pos() {
                 {scanning ? "Close camera" : "Scan with camera"}
               </button>
             </div>
+            <p className={`muted ${s.hint}`}>
+              Demo serials: <code>XA…</code> is Store A stock, <code>XB…</code> is Store B stock. Try one at the
+              other store, or make one up, to see a block.{" "}
+              <button type="button" className={s.linkButton} disabled={busy} onClick={tryGenuine}>
+                Fill an unsold unit from this store
+              </button>
+            </p>
             {scanning && (
               <BarcodeScanner
                 onClose={() => setScanning(false)}

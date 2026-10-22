@@ -24,6 +24,11 @@ def current_week() -> int:
     return int(env("CURRENT_WEEK", "42"))
 
 
+def demo_mode() -> bool:
+    """Demo helpers (e.g. handing out an unsold demo serial). On by default; set DEMO_MODE=0 to turn off."""
+    return env("DEMO_MODE", "1").lower() not in ("0", "false", "no")
+
+
 def brand_node_url() -> str:
     return env("BRAND_NODE_URL", "http://localhost:8001")
 

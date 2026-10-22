@@ -69,3 +69,54 @@ def test_budget_is_persistent_and_refuses_when_spent(env, monkeypatch):
 def test_too_many_cells_refused(env):
     r = ask(env, {"metric": "buyers", "group_by": ["store_id", "week"], "filters": {"week_from": 1}})
     assert r.status_code == 200  # 6 x 12 = 72 cells
+
+
+def test_repeated_insight_questions_spend_no_extra_rho_and_preserve_noisy_answer(env):
+    """Proves that running an Insights question repeatedly spends NO extra rho and returns identical noisy answers.
+
+    This verifies the privacy guarantee:
+    1. First run executes the differential privacy mechanism, charges rho to the privacy ledger, and caches.
+    2. Repeated runs hit query_cache, charge 0.0 extra rho, and return the exact same released rows without
+       re-randomizing noise (which would allow noise-averaging reconstruction attacks).
+    """
+    api = env["api"]
+
+    # The 3 PayPal-side one-click questions from Brand Insights console:
+    paypal_questions = [
+        "Which age bands buy the P8 128GB vs the A5?",
+        "How did weekly buyers change at Store C over the last 12 weeks?",
+        "What is the spend per buyer by region?",
+    ]
+
+    for question in paypal_questions:
+        plan = api.post("/console/plan", json={"question": question}).json()
+        specs = plan["specs"]
+        assert len(specs) == 1 and specs[0]["node"] == "paypal", f"Expected single paypal query for {question}"
+
+        # Run 1: initial execution
+        budget_before = api.get("/console/budget").json()["spent"]
+        res1 = api.post("/console/run", json={"specs": specs}).json()
+        result1 = res1["results"][0]
+        budget_after1 = res1["budget"]["spent"]
+
+        assert result1["cached"] is False, f"First run of '{question}' should not be cached"
+        assert budget_after1 > budget_before, f"First run of '{question}' should charge rho"
+        expected_rho = 0.02 if specs[0]["spec"]["metric"] == "sum_amount" else 0.01
+        assert math.isclose(budget_after1 - budget_before, expected_rho, abs_tol=1e-5)
+
+        # Run 2: repeated identical execution
+        res2 = api.post("/console/run", json={"specs": specs}).json()
+        result2 = res2["results"][0]
+        budget_after2 = res2["budget"]["spent"]
+
+        assert result2["cached"] is True, f"Second run of '{question}' must hit query cache"
+        assert math.isclose(budget_after2, budget_after1, abs_tol=1e-7), (
+            f"Second run of '{question}' must spend NO extra rho! "
+            f"Before: {budget_after1}, After: {budget_after2}"
+        )
+        assert result2["rows"] == result1["rows"], (
+            f"Second run of '{question}' must return identical noisy values (no noise re-sampling)"
+        )
+        assert result2.get("suppressed_cells") == result1.get("suppressed_cells")
+        assert result2.get("noise") == result1.get("noise")
+

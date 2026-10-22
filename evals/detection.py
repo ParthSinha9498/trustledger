@@ -338,7 +338,7 @@ def run_all(mock: bool = True, scenario_names: list[str] | None = None, out_dir:
 
 def markdown(d: dict) -> str:
     lines = [
-        "# Agent Detection Evals (TODO #3)",
+        "# Agent Detection Evaluation",
         "",
         f"**Mode:** {d['mode']}",
         f"- **Recall on planted issues:** {d['recall']:.0%}",

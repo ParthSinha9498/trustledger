@@ -14,174 +14,20 @@ interface CardMeta {
 const CARDS: CardMeta[] = [
   { id: "hook", title: "One phone. One serial number. Two stores.", desc: "Only one of them is selling the real thing." },
   { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
-  { id: "gap", title: "Verification exists. Nobody uses it.", desc: "Optional · Separate from paying · Different for every brand" },
+  { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
+  { id: "how", title: "How it works: Data never moves", desc: "Two locked nodes · Questions in · Private aggregates out" },
   { id: "s1", title: "Scenario 1: Genuine phone at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
-  { id: "s4", title: "Scenario 4: Privacy by design", desc: "Analysts get answers, never individual buyers." },
-  { id: "redteam", title: "220 of 220 attempts blocked", desc: "Best guesses were right 23% of the time, no better than chance" },
-  { id: "s5", title: "Scenario 5: Autonomous AI shopping agents", desc: "Brand verification over MCP: the same check, for agents" },
-  { id: "terminal", title: "AI Shopping Agent Terminal", desc: "Live MCP client verifyProduct execution and brand verdict" },
+  { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
+  { id: "s4", title: "Scenario 4: Brand insights", desc: "Verified transaction insights with formal differential privacy." },
+  { id: "guarantee", title: "Formal privacy guarantee", desc: "Every buyer protected across all of a brand's questions: zCDP ρ 0.25 ≈ ε 4.2" },
+  { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Seller POS SDK via APIMatic" },
+  { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
   { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
-  { id: "onboard", title: "One API. Every checkout.", desc: "OpenAPI → APIMatic (SDKs, portal, MCP) → Commerce ecosystem" },
-  { id: "close", title: "TrustLedger pitch close", desc: "Trust for buyers · Intelligence for brands · Trusted network for PayPal" },
 ];
 
-const DEFAULT_TERMINAL_LINES = [
-  "────────────────────────────────────────────────────────────",
-  "TrustLedger · AI agent → brand verification over MCP",
-  "────────────────────────────────────────────────────────────",
-  "",
-  "[1] Connecting to MCP server http://localhost:3333/mcp",
-  "    connected to trustledger-brand-verification v1.0.0",
-  "",
-  "[2] Discovering tools",
-  "    • verifyProduct  Brand verification of a physical product at checkout…",
-  "    • confirmSale    Mark a verified serial number as sold…",
-  "",
-  "[3] Calling verifyProduct",
-  "    serial        X123",
-  "    sku           NMB-P8-128",
-  "    store_id      store_b",
-  "    requested_at  2026-10-21T14:30:00.000Z",
-  "",
-  "[4] Brand verdict",
-  "    result           ✘ NOT_VERIFIED",
-  "    reason_code      NOT_IN_CHANNEL",
-  "    verification_id  ver_mcp_09a1f48c",
-  "",
-  "    → Do not take payment: no PayPal order is created.",
-];
-
-function formatTerminalLine(line: string) {
-  if (line.startsWith("───")) return <span className={s.termDim}>{line}</span>;
-  if (/^\[\d\]/.test(line)) {
-    const parts = line.match(/^(\[\d\])(.*)$/);
-    return (
-      <>
-        <span className={s.termCyan}>{parts?.[1]}</span>
-        <span style={{ fontWeight: 600 }}>{parts?.[2]}</span>
-      </>
-    );
-  }
-  if (line.includes("✘ NOT_VERIFIED")) {
-    const [left] = line.split("✘ NOT_VERIFIED");
-    return (
-      <>
-        <span>{left}</span>
-        <span className={s.termRed}>✘ NOT_VERIFIED</span>
-      </>
-    );
-  }
-  if (line.includes("✔ VERIFIED")) {
-    const [left] = line.split("✔ VERIFIED");
-    return (
-      <>
-        <span>{left}</span>
-        <span className={s.termGreen}>✔ VERIFIED</span>
-      </>
-    );
-  }
-  if (line.includes("→ Do not take payment")) {
-    return <span className={s.termRed}>{line}</span>;
-  }
-  if (line.includes("→ Safe to create")) {
-    return <span className={s.termGreen}>{line}</span>;
-  }
-  if (line.startsWith("    • ")) {
-    return (
-      <>
-        <span className={s.termCyan}>    • </span>
-        <span>{line.slice(6)}</span>
-      </>
-    );
-  }
-  return <span>{line}</span>;
-}
-
-function TerminalCard() {
-  const [lines, setLines] = useState<string[]>([
-    "# [Sample output of mcp/demo_agent_call.mjs]",
-    "# Run 'node mcp/demo_agent_call.mjs' to stream live MCP verification.",
-    "",
-    ...DEFAULT_TERMINAL_LINES,
-  ]);
-  const streamIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    let active = true;
-
-    // Direct-load readiness: show static sample block, mark ready after mount
-    const readyTimer = setTimeout(() => {
-      if (active && !(window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder) {
-        document.body.dataset.ready = "1";
-      }
-    }, 100);
-
-    // Expose window.typeLines for the Playwright demo recorder
-    (window as unknown as { typeLines?: (l: string[]) => void }).typeLines = (newLines: string[]) => {
-      if (!active) return;
-      (window as unknown as { __typedByRecorder?: boolean }).__typedByRecorder = true;
-      clearTimeout(readyTimer);
-      if (streamIntervalRef.current) {
-        clearInterval(streamIntervalRef.current);
-        streamIntervalRef.current = null;
-      }
-      delete document.body.dataset.ready;
-      setLines([]);
-
-      let i = 0;
-      streamIntervalRef.current = setInterval(() => {
-        if (!active) {
-          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
-          return;
-        }
-        if (i < newLines.length) {
-          setLines(newLines.slice(0, i + 1));
-          i++;
-        } else {
-          if (streamIntervalRef.current) clearInterval(streamIntervalRef.current);
-          streamIntervalRef.current = null;
-          document.body.dataset.ready = "1";
-        }
-      }, 50);
-    };
-
-    return () => {
-      active = false;
-      clearTimeout(readyTimer);
-      if (streamIntervalRef.current) {
-        clearInterval(streamIntervalRef.current);
-        streamIntervalRef.current = null;
-      }
-      delete (window as unknown as { typeLines?: unknown }).typeLines;
-      delete (window as unknown as { __typedByRecorder?: unknown }).__typedByRecorder;
-      delete document.body.dataset.ready;
-    };
-  }, []);
-
-  return (
-    <div className={s.terminalWindow}>
-      <div className={s.terminalHeader}>
-        <div className={s.terminalDots}>
-          <span className={`${s.terminalDot} ${s.dotRed}`} />
-          <span className={`${s.terminalDot} ${s.dotYellow}`} />
-          <span className={`${s.terminalDot} ${s.dotGreen}`} />
-        </div>
-        <div className={s.terminalTitle}>AI shopping agent · MCP client</div>
-        <div className={s.terminalRight} />
-      </div>
-      <div className={s.terminalBody}>
-        {lines.map((l, idx) => (
-          <div key={idx} className={s.terminalLine}>
-            {formatTerminalLine(l)}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 interface ShowCodePayload {
   title?: string;
@@ -377,12 +223,10 @@ function useCountUp(target: number, decimals: number = 0, duration: number = 120
 }
 
 function CardView({ cardId }: { cardId: string }) {
-  const actualCardId = cardId === "phones" ? "problem" : cardId;
+  const actualCardId = cardId;
   const problemVal = useCountUp(467, 0, 1200);
-  const redteamVal = useCountUp(220, 0, 1200);
 
   useEffect(() => {
-    if (actualCardId === "terminal") return;
     const timer = setTimeout(() => {
       document.body.dataset.ready = "1";
     }, 1250);
@@ -406,13 +250,13 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "problem" && (
           <>
             <div className={s.statHuge}>USD {problemVal} billion</div>
-            <div className={s.statLabel}>in counterfeit goods traded in a year</div>
+            <div className={s.statLabel}>in counterfeit goods traded in a year (2021 data)</div>
             <div className={s.statGrid}>
               <div className={s.statPill}>up to 2.3% of world trade</div>
               <div className={s.statPill}>up to 4.7% of EU imports</div>
             </div>
             <p className={s.calloutText} style={{ marginBottom: 12 }}>
-              Smartphones alone: 12.9% of sales lost, ≈ EUR 45.3 billion
+              Smartphones alone: 12.9% of sales lost, ≈ EUR 45.3 billion (2015 data)
             </p>
             <p className={s.calloutSub}>
               Hazardous fakes are rising: car parts, medicines, cosmetics, toys.
@@ -425,7 +269,7 @@ function CardView({ cardId }: { cardId: string }) {
 
         {actualCardId === "gap" && (
           <>
-            <h1 className={s.titleLarge}>Verification exists. Nobody uses it.</h1>
+            <h1 className={s.titleLarge}>Verification exists. Most buyers skip it.</h1>
             <div className={s.gapCols}>
               <div className={s.gapCard}>
                 <div className={s.gapIcon}>👁️</div>
@@ -466,6 +310,79 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
+        {actualCardId === "how" && (
+          <>
+            <div className={`${s.badge} ${s.badgeBlue}`}>Architecture</div>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>How it works: Data never moves</h1>
+            <div className={s.nodeCardGrid}>
+              {/* Brand Node (Left) */}
+              <div className={s.nodeCard}>
+                <div className={s.nodeCardHeader}>
+                  <div className={s.lockIconWrap}>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <div className={s.nodeCardTitle}>Brand Node</div>
+                  <span className={s.statPill} style={{ fontSize: 15, padding: "4px 10px" }}>Private DB</span>
+                </div>
+                <p style={{ margin: "4px 0", fontSize: 20, color: "#cbd5e1", lineHeight: 1.4 }}>
+                  Serials, batches, shipments, and checkout logs remain locked inside.
+                </p>
+                <div style={{ marginTop: "auto", fontSize: 20, color: "#38bdf8", fontWeight: 700 }}>
+                  Answers with business-level counts only
+                </div>
+              </div>
+
+              {/* Center Asker */}
+              <div className={`${s.nodeCard} ${s.nodeCardCenter}`}>
+                <div style={{ fontSize: 20, color: "#93c5fd", fontWeight: 800, letterSpacing: "0.03em" }}>
+                  Brand Analyst / AI Agent
+                </div>
+                <div className={s.centerExchange}>
+                  <div className={s.exchangeSide} style={{ textAlign: "left" }}>
+                    <div style={{ color: "#38bdf8" }}>← Question</div>
+                    <div style={{ color: "#93c5fd" }}>Aggregate →</div>
+                  </div>
+                  <div className={s.exchangeDivider} />
+                  <div className={s.exchangeSide} style={{ textAlign: "right" }}>
+                    <div style={{ color: "#34d399" }}>Question →</div>
+                    <div style={{ color: "#a7f3d0" }}>← Aggregate</div>
+                  </div>
+                </div>
+                <p style={{ margin: 0, fontSize: 20, color: "#f8fafc", fontWeight: 600, lineHeight: 1.4 }}>
+                  JSON query specs only (no SQL).<br />
+                  <span style={{ color: "#38bdf8" }}>The AI agent never sees a raw record.</span>
+                </p>
+              </div>
+
+              {/* PayPal Node (Right) */}
+              <div className={s.nodeCard}>
+                <div className={s.nodeCardHeader}>
+                  <div className={s.lockIconWrap}>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#34d399" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <div className={s.nodeCardTitle}>PayPal Node</div>
+                  <span className={s.statPill} style={{ fontSize: 15, padding: "4px 10px" }}>DP Boundary</span>
+                </div>
+                <p style={{ margin: "4px 0", fontSize: 20, color: "#cbd5e1", lineHeight: 1.4 }}>
+                  Transactions, keyed hashed buyer IDs, and demographics remain locked inside.
+                </p>
+                <div style={{ marginTop: "auto", fontSize: 20, color: "#34d399", fontWeight: 700 }}>
+                  Answers with noisy aggregates (±95% CI)
+                </div>
+              </div>
+            </div>
+            <div className={s.sourceFooter} style={{ marginTop: 22, fontSize: 16 }}>
+              0 records leave a node · No person is identifiable
+            </div>
+          </>
+        )}
+
         {actualCardId === "s1" && (
           <>
             <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 1</div>
@@ -490,74 +407,89 @@ function CardView({ cardId }: { cardId: string }) {
           </>
         )}
 
-        {actualCardId === "s4" && (
+        {actualCardId === "business" && (
           <>
-            <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
-            <h1 className={s.titleHero}>Privacy by design</h1>
-            <p className={s.subHero}>Analysts get answers, never individual buyers.</p>
+            <div className={`${s.badge} ${s.badgeTeal}`}>Business Model</div>
+            <h1 className={s.titleHero}>How does this pay for itself?</h1>
+            <div className={s.statHuge}>USD 150B+</div>
+            <div className={s.statLabel}>a year spent on market insights (ESOMAR, 2024 data)</div>
+            <p className={s.calloutText} style={{ marginTop: 18, marginBottom: 8 }}>
+              Survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus.
+            </p>
+            <p className={s.calloutSub} style={{ color: "#38bdf8", fontSize: 20, fontWeight: 700 }}>
+              TrustLedger answers from verified purchases with formal differential privacy.
+            </p>
           </>
         )}
 
-        {actualCardId === "redteam" && (
+        {actualCardId === "s4" && (
           <>
-            <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Layer</div>
-            <div className={s.statHuge}>{redteamVal} of 220</div>
-            <div className={s.statLabel}>re-identification attempts blocked</div>
-            <p className={s.calloutText}>
-              Best guesses were right 23% of the time, no better than chance
-            </p>
-            <div className={s.sourceFooter}>
-              20 runs × 11 scripted attacks: small cells, differencing, membership, cross-node linkage, averaging, budget probing · evals/redteam.py --repeat 20
+            <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
+            <h1 className={s.titleHero}>Brand insights in seconds</h1>
+            <p className={s.subHero}>Verified transaction analytics with formal differential privacy instead of waiting weeks.</p>
+          </>
+        )}
+
+        {actualCardId === "guarantee" && (
+          <>
+            <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Guarantee</div>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Formal mathematical guarantee</h1>
+            <p className={s.subHero} style={{ fontSize: 24, marginBottom: 20 }}>Every buyer protected across all of a brand&apos;s questions</p>
+            <div className={s.guaranteeBox}>
+              <div className={s.formulaHighlight}>zCDP ρ = 0.25 ≈ ε 4.2 (δ = 10⁻⁸)</div>
+              <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#e2e8f0" }}>
+                <span>✓ Single privacy unit (per buyer, lifetime)</span>
+                <span>✓ OpenDP Gaussian noise (±95% CI)</span>
+                <span>✓ Lifetime budget meter</span>
+                <span>✓ Small groups hidden</span>
+              </div>
+            </div>
+            <div className={s.sourceFooter} style={{ marginTop: 20 }}>
+              Internal red-team: 11 attack types, none extracted a confident individual-level fact (evals/results/redteam_repeated.md)
             </div>
           </>
         )}
 
-        {actualCardId === "s5" && (
+        {actualCardId === "levels" && (
           <>
-            <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 5</div>
-            <h1 className={s.titleHero}>An AI shopping agent checks before it pays</h1>
-            <p className={s.subHero}>Brand verification over MCP: the same check, for agents</p>
-          </>
-        )}
+            <div className={`${s.badge} ${s.badgeBlue}`}>Ecosystem</div>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>One standard. Three simple integrations.</h1>
+            <div className={s.levelsRow}>
+              <div className={s.levelBox}>
+                <div style={{ fontSize: 15, color: "#60a5fa", fontWeight: 700, letterSpacing: "0.05em" }}>1. FOR BRANDS</div>
+                <div style={{ fontSize: 24, fontWeight: 750, color: "#ffffff" }}>Verification API</div>
+                <p style={{ margin: 0, fontSize: 20, color: "#cbd5e1", lineHeight: 1.45 }}>
+                  Brand verification endpoint + local brand node holding serial inventory.
+                </p>
+              </div>
 
-        {actualCardId === "terminal" && (
-          <TerminalCard />
+              <div className={s.levelBox}>
+                <div style={{ fontSize: 15, color: "#34d399", fontWeight: 700, letterSpacing: "0.05em" }}>2. FOR PAYPAL</div>
+                <div style={{ fontSize: 24, fontWeight: 750, color: "#ffffff" }}>Checkout Gate</div>
+                <p style={{ margin: 0, fontSize: 20, color: "#cbd5e1", lineHeight: 1.45 }}>
+                  Creates payment only on brand verification. Stores the verification ID in the PayPal order&apos;s custom_id.
+                </p>
+              </div>
+
+              <div className={`${s.levelBox} ${s.levelBoxHighlight}`}>
+                <div style={{ fontSize: 15, color: "#38bdf8", fontWeight: 700, letterSpacing: "0.05em" }}>3. FOR SELLERS / POS</div>
+                <div style={{ fontSize: 24, fontWeight: 750, color: "#ffffff" }}>One SDK Call</div>
+                <p style={{ margin: 0, fontSize: 20, color: "#cbd5e1", lineHeight: 1.45 }}>
+                  Single verifyProduct call at scan. SDK generated from OpenAPI spec by APIMatic.
+                </p>
+              </div>
+            </div>
+          </>
         )}
 
         {actualCardId === "code" && (
           <CodeCard />
         )}
 
-        {actualCardId === "onboard" && (
-          <>
-            <h1 className={s.titleLarge}>One API. Every checkout.</h1>
-            <div className={s.pipelineWrap}>
-              <div className={s.pipelineStage}>
-                <div className={s.stageTitle}>Brand Verification API</div>
-                <div className={s.stageSub}>OpenAPI 3.1 Specification</div>
-              </div>
-              <div className={s.diagramArrow}>→</div>
-              <div className={`${s.pipelineStage} ${s.stageHighlight}`}>
-                <div className={s.stageTitle}>APIMatic</div>
-                <div className={s.stageSub}>SDKs · Docs Portal · MCP Server</div>
-                <div className={s.stageSubContext}>PayPal Server SDK via Context Plugin</div>
-              </div>
-              <div className={s.diagramArrow}>→</div>
-              <div className={s.pipelineStage}>
-                <div className={s.stageTitle}>Commerce Ecosystem</div>
-                <div className={s.stageSub}>POS · E-commerce · AI shopping agents</div>
-              </div>
-            </div>
-            <div className={s.sourceFooter}>
-              MCP server via APIMatic&apos;s MCP generator (alpha)
-            </div>
-          </>
-        )}
-
         {actualCardId === "close" && (
           <div className={s.closeWrap}>
-            <div className={`${s.closeLine} ${s.line1}`}>Trust at checkout for buyers.</div>
-            <div className={`${s.closeLine} ${s.line2}`}>Intelligence for brands.</div>
+            <div className={`${s.closeLine} ${s.line1}`}>Brands pay for insights; the checkout check is free for shoppers.</div>
+            <div className={`${s.closeLine} ${s.line2}`}>Trust for buyers · Intelligence for brands.</div>
             <div className={`${s.closeLine} ${s.line3}`}>A more trusted network for PayPal.</div>
             <div className={s.brandFooter}>
               <div className={s.brandWordmark}>
@@ -565,7 +497,7 @@ function CardView({ cardId }: { cardId: string }) {
                 TrustLedger
               </div>
               <div className={s.techStrip}>
-                Built with PayPal Server SDK (APIMatic) · AG Grid · Bryntum · OpenDP · Render
+                Built with PayPal Server SDK (APIMatic) · AG Grid · Bryntum · OpenDP
               </div>
               <div className={s.repoLink}>github.com/ParthSinha9498/trustledger</div>
             </div>
@@ -605,7 +537,8 @@ function StoryContent() {
   const searchParams = useSearchParams();
   const card = searchParams.get("card");
 
-  if (card && (CARDS.some((c) => c.id === card) || card === "phones")) {
+  if (card && CARDS.some((c) => c.id === card)) {
+
     return <CardView cardId={card} />;
   }
 

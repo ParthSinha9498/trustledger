@@ -1,4 +1,4 @@
-"""Pitch demo recorder (about 3 min, silent, captioned): problem → idea → four scenarios → onboarding → close.
+"""Pitch demo recorder (~2:45, silent, captioned), storyboard v3 (docs/demo/VOICEOVER.md).
 
 Needs the full stack running (api, both nodes, worker, web) on a freshly seeded database:
     set -a; . ./.env; set +a
@@ -10,7 +10,7 @@ Story cards come from the web app's /story?card=<id> route; if it isn't there ye
 In PAYPAL_MODE=mock the payment is captured through the API; in sandbox, approve the order in the PayPal popup
 during the pause. Video and cut markers go to e2e/out/demo/.
 """
-import argparse, base64, html, json, os, re, socket, subprocess, time, urllib.request
+import argparse, base64, json, os, re, time, urllib.request
 from playwright.sync_api import Locator, Page, sync_playwright
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "demo")
@@ -68,22 +68,24 @@ RING_JS = """([x, y, w, h]) => {
 FALLBACK = {
     "hook": ["One phone. One serial number. Two stores.", "Only one of them is selling the real thing."],
     "problem": ["USD 467 billion in counterfeit goods traded in a year",
-                "up to 2.3% of world trade · up to 4.7% of EU imports · smartphones: 12.9% of sales (EUR 45.3B, 2015)",
-                "OECD / EUIPO, Mapping Global Trade in Fakes 2025 (2021 data)"],
-    "phones": ["12.9% of legitimate smartphone sales lost to counterfeits", "≈ EUR 45.3 billion",
-               "EUIPO / ITU, smartphone sector study (2015 data)"],
+                "up to 2.3% of world trade · smartphones: 12.9% of sales (EUR 45.3B, 2015)",
+                "OECD / EUIPO 2025 (2021 data) · EUIPO / ITU"],
     "gap": ["Verification exists. Nobody uses it.", "Optional · separate from paying · different for every brand"],
     "idea": ["Make authenticity a condition of payment.", "Scan → brand verifies → PayPal payment. Not verified → no payment."],
+    "how": ["Data never moves.", "Questions travel to the brand and PayPal nodes; only private aggregates come back."],
     "s1": ["Scenario 1", "A genuine phone at an authorized store"],
     "s2": ["Scenario 2", "The same serial at a store outside the supply chain"],
     "s3": ["Scenario 3", "The brand investigates"],
-    "s4": ["Scenario 4", "Privacy by design"],
-    "s5": ["Scenario 5", "An AI shopping agent checks before it pays"],
-    "redteam": ["220 of 220 re-identification attempts blocked",
-                "Best guesses were right 23% of the time, no better than chance",
-                "Scripted battery: small cells, differencing, membership, cross-node linkage, averaging, budget probing"],
-    "onboard": ["One API. Every checkout.", "OpenAPI → SDKs · docs portal · MCP server → POS, e-commerce, AI shopping agents"],
-    "close": ["Trust at checkout for buyers.", "Intelligence for brands.", "A more trusted network for PayPal."],
+    "business": ["How does this pay for itself?",
+                 "USD 150B+ a year on market insights (ESOMAR, 2024 data). Survey results take weeks.",
+                 "In a 2024 Pew survey, 18% of responses were flagged as bogus."],
+    "s4": ["Scenario 4", "Brand insights from verified purchases"],
+    "guarantee": ["Every buyer protected across all of a brand's questions",
+                  "zCDP ρ 0.25 ≈ ε 4.2 (δ 1e-8) · internal red-team: 11 attack types, none extracted an individual-level fact"],
+    "levels": ["One API. Every checkout.",
+               "Brand: verification API + node · PayPal: checkout gate + private node · Seller: one SDK call (APIMatic)"],
+    "close": ["Brands pay for insights; the checkout check is free for shoppers.",
+              "Trust for buyers. Intelligence for brands. A stronger PayPal network."],
 }
 
 
@@ -165,10 +167,6 @@ def scan(rec: Recorder, store_index: int) -> dict:
     return resp.value.json()
 
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-MCP_DIR = os.path.join(HERE, "..", "mcp")
-
-
 def verdict_png(page: Page) -> bytes:
     """Screenshot of the real verification result panel (used for the side-by-side comparison)."""
     return page.locator("section[aria-label='Verification result']").screenshot()
@@ -239,60 +237,14 @@ def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
     page.wait_for_url(re.compile(r"/receipt/"), timeout=60000)
 
 
-def mcp_agent_lines(brand_url: str, token: str, port: int = 3333) -> list[str]:
-    """Start the brand-verification MCP server, run the demo agent against it, return its real output."""
-    env = os.environ | {"API_BASE_URL": brand_url, "API_KEY_NODETOKEN": token, "PORT": str(port)}
-    srv = subprocess.Popen(["node", "build/index.js", "--transport=streamable-http"],
-                           cwd=os.path.join(MCP_DIR, "brand-verification"), env=env,
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    try:
-        for _ in range(50):
-            try:
-                socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
-                break
-            except OSError:
-                time.sleep(0.2)
-        out = subprocess.run(["node", "demo_agent_call.mjs", "--store", "store_b", "--serial", SERIAL,
-                              "--sku", "NMB-P8-128"], cwd=MCP_DIR, capture_output=True, text=True, timeout=60,
-                             env=os.environ | {"MCP_URL": f"http://127.0.0.1:{port}/mcp"})
-        lines = [l for l in out.stdout.splitlines()]
-        # The video shows the agent's reasoning, not the raw JSON dump at the end.
-        return lines[: next((i for i, l in enumerate(lines) if l.startswith("Raw MCP")), len(lines))]
-    finally:
-        srv.terminate()
-
-
-def terminal_scene(rec: Recorder, lines: list[str], hold: float) -> None:
-    rec.mark("scene", "terminal")
-    page = rec.page
-    r = page.goto(f"{rec.web}/story?card=terminal")
-    if r is not None and r.ok and page.evaluate("typeof window.typeLines === 'function'"):
-        page.evaluate("lines => window.typeLines(lines)", lines)
-        try:
-            page.wait_for_selector("body[data-ready='1']", timeout=30000)
-        except Exception:
-            pass
-    else:
-        body = "\n".join(html.escape(l) for l in lines)
-        page.set_content("<body style='margin:0;height:100vh;background:#0b1220;display:grid;place-items:center'>"
-                         "<pre style='width:1100px;background:#020617;color:#e2e8f0;font:18px/1.5 ui-monospace,monospace;"
-                         f"padding:28px 32px;border-radius:14px'>$ node demo_agent_call.mjs\n{body}</pre></body>")
-    rec.wait(hold)
-
-
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--web", default="http://localhost:3000")
     ap.add_argument("--api", default=os.environ.get("API_URL", "http://localhost:8000"))
-    ap.add_argument("--brand", default=os.environ.get("BRAND_NODE_URL", "http://localhost:8001"),
-                    help="brand node URL for the MCP scene")
-    ap.add_argument("--brand-token", default=os.environ.get("NODE_SHARED_TOKEN", "dev-token"))
     ap.add_argument("--case-timeout", type=int, default=300, help="seconds to wait for the agent")
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     mock = os.environ.get("PAYPAL_MODE", "mock") == "mock"
-    # Run the MCP agent first (real output), so the scene itself only types it out.
-    mcp_lines = mcp_agent_lines(args.brand, args.brand_token)
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -302,13 +254,14 @@ def main() -> None:
         page = ctx.new_page()
         rec = Recorder(page, args.web)
 
-        # ---- Problem and idea (storyboard: docs/demo/VOICEOVER.md)
+        # ---- Context (storyboard v3: notes/FLOW.md, docs/demo/VOICEOVER.md)
         rec.card("hook", 4)
         rec.card("problem", 7)
-        rec.card("gap", 8)
-        rec.card("idea", 8)
+        rec.card("gap", 6)
+        rec.card("idea", 6)
+        rec.card("how", 10)
 
-        # ---- Scenario 1: genuine product, authorized store
+        # ---- S1: genuine product, authorized store, real PayPal approval
         rec.card("s1", 2.5)
         rec.go("/pos")
         rec.caption("Store A: brand verifies → PayPal order created", 0.5)
@@ -318,16 +271,16 @@ def main() -> None:
                              "Reseed before each take (e.g. docker compose run --rm seed).")
         a_png = verdict_png(page)
         rec.ring(page.get_by_text("PayPal order created", exact=False).first)
-        rec.wait(4)
+        rec.wait(3.5)
         rec.unring()
         if mock:
             api_post(args.api, f"/checkout/{a['checkout_id']}/capture")
             rec.go(f"/receipt/{a['checkout_id']}")
         else:
             pay_in_sandbox(rec, a["checkout_id"])
-        rec.caption("Receipt: Brand Verified", 4)
+        rec.caption("Receipt: Brand Verified", 3)
 
-        # ---- Scenario 2: same serial, store outside the supply chain
+        # ---- S2: same serial, store outside the supply chain
         rec.card("s2", 2.5)
         rec.go("/pos")
         rec.caption("Store B, same serial: no PayPal order exists", 0.5)
@@ -338,14 +291,12 @@ def main() -> None:
         rec.unring()
         compare_frame(rec, a_png, b_png, 4)
 
-        # ---- Scenario 3: the brand investigates
+        # ---- S3: the brand investigates; film the data boundary (questions travel, aggregates return)
         rec.card("s3", 2.5)
         case_id = b.get("case_id")
-        rec.go("/cockpit")
-        rec.caption("AI agent investigates: aggregates only", 3)
         if case_id:
             rec.go(f"/cockpit/cases/{case_id}")
-            rec.wait(2)
+            rec.caption("AI agent investigates: aggregates only", 2)
             rec.mark("cut_start", "agent running")
             deadline = time.time() + args.case_timeout
             while time.time() < deadline and not page.get_by_text(re.compile(r"\bcomplete\b", re.I)).count():
@@ -353,41 +304,40 @@ def main() -> None:
                 page.reload()
                 page.evaluate(CAPTION_JS, "AI agent investigates: aggregates only")
             rec.mark("cut_end", "agent done")
-            rec.wait(1)
             rec.ring(page.locator("ol.findings li").first)
-            rec.wait(5)
+            rec.wait(4)
             rec.unring()
-            page.mouse.wheel(0, 900)
-            rec.wait(3)
-        rec.go("/cockpit/supply-chain")
-        rec.wait(4)
+            boundary = page.get_by_text("What the agent could see").first
+            boundary.scroll_into_view_if_needed()
+            replay = page.get_by_role("button", name="Replay")
+            if replay.count():
+                rec.click(replay.first)  # restart the animation now that it is on screen
+            rec.caption("Questions travel to the data. Only aggregates come back.", 7)
 
-        # ---- Scenario 4: privacy by design
+        # ---- Business case: the pivot into Brand Insights
+        rec.card("business", 11)
+
+        # ---- S4: Brand Insights from verified purchases
         rec.card("s4", 2.5)
         rec.go("/cockpit/console")
-        page.get_by_label("Question").fill("Which individual buyers at Store B bought serial X123, with their age and gender?")
-        rec.caption("Individuals in → private aggregate out", 1.5)
-        rec.click(page.get_by_role("button", name=re.compile("Get answer")))  # plans and runs in one step
-        rec.wait(3)
-        rec.ring(page.locator("p.rationale").first)
-        rec.wait(3.5)
+        rec.caption("Brand Insights: answers from verified purchases", 1)
+        rec.click(page.get_by_role("button", name=re.compile("Which age bands buy")))
+        page.get_by_text("A survey: weeks", exact=False).first.wait_for(timeout=30000)
+        rec.wait(1)
+        rec.ring(page.get_by_text("Answered in", exact=False).first)
+        rec.wait(4)
         rec.unring()
-        run = page.get_by_role("button", name=re.compile(r"^Run \d+ quer"))
-        if run.count():
-            rec.click(run.first)
-            rec.wait(2.5)
-            page.mouse.wheel(0, 600)
-            rec.wait(3.5)
+        page.mouse.wheel(0, 500)
+        rec.wait(1)
+        rec.ring(page.get_by_text("PayPal-side · differentially private", exact=False).first)
+        rec.wait(4)
+        rec.unring()
+        rec.wait(3)
 
-        rec.card("redteam", 6)
-
-        # ---- Scenario 5: an AI shopping agent checks before it pays (real MCP run)
-        rec.card("s5", 2.5)
-        terminal_scene(rec, mcp_lines, 4)
-
-        # ---- Onboarding and close
-        rec.card("onboard", 12)
-        rec.card("close", 8)
+        # ---- Guarantee, onboarding by level, close
+        rec.card("guarantee", 8)
+        rec.card("levels", 15)
+        rec.card("close", 7)
 
         video = page.video.path() if page.video else None
         ctx.close()

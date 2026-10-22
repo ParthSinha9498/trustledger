@@ -115,3 +115,40 @@ def test_live_path_validates_and_explains_only_guarded_results(env, monkeypatch)
     allowed = {"node", "metric", "group_by", "filters", "rows", "rows_total", "suppressed_cells", "exact", "noise", "refused"}
     assert all(set(p) <= allowed for p in payload)
     assert "payer_key" not in json.dumps(fake.sent)
+    assert "The current week is 42" in fake.sent[0][0]["content"]  # planner gets the calendar, never data
+
+
+# The Brand Insights example questions (keep in sync with EXAMPLES in web/app/cockpit/console/page.tsx).
+INSIGHT_QUESTIONS = {
+    "Where did the P8 128GB sell, by region, in the last 8 weeks?":
+        ("brand", "sold_units", ["region"], {"sku": ["NMB-P8-128"], "week_from": 35, "week_to": 42}),
+    "Which age bands buy the P8 128GB vs the A5?":
+        ("paypal", "buyers", ["age_band", "sku"], {"sku": ["NMB-A5-64", "NMB-P8-128"]}),
+    "How did weekly buyers change at Store C over the last 12 weeks?":
+        ("paypal", "buyers", ["week"], {"store_id": ["store_c"], "week_from": 31, "week_to": 42}),
+    "What is the spend per buyer by region?":
+        ("paypal", "sum_amount", ["region"], {}),
+}
+
+
+def test_insight_questions_plan_and_answer(env):
+    api = env["api"]
+    for question, (node, metric, group_by, filters) in INSIGHT_QUESTIONS.items():
+        plan = api.post("/console/plan", json={"question": question}).json()
+        assert plan["specs"] == [{"node": node, "spec": {"metric": metric, "group_by": group_by, "filters": filters}}], question
+        assert "Dropped" not in plan["rationale"]
+        result = api.post("/console/run", json={"specs": plan["specs"]}).json()["results"][0]
+        assert "refused" not in result, (question, result)
+        assert result["rows"], question
+        if node == "paypal":
+            assert all("ci95" in row for row in result["rows"])
+        if metric == "sum_amount":  # spend per buyer: each released cell has a noisy buyer count and the mean
+            assert all({"buyers", "mean_spend"} <= set(row) for row in result["rows"])
+
+
+def test_model_names_and_relative_weeks(monkeypatch):
+    monkeypatch.setenv("CURRENT_WEEK", "20")
+    f = console._filters_from("the P8 vs the A5 64GB in the past 4 weeks")
+    assert f == {"sku": ["NMB-A5-64", "NMB-P8-128", "NMB-P8-256"], "week_from": 17, "week_to": 20}
+    assert console._filters_from("weeks 3 to 5, not the last 4 weeks")["week_from"] == 3  # explicit weeks win
+    assert console._filters_from("the last 40 weeks")["week_from"] == 1

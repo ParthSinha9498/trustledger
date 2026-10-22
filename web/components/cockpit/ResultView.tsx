@@ -36,9 +36,10 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
 
   const chart = useMemo(() => rows
     .filter((r) => typeof r.value === "number")
-    .map((r) => ({ label: rowLabel(r, dims), value: r.value as number, ci95: r.ci95 }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, MAX_BARS), [rows, dims]);
+    // A weekly series reads as a trend in week order; everything else ranks largest first.
+    .sort((a, b) => (dims.length === 1 && dims[0] === "week" ? Number(a.week) - Number(b.week) : (b.value as number) - (a.value as number)))
+    .slice(0, MAX_BARS)
+    .map((r) => ({ label: rowLabel(r, dims), value: r.value as number, ci95: r.ci95 })), [rows, dims]);
 
   if (result.refused) {
     return (

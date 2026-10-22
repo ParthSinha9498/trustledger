@@ -1,0 +1,11 @@
+/* Brand Insights page only. Uses the global theme tokens; no new colors. */
+.subtitle { margin: 4px 0 0; font-size: 16px; color: var(--muted); }
+
+/* Let the ask row wrap on phones instead of pushing buttons off screen */
+.ask { flex-wrap: wrap; }
+.ask input { min-width: min(100%, 260px); }
+
+/* "vs. survey" line above each answer */
+.vsSurvey { margin: 0 0 10px; font-size: 14px; }
+.vsSurvey strong { font-weight: 600; }
+.survey { color: var(--muted); }

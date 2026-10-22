@@ -49,10 +49,15 @@ export default function ReceiptPage() {
               <dt>PayPal order ID</dt><dd>{r.paypal_order_id ?? "None (never created)"}</dd>
             </dl>
             {verified && (
-              <p className={s.explain}>
-                The brand verified this exact unit at the time of purchase. The verification ID is stored on the
-                PayPal order in its <code>custom_id</code> field, so your payment record points to the verification.
-              </p>
+              <div style={{ marginTop: "18px", padding: "14px 16px", borderRadius: "10px", background: "var(--ok-bg)", border: "1px solid var(--ok-border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, color: "var(--ok)", fontSize: "14px", marginBottom: "4px" }}>
+                  <span aria-hidden>✓</span> Proof of Brand Authenticity
+                </div>
+                <p style={{ margin: 0, fontSize: "13px", color: "var(--fg)", lineHeight: 1.45 }}>
+                  The brand verified this unit at the store checkout prior to payment. The verification ID is stored on the
+                  PayPal order in its <code>custom_id</code> field, so the payment points to the brand verification.
+                </p>
+              </div>
             )}
             {r.status === "AWAITING_PAYMENT" && (
               <div className={s.links}><a href={`/pay/${r.checkout_id}`}>Go to payment →</a></div>

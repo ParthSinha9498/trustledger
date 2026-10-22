@@ -289,8 +289,6 @@ def finish_case(case_id: str, body: FinishIn):
             (body.status, body.summary, body.confidence, body.agent_mode, body.agent_model,
              body.agent_reason, body.source_case_id, body.replay_recorded_at, body.status, case_id)
         ).fetchone()
-        if case and body.status == "waiting_capacity":
-            pc.execute("DELETE FROM case_steps WHERE case_id=%s", (case_id,))
         # Failures that arrived during the run may have grown the problem enough to warrant another run.
         if case and body.status == "complete" and material_change(case):
             pc.execute("UPDATE cases SET status='open' WHERE case_id=%s", (case_id,))

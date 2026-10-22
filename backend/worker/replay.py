@@ -5,17 +5,13 @@ from pathlib import Path
 from backend import config
 from backend.common import http
 
-REPLAYS_DIR = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures" / "replays"
-TEST_REPLAY_NAME = "case_replay_TEST_ONLY.json"
-
-
-def load_replay(name: str = TEST_REPLAY_NAME) -> dict | None:
-    path = REPLAYS_DIR / name
-    if not path.exists():
-        path = REPLAYS_DIR.parent / name
-    if not path.exists():
+def load_replay(path_or_name: str) -> dict | None:
+    p = Path(path_or_name)
+    if not p.is_file():
+        p = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures" / path_or_name
+    if not p.is_file():
         return None
-    with open(path, "r", encoding="utf-8") as f:
+    with open(p, "r", encoding="utf-8") as f:
         return json.load(f)
 
 

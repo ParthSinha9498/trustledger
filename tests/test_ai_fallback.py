@@ -33,7 +33,7 @@ def test_chained_llm_falls_back_on_error():
 
 
 def test_replay_loader_loads_test_fixture():
-    replay = load_replay("case_replay_TEST_ONLY.json")
+    replay = load_replay("case_af739ac755.json")
     assert "replay_id" in replay
     assert "steps" in replay
     assert len(replay["steps"]) > 0

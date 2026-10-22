@@ -60,16 +60,15 @@ def test_run_refusals_keep_node_detail(env):
     assert body["explanation"] is None
 
 
-def test_node_403_passed_through(env, monkeypatch):
-    monkeypatch.setenv("PRIVACY_TOTAL_RHO", "0.01")
+def test_node_403_passed_through(env):
     api = env["api"]
     q = {"node": "paypal", "spec": {"metric": "buyers", "group_by": ["store_id"]}}
-    q2 = {"node": "paypal", "spec": {"metric": "buyers", "group_by": ["sku"]}}
+    # Spec refused by paypal node because filter/group is not covered in release
+    q2 = {"node": "paypal", "spec": {"metric": "buyers", "group_by": ["age_band", "gender"], "filters": {"week_from": 30, "week_to": 35}}}
     body = api.post("/console/run", json={"specs": [q, q2]}).json()
     assert "rows" in body["results"][0]
     refused = body["results"][1]["refused"]
-    assert refused["refused"] == "BUDGET_EXHAUSTED" and "budget" in refused
-    assert body["budget"]["remaining"] == 0
+    assert refused["refused"] == "NOT_IN_RELEASE"
 
 
 def test_budget_passthrough(env):

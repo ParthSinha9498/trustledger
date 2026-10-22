@@ -22,17 +22,29 @@ export default function BudgetMeter({ budget, compact = false }: { budget: Budge
       <div className="meter-head">
         <span>Privacy budget (rho)</span>
         <span>
-          {state === "empty" ? <strong className="text-bad">Exhausted</strong> :
-            left != null ? <>≈ <strong>{fmtNum(left)}</strong> queries left</> :
-              <>{Math.round(pctLeft * 100)}% left</>}
+          {budget.private_release ? (
+            <strong className="text-ok">Private release</strong>
+          ) : state === "empty" ? (
+            <strong className="text-bad">Exhausted</strong>
+          ) : left != null ? (
+            <>≈ <strong>{fmtNum(left)}</strong> queries left</>
+          ) : (
+            <>{Math.round(pctLeft * 100)}% left</>
+          )}
         </span>
       </div>
       <div className="meter-track"><div className="meter-fill" style={{ width: `${pctLeft * 100}%` }} /></div>
       {!compact && (
-        <div className="meter-foot muted">
-          {fmtNum(budget.spent, 3)} of {fmtNum(total, 3)} {budget.unit ?? "rho"} spent
-          {budget.eps_equivalent_total != null && <> · ε ≈ {fmtNum(budget.eps_equivalent_total, 2)} total</>}
-          {" "}· budget is per dataset, PayPal-side only
+        <div className="meter-foot muted" style={{ whiteSpace: "normal", lineHeight: 1.4 }}>
+          {budget.private_release ? (
+            <>Answered from the private release: no further budget spent · ρ = 0.20 spent once · ε ≈ 3.69 (δ = 10⁻⁸)</>
+          ) : (
+            <>
+              {fmtNum(budget.spent, 3)} of {fmtNum(total, 3)} {budget.unit ?? "rho"} spent
+              {budget.eps_equivalent_total != null && <> · ε ≈ {fmtNum(budget.eps_equivalent_total, 2)} total</>}
+              {" "}· budget is per dataset, PayPal-side only
+            </>
+          )}
         </div>
       )}
     </div>

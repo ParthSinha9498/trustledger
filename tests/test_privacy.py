@@ -16,7 +16,8 @@ def test_sensitivity_and_cost_match_opendp():
     out1 = privacy.release([("a",)], [500], [0.0], "buyers", k=1)
     assert math.isclose(out1["noise"]["sigma"], 7.07, abs_tol=0.01)
     assert privacy.k_for(["age_band", "gender"]) == 1 and privacy.k_for(["store_id", "week"]) == 4
-    assert math.isclose(privacy.eps_equivalent(0.25), 4.16, abs_tol=0.01)
+    # Epsilon at delta=1e-8 for rho=0.20 via OpenDP is 3.69
+    assert math.isclose(privacy.eps_equivalent(0.20), 3.69, abs_tol=0.01)
 
 
 def test_small_cells_suppressed_with_noise_scaled_floor():
@@ -35,7 +36,8 @@ def test_response_reports_noise_and_never_buyer_fields(env):
     r = ask(env, {"metric": "buyers", "group_by": ["store_id", "week"]})
     assert r.status_code == 200, r.text
     body = r.json()
-    assert body["noise"]["mechanism"] == "gaussian (zCDP)" and body["noise"]["k"] == 4
+    assert body["noise"]["mechanism"] == "zCDP private release"
+    assert body["noise"]["private_release"] is True
     assert all("ci95" in row for row in body["rows"])
     assert "payer_key" not in r.text and "txn_id" not in r.text
 
@@ -43,80 +45,142 @@ def test_response_reports_noise_and_never_buyer_fields(env):
 def test_sum_releases_count_sum_and_mean(env):
     body = ask(env, {"metric": "sum_amount", "group_by": ["store_id"]}).json()
     row = body["rows"][0]
-    assert {"value", "buyers", "mean_spend", "ci95"} <= set(row)
-    assert body["budget"]["spent"] == 0.02
+    assert {"value", "buyers", "mean_spend", "ci95", "ci95_mean_spend"} <= set(row)
+    assert body["noise"]["private_release"] is True
 
 
-def test_identical_and_reordered_queries_hit_cache_at_no_cost(env):
-    a = ask(env, {"metric": "buyers", "group_by": ["store_id", "sku"], "filters": {"sku": ["NMB-A5-64", "NMB-P8-128"]}})
-    b = ask(env, {"metric": "buyers", "group_by": ["sku", "store_id"], "filters": {"sku": ["NMB-P8-128", "NMB-A5-64"]}})
-    assert a.json()["cached"] is False and b.json()["cached"] is True
-    assert b.json()["budget"]["spent"] == 0.01
+def test_private_release_queries_spend_zero_extra_rho(env):
+    """Proves that asking 100 questions from the private release spends 0 extra rho."""
+    initial_budget = env["paypal"].get("/v1/budget", params={"brand_id": "nimbus"}).json()
+    initial_spent = initial_budget["spent"]
+    assert initial_spent == 0.20  # release measured once at seed
 
-
-def test_budget_is_persistent_and_refuses_when_spent(env, monkeypatch):
-    monkeypatch.setenv("PRIVACY_TOTAL_RHO", "0.03")  # three count queries
-    for dims in (["store_id"], ["sku"], ["region"]):
-        assert ask(env, {"metric": "buyers", "group_by": dims}).status_code == 200
-    r = ask(env, {"metric": "buyers", "group_by": ["week"]})
-    assert r.status_code == 403 and r.json()["detail"]["refused"] == "BUDGET_EXHAUSTED"
-    # A cached answer is still served after the budget is gone, at no cost.
-    assert ask(env, {"metric": "buyers", "group_by": ["sku"]}).json()["cached"] is True
-    # The ledger lives in Postgres, so a fresh app process sees the same spend.
-    assert env["paypal"].get("/v1/budget", params={"brand_id": "nimbus"}).json()["remaining"] == 0
-
-
-def test_too_many_cells_refused(env):
-    r = ask(env, {"metric": "buyers", "group_by": ["store_id", "week"], "filters": {"week_from": 1}})
-    assert r.status_code == 200  # 6 x 12 = 72 cells
-
-
-def test_repeated_insight_questions_spend_no_extra_rho_and_preserve_noisy_answer(env):
-    """Proves that running an Insights question repeatedly spends NO extra rho and returns identical noisy answers.
-
-    This verifies the privacy guarantee:
-    1. First run executes the differential privacy mechanism, charges rho to the privacy ledger, and caches.
-    2. Repeated runs hit query_cache, charge 0.0 extra rho, and return the exact same released rows without
-       re-randomizing noise (which would allow noise-averaging reconstruction attacks).
-    """
-    api = env["api"]
-
-    # The 3 PayPal-side one-click questions from Brand Insights console:
-    paypal_questions = [
-        "Which age bands buy the P8 128GB vs the A5?",
-        "How did weekly buyers change at Store C over the last 12 weeks?",
-        "What is the spend per buyer by region?",
+    specs = [
+        {"metric": "buyers", "group_by": ["store_id"]},
+        {"metric": "buyers", "group_by": ["sku"]},
+        {"metric": "buyers", "group_by": ["age_band", "sku"]},
+        {"metric": "buyers", "group_by": ["store_id", "week"]},
+        {"metric": "sum_amount", "group_by": ["store_id"]},
     ]
 
-    for question in paypal_questions:
-        plan = api.post("/console/plan", json={"question": question}).json()
-        specs = plan["specs"]
-        assert len(specs) == 1 and specs[0]["node"] == "paypal", f"Expected single paypal query for {question}"
+    for i in range(100):
+        spec = specs[i % len(specs)]
+        res = ask(env, spec)
+        assert res.status_code == 200
 
-        # Run 1: initial execution
-        budget_before = api.get("/console/budget").json()["spent"]
-        res1 = api.post("/console/run", json={"specs": specs}).json()
-        result1 = res1["results"][0]
-        budget_after1 = res1["budget"]["spent"]
+    final_budget = env["paypal"].get("/v1/budget", params={"brand_id": "nimbus"}).json()
+    assert final_budget["spent"] == initial_spent
+    assert final_budget["private_release"] is True
 
-        assert result1["cached"] is False, f"First run of '{question}' should not be cached"
-        assert budget_after1 > budget_before, f"First run of '{question}' should charge rho"
-        expected_rho = 0.02 if specs[0]["spec"]["metric"] == "sum_amount" else 0.01
-        assert math.isclose(budget_after1 - budget_before, expected_rho, abs_tol=1e-5)
 
-        # Run 2: repeated identical execution
-        res2 = api.post("/console/run", json={"specs": specs}).json()
-        result2 = res2["results"][0]
-        budget_after2 = res2["budget"]["spent"]
+def test_uncovered_spec_refused(env):
+    """Router rule: refuse (never silently drop) any filter or spec the release cannot apply."""
+    # Week filter on demographic marginal (M2/M3 don't have week)
+    r = ask(env, {
+        "metric": "buyers",
+        "group_by": ["age_band", "gender"],
+        "filters": {"week_from": 30, "week_to": 35}
+    })
+    assert r.status_code == 403
+    assert r.json()["detail"]["refused"] == "NOT_IN_RELEASE"
 
-        assert result2["cached"] is True, f"Second run of '{question}' must hit query cache"
-        assert math.isclose(budget_after2, budget_after1, abs_tol=1e-7), (
-            f"Second run of '{question}' must spend NO extra rho! "
-            f"Before: {budget_after1}, After: {budget_after2}"
-        )
-        assert result2["rows"] == result1["rows"], (
-            f"Second run of '{question}' must return identical noisy values (no noise re-sampling)"
-        )
-        assert result2.get("suppressed_cells") == result1.get("suppressed_cells")
-        assert result2.get("noise") == result1.get("noise")
+
+def test_release_status_endpoint(env):
+    r = env["paypal"].get("/v1/release/status", params={"brand_id": "nimbus"})
+    assert r.status_code == 200
+    b = r.json()
+    assert b["brand_id"] == "nimbus"
+    assert b["rho_spent"] == 0.20
+    assert b["eps_equivalent"] == 3.69
+    assert b["marginal_count"] == 6
+    assert b["private_release"] is True
+
+
+def test_repeated_query_returns_identical_rows(env):
+    """Same spec -> identical rows byte for byte."""
+    spec = {"metric": "buyers", "group_by": ["store_id"]}
+    r1 = ask(env, spec).json()
+    r2 = ask(env, spec).json()
+    assert r1["rows"] == r2["rows"]
+    assert r1["noise"] == r2["noise"]
+
+
+def test_second_build_release_refused(env):
+    """A second build_release is refused because 0.20 + 0.20 > 0.25 total budget."""
+    import pytest
+    with pytest.raises(ValueError, match="Insufficient privacy budget"):
+        privacy.build_release("nimbus")
+
+
+def test_router_refuses_uncovered_filters(env):
+    """age_band/gender filter on M1 (which has week) returns NOT_IN_RELEASE, not empty suppressed answer."""
+    r = ask(env, {
+        "metric": "buyers",
+        "group_by": ["store_id", "week"],
+        "filters": {"age_band": ["18-24"]}
+    })
+    assert r.status_code == 403
+    assert r.json()["detail"]["refused"] == "NOT_IN_RELEASE"
+
+    r2 = ask(env, {
+        "metric": "buyers",
+        "group_by": ["store_id", "week"],
+        "filters": {"gender": ["female"]}
+    })
+    assert r2.status_code == 403
+    assert r2.json()["detail"]["refused"] == "NOT_IN_RELEASE"
+
+
+def test_mean_spend_has_delta_method_ci(env):
+    """mean_spend row must contain ci95_mean_spend from delta method."""
+    r = ask(env, {"metric": "sum_amount", "group_by": ["store_id"]})
+    assert r.status_code == 200
+    rows = r.json()["rows"]
+    assert len(rows) > 0
+    for row in rows:
+        assert "mean_spend" in row
+        assert "ci95_mean_spend" in row
+        assert row["ci95_mean_spend"] >= 0.0
+
+
+def test_k_truncation_bounds_buyer_contribution(env, monkeypatch):
+    """Verify that build_release bounds single buyer contribution to at most K cells in stored marginals."""
+    from backend import db
+    brand = "k_trunc_test_brand"
+    payer = "k_trunc_test_payer"
+
+    # Mock noise to zero to inspect exact stored cell counts directly
+    monkeypatch.setattr(privacy, "_noisy_counts", lambda counts, k, rho: ([float(c) for c in counts], 1.0))
+    monkeypatch.setattr(privacy, "_noisy_sums", lambda sums, k, rho: ([float(s) for s in sums], 1.0))
+
+    with db.connect("paypal_side") as c:
+        c.execute("INSERT INTO catalog_stores VALUES ('kt_store', %s, 'US-WEST', 'Seattle') ON CONFLICT DO NOTHING", (brand,))
+        c.execute("INSERT INTO catalog_skus VALUES ('kt_sku', %s) ON CONFLICT DO NOTHING", (brand,))
+        # Insert a single buyer into 10 distinct week cells (weeks 1 to 10)
+        for w in range(1, 11):
+            c.execute(
+                "INSERT INTO transactions VALUES (%s, %s, %s, 'kt_store', 'kt_sku', 50, 'US-WEST', 'Seattle', %s, %s, '35-44', 'female', 'simulated')",
+                (f"KT_TX_{w}", f"KT_ORD_{w}", brand, w, payer)
+            )
+
+    # Build release through the real production pipeline
+    rel = privacy.build_release(brand)
+    rel_id = rel["release_id"] if isinstance(rel, dict) else rel
+
+    # Assert on the cells build_release actually stored in private_release_marginals
+    with db.connect("paypal_side") as c:
+        # Marginal M1 has dims (store_id, sku, week) and K=4
+        rows_m1 = c.execute(
+            "SELECT cell_key, noisy_buyers, noisy_spend FROM private_release_marginals WHERE release_id = %s AND marginal_id = 'M1'",
+            (rel_id,)
+        ).fetchall()
+
+    # The buyer was active in 10 cells, but stored contribution must be capped at K=4 cells
+    active_cells = [r for r in rows_m1 if r["noisy_buyers"] > 0]
+    assert len(active_cells) == 4
+    assert sum(r["noisy_buyers"] for r in active_cells) == 4.0
+    assert all(r["noisy_buyers"] <= 1.0 for r in active_cells)
+
+
+
 

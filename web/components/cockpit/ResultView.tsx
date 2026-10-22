@@ -21,16 +21,26 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
       field: "value",
       headerName: label(metric),
       type: "numericColumn",
-      minWidth: 180,
-      flex: 1.5,
+      minWidth: 210,
+      flex: 1.6,
       valueFormatter: (p) => {
         const ci = p.data?.ci95;
         return fmtNum(p.value, metric === "sum_amount" ? 2 : 0) + (typeof ci === "number" ? ` ± ${fmtNum(ci, metric === "sum_amount" ? 2 : 0)}` : "");
       },
     });
     const first = rows[0] ?? {};
-    if ("buyers" in first) cols.push({ field: "buyers", headerName: "Buyers", type: "numericColumn", minWidth: 140, flex: 1.2, valueFormatter: (p) => fmtNum(p.value) });
-    if ("mean_spend" in first) cols.push({ field: "mean_spend", headerName: "Mean spend", type: "numericColumn", minWidth: 140, flex: 1.2, valueFormatter: (p) => fmtNum(p.value, 2) });
+    if ("buyers" in first) cols.push({ field: "buyers", headerName: "Buyers", type: "numericColumn", minWidth: 160, flex: 1.2, valueFormatter: (p) => fmtNum(p.value) });
+    if ("mean_spend" in first) cols.push({
+      field: "mean_spend",
+      headerName: "Mean spend",
+      type: "numericColumn",
+      minWidth: 180,
+      flex: 1.3,
+      valueFormatter: (p) => {
+        const ci = p.data?.ci95_mean_spend;
+        return fmtNum(p.value, 2) + (typeof ci === "number" ? ` ± ${fmtNum(ci, 2)}` : "");
+      },
+    });
     return cols;
   }, [dims, metric, rows]);
 

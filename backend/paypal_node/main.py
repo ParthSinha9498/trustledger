@@ -50,7 +50,9 @@ def budget(brand: str) -> dict:
         "total": total,
         "daily": total,  # kept for older clients; the budget is per dataset, not per day
         "eps_equivalent_total": round(privacy.eps_equivalent(total), 2),
-        "queries_left_estimate": int(remaining // privacy.RHO_COUNT + 1e-9),
+        "release_rho": privacy.RELEASE_RHO,
+        "private_release": True,
+        "guarantee": "Answered from the private release: no further budget spent",
     }
 
 
@@ -121,6 +123,267 @@ class QueryRequest(BaseModel):
     purpose: str = "console"
 
 
+import math
+
+
+class MarginalReleaseEngine:
+    def __init__(self, brand_id: str):
+        self.brand_id = brand_id
+
+    def get_latest_release(self) -> dict:
+        with db.connect("paypal_side") as c:
+            row = c.execute(
+                "SELECT * FROM private_releases WHERE brand_id=%s ORDER BY created_at DESC LIMIT 1",
+                (self.brand_id,)
+            ).fetchone()
+        if not row:
+            raise SpecRefused("NOT_IN_RELEASE", f"No private release found for brand '{self.brand_id}'")
+        return row
+
+    def query(self, spec: QuerySpec) -> dict:
+        release = self.get_latest_release()
+        rel_id = release["release_id"]
+        dims = list(spec.group_by)
+        f = spec.filters
+
+        # Identify required dimensions by group_by and filters
+        needed_dims = set(dims)
+        filter_dims = set()
+        f_store_id = getattr(f, "store_id", None)
+        f_region = getattr(f, "region", None)
+        f_city = getattr(f, "city", None)
+        f_sku = getattr(f, "sku", None)
+        f_week_from = getattr(f, "week_from", None)
+        f_week_to = getattr(f, "week_to", None)
+        f_age_band = getattr(f, "age_band", None)
+        f_gender = getattr(f, "gender", None)
+
+        if f_store_id:
+            filter_dims.add("store_id")
+        if f_region or f_city:
+            filter_dims.add("store_id")
+        if f_sku:
+            filter_dims.add("sku")
+        if f_week_from is not None or f_week_to is not None:
+            filter_dims.add("week")
+        if f_age_band:
+            filter_dims.add("age_band")
+        if f_gender:
+            filter_dims.add("gender")
+
+        # Map region/city in group_by to store_id for marginal coverage check
+        req_dims = set()
+        for d in needed_dims:
+            if d in ("region", "city"):
+                req_dims.add("store_id")
+            else:
+                req_dims.add(d)
+
+        with db.connect("paypal_side") as c:
+            cat_stores = c.execute("SELECT store_id, region, city FROM catalog_stores WHERE brand_id=%s", (self.brand_id,)).fetchall()
+            cat_skus = c.execute("SELECT sku FROM catalog_skus WHERE brand_id=%s", (self.brand_id,)).fetchall()
+
+        num_stores = len(cat_stores) or 6
+        num_skus = len(cat_skus) or 3
+
+        # Check each marginal in WORKLOAD
+        candidates = []
+        for m in privacy.WORKLOAD:
+            m_dims = set(m["dims"])
+            if spec.metric == "sum_amount" and m["metric"] != "both":
+                continue
+
+            if not req_dims.issubset(m_dims):
+                continue
+
+            # Strict router rule: refuse if any requested filter cannot be applied
+            if not filter_dims.issubset(m_dims):
+                continue
+
+            # Cells summed per output group: computed dynamically from catalog domain
+            summed_dims = m_dims - req_dims
+            n = 1
+            if "store_id" in summed_dims:
+                if f_store_id:
+                    n_store = len(f_store_id)
+                elif f_region:
+                    n_store = max(1, len([s for s in cat_stores if s["region"] in f_region]))
+                elif f_city:
+                    n_store = max(1, len([s for s in cat_stores if s["city"] in f_city]))
+                elif "region" in dims:
+                    n_store = max(1, num_stores // max(1, len(set(s["region"] for s in cat_stores))))
+                elif "city" in dims:
+                    n_store = max(1, num_stores // max(1, len(set(s["city"] for s in cat_stores))))
+                else:
+                    n_store = num_stores
+                n *= n_store
+            if "sku" in summed_dims:
+                n *= (len(f_sku) if f_sku else num_skus)
+            if "week" in summed_dims:
+                w_lo = f_week_from or 1
+                w_hi = f_week_to or config.current_week()
+                n *= max(1, (w_hi - w_lo + 1))
+            if "age_band" in summed_dims:
+                n *= (len(f_age_band) if f_age_band else len(AGE_BANDS))
+            if "gender" in summed_dims:
+                n *= (len(f_gender) if f_gender else len(GENDERS))
+
+            rho_val = m["rho"] if spec.metric == "buyers" else m["rho_sum"]
+            l2_val = math.sqrt(m["k"]) if spec.metric == "buyers" else (privacy.SUM_CLAMP * math.sqrt(m["k"]))
+            sigma_base = privacy._sigma(l2_val, rho_val)
+            query_sigma = sigma_base * math.sqrt(n)
+            candidates.append({
+                "marginal": m,
+                "n": n,
+                "query_sigma": query_sigma,
+            })
+
+        if not candidates:
+            raise SpecRefused("NOT_IN_RELEASE", "Spec cannot be answered from the current private release.")
+
+        best = min(candidates, key=lambda c: (c["query_sigma"], c["n"]))
+        chosen_m = best["marginal"]
+        m_id = chosen_m["id"]
+
+        with db.connect("paypal_side") as c:
+            store_meta = {}
+            if any(d in ("region", "city") for d in dims) or f_region or f_city:
+                for r in cat_stores:
+                    store_meta[r["store_id"]] = {"region": r["region"], "city": r["city"]}
+
+            cells = c.execute(
+                "SELECT cell_key, noisy_buyers, noisy_spend, sigma_buyers, sigma_spend "
+                "FROM private_release_marginals WHERE release_id=%s AND marginal_id=%s",
+                (rel_id, m_id)
+            ).fetchall()
+
+        grouped = {}
+        for row in cells:
+            key = row["cell_key"]
+            if f_store_id and key.get("store_id") not in f_store_id:
+                continue
+            if f_sku and key.get("sku") not in f_sku:
+                continue
+            if f_week_from is not None and key.get("week") is not None and key.get("week") < f_week_from:
+                continue
+            if f_week_to is not None and key.get("week") is not None and key.get("week") > f_week_to:
+                continue
+            if f_region and key.get("store_id"):
+                if store_meta.get(key["store_id"], {}).get("region") not in f_region:
+                    continue
+            if f_city and key.get("store_id"):
+                if store_meta.get(key["store_id"], {}).get("city") not in f_city:
+                    continue
+            if f_age_band and key.get("age_band") not in f_age_band:
+                continue
+            if f_gender and key.get("gender") not in f_gender:
+                continue
+
+            g_vals = []
+            for d in dims:
+                if d == "region" and "store_id" in key:
+                    g_vals.append(store_meta.get(key["store_id"], {}).get("region"))
+                elif d == "city" and "store_id" in key:
+                    g_vals.append(store_meta.get(key["store_id"], {}).get("city"))
+                else:
+                    g_vals.append(key.get(d))
+            g_key = tuple(g_vals)
+
+            if g_key not in grouped:
+                grouped[g_key] = {"buyers": 0.0, "spend": 0.0, "count": 0, "sigma_b": row["sigma_buyers"], "sigma_s": row["sigma_spend"]}
+            grouped[g_key]["buyers"] += row["noisy_buyers"]
+            if row["noisy_spend"] is not None:
+                grouped[g_key]["spend"] += row["noisy_spend"]
+            grouped[g_key]["count"] += 1
+
+        rows = []
+        suppressed = 0
+        actual_n = best["n"]
+
+        # Privacy order: Clamp individual spend first (LEAST(SUM(amount), SUM_CLAMP)), add calibrated noise, and then apply display floor suppression (clamp-before-suppression).
+        for g_key, data in grouped.items():
+            cell_n = data["count"] or actual_n
+            sigma_query_b = data["sigma_b"] * math.sqrt(cell_n)
+            ci95_b = round(1.96 * sigma_query_b, 1)
+            clamped_b = max(0, int(round(data["buyers"])))
+
+            floor_b = max(10.0, 2.0 * sigma_query_b)
+            if clamped_b < floor_b:
+                suppressed += 1
+                continue
+
+            row_dict = dict(zip(dims, g_key))
+            if spec.metric == "buyers":
+                row_dict["value"] = clamped_b
+                row_dict["ci95"] = ci95_b
+            elif spec.metric == "sum_amount":
+                sigma_query_s = (data["sigma_s"] or 0.0) * math.sqrt(cell_n)
+                ci95_s = round(1.96 * sigma_query_s, 2)
+                clamped_s = max(0.0, round(data["spend"], 2))
+                row_dict["value"] = clamped_s
+                row_dict["ci95"] = ci95_s
+                row_dict["buyers"] = clamped_b
+                if clamped_b > 0:
+                    mean_val = round(clamped_s / clamped_b, 2)
+                    se_mean = math.sqrt(sigma_query_s**2 + (mean_val**2) * (sigma_query_b**2)) / clamped_b
+                    row_dict["mean_spend"] = mean_val
+                    row_dict["ci95_mean_spend"] = round(1.96 * se_mean, 2)
+                else:
+                    row_dict["mean_spend"] = 0.0
+                    row_dict["ci95_mean_spend"] = 0.0
+            rows.append(row_dict)
+
+        rows.sort(key=lambda r: [str(r.get(d, "")) for d in dims])
+        sigma_rep = best["query_sigma"]
+        noise_info = {
+            "mechanism": "zCDP private release",
+            "release_id": rel_id,
+            "marginal_id": m_id,
+            "rho": privacy.RELEASE_RHO,
+            "eps_equivalent": privacy.RELEASE_EPS,
+            "delta": privacy.DELTA,
+            "k": chosen_m["k"],
+            "cells_summed": actual_n,
+            "sigma": round(sigma_rep, 2),
+            "ci95": round(1.96 * sigma_rep, 1),
+            "display_floor": round(max(10.0, 2.0 * sigma_rep), 1),
+            "private_release": True,
+            "guarantee": "Answered from the private release: no further budget spent",
+        }
+
+        return {
+            "node": "paypal",
+            "metric": spec.metric,
+            "group_by": dims,
+            "rows": rows,
+            "suppressed_cells": suppressed,
+            "noise": noise_info,
+            "cached": False,
+        }
+
+
+@app.get("/v1/release/status", dependencies=[Depends(require_node_token)])
+def release_status(brand_id: str):
+    with db.connect("paypal_side") as c:
+        row = c.execute(
+            "SELECT * FROM private_releases WHERE brand_id=%s ORDER BY created_at DESC LIMIT 1",
+            (brand_id,)
+        ).fetchone()
+    if not row:
+        raise HTTPException(404, "No private release found for brand")
+    return {
+        "release_id": row["release_id"],
+        "brand_id": row["brand_id"],
+        "rho_spent": row["rho_spent"],
+        "eps_equivalent": row["eps_equivalent"],
+        "delta": privacy.DELTA,
+        "marginal_count": len(privacy.WORKLOAD),
+        "created_at": str(row["created_at"]),
+        "private_release": True,
+        "guarantee": "Answered from the private release: no further budget spent",
+    }
+
+
 @app.post("/v1/query", dependencies=[Depends(require_node_token)])
 def query(req: QueryRequest):
     spec, brand = req.spec, req.brand_id
@@ -129,73 +392,25 @@ def query(req: QueryRequest):
     except SpecRefused as e:
         raise HTTPException(403, {"refused": e.code, "detail": e.detail})
 
-    dims = list(spec.group_by)
-    domains = [_domain(d, brand, spec) for d in dims]
-    keys = list(itertools.product(*domains))
-    if len(keys) > MAX_CELLS:
-        raise HTTPException(403, {"refused": "TOO_MANY_CELLS", "detail": f"{len(keys)} cells > {MAX_CELLS}"})
-
     cache_key = _cache_key(brand, spec)
     with db.connect("paypal_side") as c:
         hit = c.execute("SELECT response FROM query_cache WHERE cache_key=%s", (cache_key,)).fetchone()
     if hit:
         return hit["response"] | {"cached": True, "budget": budget(brand)}
 
-    rho = privacy.rho_for(spec.metric)
-    if not _charge(brand, rho):
-        raise HTTPException(403, {"refused": "BUDGET_EXHAUSTED", "budget": budget(brand)})
+    engine = MarginalReleaseEngine(brand)
+    try:
+        response = engine.query(spec)
+    except SpecRefused as e:
+        raise HTTPException(403, {"refused": e.code, "detail": e.detail})
 
-    k = privacy.k_for(dims)
-    where, params = ["brand_id = %s"], [brand]
-    f = spec.filters
-    for col, values in (("sku", f.sku), ("region", f.region), ("store_id", f.store_id)):
-        if values:
-            where.append(f"{col} = ANY(%s)")
-            params.append(values)
-    if f.week_from:
-        where.append("week >= %s"); params.append(f.week_from)
-    if f.week_to:
-        where.append("week <= %s"); params.append(f.week_to)
-
-    # dims come from a validated whitelist, so interpolating them is safe.
-    dim_cols = ", ".join(dims)
-    by_buyer = ", ".join(["payer_key"] + dims)
-    dim_text = "concat_ws('|', " + ", ".join(f"{d}::text" for d in dims) + ")" if dims else "''"
-    sql = f"""
-        WITH bc AS (
-            SELECT {by_buyer}, LEAST(SUM(amount), %s) AS spend
-            FROM transactions WHERE {' AND '.join(where)} GROUP BY {by_buyer}
-        ), r AS (
-            -- keep each buyer in at most k cells of this query (pseudo-random, stable per query)
-            SELECT *, ROW_NUMBER() OVER (PARTITION BY payer_key ORDER BY md5(payer_key || {dim_text} || %s)) AS rn
-            FROM bc
+    with db.connect("paypal_side") as c:
+        c.execute(
+            "INSERT INTO query_cache (cache_key, response) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+            (cache_key, Jsonb(response)),
         )
-        SELECT {dim_cols + ', ' if dims else ''}COUNT(*) AS buyers, COALESCE(SUM(spend), 0) AS spend
-        FROM r WHERE rn <= %s {'GROUP BY ' + dim_cols if dims else ''}
-    """
-    exact: dict[tuple, tuple[int, float]] = {}
-    with db.connect("paypal_side") as c:
-        for r in c.execute(sql, [privacy.SUM_CLAMP, *params, cache_key, k]):
-            exact[tuple(r[d] for d in dims)] = (int(r["buyers"]), float(r["spend"]))
 
-    counts = [exact.get(key, (0, 0.0))[0] for key in keys]
-    sums = [exact.get(key, (0, 0.0))[1] for key in keys]
-    released = privacy.release(keys, counts, sums, spec.metric, k)
-    rows = [dict(zip(dims, r.pop("key"))) | r for r in released["rows"]]
-
-    response = {
-        "node": "paypal",
-        "metric": spec.metric,
-        "group_by": dims,
-        "rows": rows,
-        "suppressed_cells": released["suppressed_cells"],
-        "noise": released["noise"],
-        "cached": False,
-    }
-    with db.connect("paypal_side") as c:
-        c.execute("INSERT INTO query_cache (cache_key, response) VALUES (%s, %s) ON CONFLICT DO NOTHING",
-                  (cache_key, Jsonb(response)))
-    return response | {"budget": budget(brand)}
+    return response | {"cached": False, "budget": budget(brand)}
 
 
 # ---------------------------------------------------------------- ingest

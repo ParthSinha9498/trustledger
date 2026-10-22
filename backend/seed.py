@@ -24,6 +24,7 @@ import random
 import psycopg
 
 from backend import config, db
+from backend.common import privacy
 
 BRAND = "nimbus"
 PRODUCTS = [
@@ -77,7 +78,7 @@ CREATE TABLE transactions (txn_id TEXT PRIMARY KEY, order_id TEXT, brand_id TEXT
     sku TEXT, amount DOUBLE PRECISION, region TEXT, city TEXT, week INT, payer_key TEXT,
     age_band TEXT, gender TEXT, source TEXT);
 CREATE INDEX ON transactions (brand_id, week);
-DROP TABLE IF EXISTS privacy_ledger, query_cache, meta;
+DROP TABLE IF EXISTS privacy_ledger, query_cache, meta, private_release_marginals, private_releases;
 -- Budget per brand for this dataset. Reseeding is a labelled "dataset reset"; nothing resets it by date.
 CREATE TABLE privacy_ledger (brand_id TEXT PRIMARY KEY, rho_spent DOUBLE PRECISION NOT NULL DEFAULT 0);
 -- Identical queries on unchanged data return the stored release at no cost (defeats averaging).
@@ -85,6 +86,17 @@ CREATE TABLE query_cache (cache_key TEXT PRIMARY KEY, response JSONB NOT NULL,
                           created_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 INSERT INTO meta VALUES ('data_version', '1');
+CREATE TABLE private_releases (
+    release_id TEXT PRIMARY KEY, brand_id TEXT NOT NULL, rho_spent DOUBLE PRECISION NOT NULL,
+    eps_equivalent DOUBLE PRECISION NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE private_release_marginals (
+    release_id TEXT NOT NULL, marginal_id TEXT NOT NULL, cell_key JSONB NOT NULL,
+    noisy_buyers DOUBLE PRECISION NOT NULL, noisy_spend DOUBLE PRECISION,
+    sigma_buyers DOUBLE PRECISION NOT NULL, sigma_spend DOUBLE PRECISION,
+    PRIMARY KEY (release_id, marginal_id, cell_key)
+);
+CREATE INDEX ON private_release_marginals (release_id, marginal_id);
 """
 
 PLATFORM_SCHEMA = """
@@ -239,6 +251,9 @@ def build(small: bool = False, seed: int = 42) -> None:
     b.execute("UPDATE verification_log v SET serial = r.new FROM rename_tmp r WHERE v.serial = r.old")
     brand_conn.close()
     paypal_conn.close()
+
+    # ---------------- initial private release ----------------
+    privacy.build_release(BRAND, "release-initial")
 
     # ---------------- platform ----------------
     with db.connect("platform") as pl:

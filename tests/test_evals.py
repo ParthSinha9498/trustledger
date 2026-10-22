@@ -32,7 +32,7 @@ def test_detection_run_all_metrics(tmp_path):
     assert summary["scenarios_evaluated"] == len(SCENARIOS)
     assert summary["recall"] == 1.0, f"Expected 100% recall, got {summary['recall']}"
     assert summary["false_alarm_rate"] == 0.0, f"Expected 0% false alarms, got {summary['false_alarm_rate']}"
-    assert summary["total_rho_spent"] > 0, "DP budget should have been spent for queries"
+    assert summary["total_rho_spent"] == 0.0, "Queries answered from release spend no extra budget"
 
 
 def test_redteam_all_attacks_blocked(tmp_path):

@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/cockpit", label: "Investigations", exact: true },
   { href: "/cockpit/console", label: "Insights", alias: "/cockpit/insights" },
   { href: "/cockpit/supply-chain", label: "Supply chain" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 export default function Nav() {
@@ -20,7 +21,7 @@ export default function Nav() {
       <div className="navlinks">
         {LINKS.map((l, i) => (
           <span key={l.href} className="navgroup">
-            {i === 1 && <span className="navsep" aria-hidden />}
+            {(i === 1 || i === 4) && <span className="navsep" aria-hidden />}
             <Link href={l.href} className={active(l.href, l.exact, l.alias) ? "active" : undefined}>{l.label}</Link>
           </span>
         ))}

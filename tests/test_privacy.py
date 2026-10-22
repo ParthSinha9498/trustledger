@@ -49,7 +49,7 @@ def test_sum_releases_count_sum_and_mean(env):
     assert body["noise"]["private_release"] is True
 
 
-def test_unlimited_questions_spend_zero_extra_rho(env):
+def test_private_release_queries_spend_zero_extra_rho(env):
     """Proves that asking 100 questions from the private release spends 0 extra rho."""
     initial_budget = env["paypal"].get("/v1/budget", params={"brand_id": "nimbus"}).json()
     initial_spent = initial_budget["spent"]
@@ -143,34 +143,44 @@ def test_mean_spend_has_delta_method_ci(env):
         assert row["ci95_mean_spend"] >= 0.0
 
 
-def test_k_truncation_bounds_buyer_contribution(env):
-    """Verify that K-truncation SQL query bounds single buyer contribution to at most K cells."""
+def test_k_truncation_bounds_buyer_contribution(env, monkeypatch):
+    """Verify that build_release bounds single buyer contribution to at most K cells in stored marginals."""
     from backend import db
+    brand = "k_trunc_test_brand"
+    payer = "k_trunc_test_payer"
+
+    # Mock noise to zero to inspect exact stored cell counts directly
+    monkeypatch.setattr(privacy, "_noisy_counts", lambda counts, k, rho: ([float(c) for c in counts], 1.0))
+    monkeypatch.setattr(privacy, "_noisy_sums", lambda sums, k, rho: ([float(s) for s in sums], 1.0))
+
     with db.connect("paypal_side") as c:
-        # Insert a buyer into 10 store/sku/week cells
-        payer = "k_trunc_test_payer"
+        c.execute("INSERT INTO catalog_stores VALUES ('kt_store', %s, 'US-WEST', 'Seattle') ON CONFLICT DO NOTHING", (brand,))
+        c.execute("INSERT INTO catalog_skus VALUES ('kt_sku', %s) ON CONFLICT DO NOTHING", (brand,))
+        # Insert a single buyer into 10 distinct week cells (weeks 1 to 10)
         for w in range(1, 11):
-            c.execute("INSERT INTO transactions VALUES (%s,%s,'nimbus','store_a','NMB-P8-128',50,'US-WEST','Seattle',%s,%s,'35-44','female','simulated')",
-                      (f"KT_TX_{w}", f"KT_ORD_{w}", w, payer))
-        # Run K-truncation CTE on M1 (k=3)
-        sql = """
-            WITH buyer_cells AS (
-                SELECT payer_key, store_id, sku, week, LEAST(SUM(amount), 1000) AS spend
-                FROM transactions
-                WHERE brand_id = 'nimbus' AND payer_key = %s
-                GROUP BY payer_key, store_id, sku, week
-            ),
-            truncated AS (
-                SELECT *, ROW_NUMBER() OVER (
-                    PARTITION BY payer_key
-                    ORDER BY md5(payer_key || concat_ws('|', store_id, sku, week::text) || 'm1')
-                ) AS rn
-                FROM buyer_cells
+            c.execute(
+                "INSERT INTO transactions VALUES (%s, %s, %s, 'kt_store', 'kt_sku', 50, 'US-WEST', 'Seattle', %s, %s, '35-44', 'female', 'simulated')",
+                (f"KT_TX_{w}", f"KT_ORD_{w}", brand, w, payer)
             )
-            SELECT COUNT(*) AS kept FROM truncated WHERE rn <= 3
-        """
-        kept = c.execute(sql, (payer,)).fetchone()["kept"]
-        assert kept == 3  # bounded to K=3 out of 10 cells
+
+    # Build release through the real production pipeline
+    rel = privacy.build_release(brand)
+    rel_id = rel["release_id"] if isinstance(rel, dict) else rel
+
+    # Assert on the cells build_release actually stored in private_release_marginals
+    with db.connect("paypal_side") as c:
+        # Marginal M1 has dims (store_id, sku, week) and K=4
+        rows_m1 = c.execute(
+            "SELECT cell_key, noisy_buyers, noisy_spend FROM private_release_marginals WHERE release_id = %s AND marginal_id = 'M1'",
+            (rel_id,)
+        ).fetchall()
+
+    # The buyer was active in 10 cells, but stored contribution must be capped at K=4 cells
+    active_cells = [r for r in rows_m1 if r["noisy_buyers"] > 0]
+    assert len(active_cells) == 4
+    assert sum(r["noisy_buyers"] for r in active_cells) == 4.0
+    assert all(r["noisy_buyers"] <= 1.0 for r in active_cells)
+
 
 
 

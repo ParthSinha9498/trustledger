@@ -131,8 +131,9 @@ export type Budget = {
   daily?: number;
   eps_equivalent_total?: number;
   queries_left_estimate?: number;
-  unlimited_queries?: boolean;
+  private_release?: boolean;
   release_id?: string;
+  copy?: string;
 };
 
 export type Noise = {

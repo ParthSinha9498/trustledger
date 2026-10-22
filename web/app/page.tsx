@@ -73,7 +73,7 @@ export default function Home() {
             <span className="badge badge-dp">OpenDP · zCDP</span>
           </div>
           <p className="muted" style={{ fontSize: "13.5px", margin: "0 0 12px", lineHeight: 1.5 }}>
-            Calibrated Gaussian differential privacy noise with ±95% intervals. Lifetime privacy budget per brand (ρ = 0.25 ≈ ε 4.16),
+            Calibrated Gaussian differential privacy noise with ±95% intervals. Lifetime budget ρ 0.25; each release spends ρ 0.20 (ε ≈ 3.69),
             small groups hidden, and deterministic query caching. Internal red-team: 11 attack types, none extracted a confident individual-level fact.
           </p>
           <div style={{ fontSize: "12.5px", color: "var(--muted)" }}>

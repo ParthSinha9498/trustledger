@@ -689,7 +689,8 @@ def membership_experiment(trials: int, brand_id: str, rng: random.Random) -> dic
     shift = statistics.mean(stats[True]) - statistics.mean(stats[False])
     shift_se = math.sqrt(statistics.pvariance(stats[True]) / trials + statistics.pvariance(stats[False]) / trials) if trials > 1 else float("inf")
     cap_ok = shift <= k + 3 * shift_se
-    return {"name": "membership_offline_and_k_cap", "passed": bool(bound_ok and cap_ok), "trials_per_world": trials,
+    return {"name": "membership_offline_and_k_cap", "label": "legacy path", "path": "legacy path (per-query eps 0.752)",
+            "notes": "legacy per-query path (eps 0.752)", "passed": bool(bound_ok and cap_ok), "trials_per_world": trials,
             "eps_one_query": round(eps, 3), "tpr": round(tpr, 3), "fpr": round(fpr, 3),
             "advantage": round(tpr - fpr, 3), "bound_tpr_max": round(min(1.0, math.exp(eps) * fpr + privacy.DELTA), 3),
             "within_bound": bool(bound_ok), "cells_heavy_buyer_is_in": len(weeks), "k": k, "sigma": sigma,

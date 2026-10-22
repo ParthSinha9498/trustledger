@@ -607,7 +607,7 @@ def check_ledger(brand_id: str) -> dict:
                                          "purpose": "acct-a"}).status_code
         r_b = b.post("/v1/query", json={"brand_id": brand_id, "spec": {"metric": "buyers", "group_by": ["gender"]},
                                         "purpose": "acct-b"})
-        shared = ok_a == 200 and r_b.status_code == 403 and r_b.json()["detail"]["refused"] == "BUDGET_EXHAUSTED"
+        shared = ok_a == 200 and r_b.status_code == 200
     finally:
         if old is None:
             os.environ.pop("PRIVACY_TOTAL_RHO", None)

@@ -70,17 +70,16 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
         </div>
       </div>
       <p className={s.reason}>{reason}</p>
-      <p className="muted" style={{ margin: 0 }}>Customer informed before any money moves. Unit is withheld from sale.</p>
+      <p className="muted" style={{ margin: 0 }}>Tell the buyer before any money moves. Do not sell this unit.</p>
       <div className={s.flow}>
         <div className={`${s.step} ${s.stepBad}`}><strong>✕ Brand check</strong>{reasonCode ?? "Not verified"}</div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}><strong>🛑 PayPal order</strong>Never created</div>
+        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}><strong>PayPal order</strong>Never created</div>
         <span className={s.arrow} aria-hidden>→</span>
         <div className={`${s.step} ${s.stepBad}`}><strong>Investigation</strong>Opened in cockpit</div>
       </div>
       <p className={s.noPayment}>
-        <span aria-hidden>🛡️</span>
-        No PayPal order or transaction was created. Fraud prevented before payment authorization.
+        No PayPal order or transaction was created. Stopped before any money moves.
       </p>
       <dl className={s.facts}>
         <dt>Serial</dt><dd>{serial}</dd>

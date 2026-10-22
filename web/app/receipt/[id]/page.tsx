@@ -55,7 +55,7 @@ export default function ReceiptPage() {
                 </div>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--fg)", lineHeight: 1.45 }}>
                   The brand verified this unit at the store checkout prior to payment. The verification ID is stored on the
-                  PayPal order in its <code>custom_id</code> field, binding the payment to the authentic brand verification event.
+                  PayPal order in its <code>custom_id</code> field, so the payment points to the brand verification.
                 </p>
               </div>
             )}

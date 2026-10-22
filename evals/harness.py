@@ -52,6 +52,8 @@ def reset_privacy_state() -> None:
     with db.connect("paypal_side") as c:
         c.execute("UPDATE privacy_ledger SET rho_spent = 0")
         c.execute("DELETE FROM query_cache")
+        c.execute("DELETE FROM private_release_marginals")
+        c.execute("DELETE FROM private_releases")
 
 
 def bump_data_version() -> None:

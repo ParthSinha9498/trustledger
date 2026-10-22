@@ -60,17 +60,17 @@ export default function CaseDetailPage() {
   return (
     <main className="wide">
       <p className="crumbs"><Link href="/cockpit">Investigations</Link> / {c.case_id}</p>
-      <div className="case-header card">
+      <div className="case-header card elevated">
         <div>
           <h1>Case {c.case_id}</h1>
           <div className="meta">
             <StatusPill status={c.status} />
-            <span><span className="muted">Store</span> {c.store_id}</span>
-            <span><span className="muted">Product</span> {c.sku}</span>
-            {c.serial && <span><span className="muted">Serial</span> {c.serial}</span>}
-            <span><span className="muted">Confidence</span> {c.confidence ? c.confidence.toUpperCase() : "–"}</span>
-            <span><span className="muted">Reason</span> {REASON_TEXT[c.reason_code] ?? c.reason_code}</span>
-            <span><span className="muted">Opened</span> {new Date(c.created_at).toLocaleString()}</span>
+            <span className="pill"><span className="muted">Store</span>&nbsp;<strong>{c.store_id}</strong></span>
+            <span className="pill"><span className="muted">Product</span>&nbsp;<strong>{c.sku}</strong></span>
+            {c.serial && <span className="pill"><span className="muted">Serial</span>&nbsp;<code>{c.serial}</code></span>}
+            <span className="pill"><span className="muted">Confidence</span>&nbsp;<strong>{c.confidence ? c.confidence.toUpperCase() : "–"}</strong></span>
+            <span className="pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
+            <span className="pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
         </div>
         <div className="case-budget">
@@ -80,7 +80,7 @@ export default function CaseDetailPage() {
       </div>
 
       <div className="case-grid">
-        <section className="card">
+        <section className="card elevated">
           <h2>Summary</h2>
           {c.summary ? (
             <>
@@ -97,7 +97,7 @@ export default function CaseDetailPage() {
           )}
           <p className="muted small">The brand decides authenticity. The agent reports the earliest observed point of divergence in the available evidence; it never declares a product counterfeit.</p>
         </section>
-        <section className="card">
+        <section className="card elevated">
           <h2>Findings <span className="count">{findings.length}</span></h2>
           {findings.length ? (
             <ol className="findings">

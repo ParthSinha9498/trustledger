@@ -161,7 +161,7 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
   padding: 6px 12px;
   border-radius: var(--radius-sm);
   font-size: 13.5px;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
 }
 .navlinks a:hover { color: var(--fg); background: var(--chip); }
 .navlinks a.active {
@@ -328,7 +328,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
   border-radius: var(--radius-md);
   padding: 14px 16px;
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 .stat:hover { border-color: var(--accent-border); }
 .stat-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
@@ -348,7 +348,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
   padding: 20px;
   background: var(--card);
   box-shadow: var(--shadow-sm);
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
 }
 .tile:hover {
   border-color: var(--accent);
@@ -409,7 +409,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
   color: var(--fg);
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
   box-shadow: var(--shadow-sm);
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
@@ -483,7 +483,19 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
 @media (max-width: 900px) { .case-grid { grid-template-columns: 1fr; } }
 .summary { white-space: pre-wrap; font-size: 15px; margin-top: 0; }
 .findings { padding-left: 0; list-style: none; display: grid; gap: 10px; margin: 0; }
-.findings li { border-left: 3px solid var(--ok); padding: 4px 0 4px 10px; font-size: 14px; }
+.findings li {
+  border-left: 3px solid var(--ok);
+  background: var(--chip);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 8px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+.findings li:hover {
+  background: var(--ok-bg);
+  border-left-color: var(--ok-hover);
+}
 .cite { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 0 6px; border-radius: 4px; background: var(--accent-bg); color: var(--accent); text-decoration: none; margin: 0 2px; }
 .cites { display: inline-flex; gap: 2px; flex-wrap: wrap; }
 

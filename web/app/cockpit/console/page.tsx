@@ -120,9 +120,12 @@ export default function InsightsPage() {
       </section>
 
       {results && (
-        <section className="card">
-          <div className="row between">
-            <h2>Answer</h2>
+        <section className={`card elevated ${styles.heroAnswerCard}`}>
+          <div className={styles.heroHeader}>
+            <div className={styles.heroHeaderLeft}>
+              <h2 className={styles.heroAnswerTitle}>Answer</h2>
+              <span className="pill pill-ok">Verified Insights</span>
+            </div>
             <button type="button" className="secondary" disabled={busy !== null} onClick={() => run(true)}>
               {busy === "explain" ? "Explaining…" : "Explain"}
             </button>
@@ -134,14 +137,21 @@ export default function InsightsPage() {
             const node = r.node ?? specs[i]?.node;
             const title = spec ? `${label(spec.metric)}${spec.group_by?.length ? ` by ${spec.group_by.map(label).join(" and ")}` : ""}` : `Answer ${i + 1}`;
             return (
-              <div key={i} className="result-block">
+              <div key={i} className={styles.resultHeroBlock}>
                 {!r.refused && seconds != null && (
-                  <p className={styles.vsSurvey}>
-                    <strong>Answered in {seconds.toFixed(seconds < 1 ? 2 : 1)} s {sourceText({ ...r, node, spec })}.</strong>{" "}
-                    <span className={styles.survey}>A survey: weeks, self-reported.</span>
-                  </p>
+                  <div className={styles.heroBanner}>
+                    <div className={styles.heroTiming}>
+                      <span className={styles.timingHighlight}>Answered in {seconds.toFixed(seconds < 1 ? 2 : 1)} s</span>
+                      <span>{sourceText({ ...r, node, spec })}.</span>
+                    </div>
+                    <div className={styles.vsSurveyHero}>
+                      <span className={styles.surveyTag}>A survey:</span> weeks, self-reported.
+                    </div>
+                  </div>
                 )}
-                <ResultView result={{ ...r, node, spec }} title={title} />
+                <div className={styles.chartHeroContainer}>
+                  <ResultView result={{ ...r, node, spec }} title={title} />
+                </div>
               </div>
             );
           })}
@@ -149,8 +159,13 @@ export default function InsightsPage() {
       )}
 
       {(specs.length > 0 || rationale) && (
-        <section className="card">
-          <h2>How it was answered</h2>
+        <section className={`card ${styles.secondarySection}`}>
+          <div className={styles.secondaryHeader}>
+            <h2 className={styles.secondaryTitle}>
+              <span>Query Plan & Execution</span>
+              <span className="count">{specs.length}</span>
+            </h2>
+          </div>
           <p className="muted small">Each question becomes structured queries (never SQL). Only aggregates come back; PayPal-side answers carry noise and spend privacy budget. Edit a query and re-run to refine.</p>
           {rationale && <p className="rationale">{rationale}</p>}
           {specs.map((s, i) => (
@@ -166,6 +181,7 @@ export default function InsightsPage() {
           </div>
         </section>
       )}
+
     </main>
   );
 }

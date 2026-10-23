@@ -683,15 +683,17 @@ def membership_experiment(trials: int, brand_id: str, rng: random.Random) -> dic
     thr = (statistics.mean(cal_in) + statistics.mean(cal_out)) / 2 if half else 0.0
     tpr = sum(s > thr for s in test_in) / max(len(test_in), 1)
     fpr = sum(s > thr for s in test_out) / max(len(test_out), 1)
-    eps = privacy.eps_equivalent(privacy.RHO_COUNT)
+    # Under the private release, queries are answered from marginal M1 (rho=0.060, eps≈1.93; full release eps=3.69)
+    m_rho = 0.060
+    eps = privacy.eps_equivalent(m_rho)
     se = math.sqrt(max(tpr * (1 - tpr), fpr * (1 - fpr), 0.25 / max(len(test_in), 1)) / max(len(test_in), 1))
     bound_ok = tpr <= math.exp(eps) * fpr + privacy.DELTA + 3 * se * (1 + math.exp(eps))
     shift = statistics.mean(stats[True]) - statistics.mean(stats[False])
     shift_se = math.sqrt(statistics.pvariance(stats[True]) / trials + statistics.pvariance(stats[False]) / trials) if trials > 1 else float("inf")
     cap_ok = shift <= k + 3 * shift_se
-    return {"name": "membership_offline_and_k_cap", "label": "legacy path", "path": "legacy path (per-query eps 0.752)",
-            "notes": "legacy per-query path (eps 0.752)", "passed": bool(bound_ok and cap_ok), "trials_per_world": trials,
-            "eps_one_query": round(eps, 3), "tpr": round(tpr, 3), "fpr": round(fpr, 3),
+    return {"name": "membership_offline_and_k_cap", "label": "private release", "path": "private release M1 marginal",
+            "passed": bool(bound_ok and cap_ok), "trials_per_world": trials,
+            "eps_marginal": round(eps, 3), "eps_release": privacy.RELEASE_EPS, "tpr": round(tpr, 3), "fpr": round(fpr, 3),
             "advantage": round(tpr - fpr, 3), "bound_tpr_max": round(min(1.0, math.exp(eps) * fpr + privacy.DELTA), 3),
             "within_bound": bool(bound_ok), "cells_heavy_buyer_is_in": len(weeks), "k": k, "sigma": sigma,
             "mean_shift": round(shift, 2), "mean_shift_se": round(shift_se, 2), "k_cap_holds": bool(cap_ok),

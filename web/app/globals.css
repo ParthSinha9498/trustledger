@@ -56,6 +56,16 @@
   color-scheme: light;
 }
 
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+.skeleton {
+  animation: skeleton-pulse 1.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: var(--line);
+  border-radius: var(--radius-sm);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0b0f17;

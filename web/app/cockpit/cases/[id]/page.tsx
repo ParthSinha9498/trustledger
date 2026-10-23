@@ -52,7 +52,44 @@ export default function CaseDetailPage() {
     s.kind === "tool_call" && (s.payload as { tool?: string }).tool === "query_paypal_node").length, [c]);
 
   if (err && !c) return <main><div className="refusal">Couldn&apos;t load case: {err}</div></main>;
-  if (!c) return <main><p className="muted">Loading…</p></main>;
+  if (!c) {
+    return (
+      <main className="wide">
+        <p className="crumbs muted"><Link href="/cockpit">Investigations</Link> / loading...</p>
+        <div className="case-header card elevated" style={{ minHeight: 180, display: "flex", justifyContent: "space-between", gap: 24 }}>
+          <div style={{ flex: 1 }}>
+            <div className="skeleton" style={{ width: 220, height: 32, marginBottom: 16 }} />
+            <div className="meta" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="skeleton" style={{ width: 90, height: 26, borderRadius: "var(--radius-pill)" }} />
+              <div className="skeleton" style={{ width: 140, height: 26, borderRadius: "var(--radius-pill)" }} />
+              <div className="skeleton" style={{ width: 110, height: 26, borderRadius: "var(--radius-pill)" }} />
+              <div className="skeleton" style={{ width: 120, height: 26, borderRadius: "var(--radius-pill)" }} />
+            </div>
+            <div className="skeleton" style={{ width: "80%", height: 36, marginTop: 14 }} />
+          </div>
+          <div className="case-budget" style={{ width: 280 }}>
+            <div className="skeleton" style={{ height: 60, width: "100%", marginBottom: 8 }} />
+            <div className="skeleton" style={{ height: 16, width: "70%" }} />
+          </div>
+        </div>
+        <div className="case-grid" style={{ marginTop: 24, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="card" style={{ height: 260 }}>
+            <div className="skeleton" style={{ width: 160, height: 24, marginBottom: 16 }} />
+            <div className="skeleton" style={{ width: "100%", height: 18, marginBottom: 10 }} />
+            <div className="skeleton" style={{ width: "90%", height: 18, marginBottom: 10 }} />
+            <div className="skeleton" style={{ width: "75%", height: 18 }} />
+          </div>
+          <div className="card" style={{ height: 260 }}>
+            <div className="skeleton" style={{ width: 140, height: 24, marginBottom: 16 }} />
+            <div className="skeleton" style={{ width: "100%", height: 180 }} />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  const isInterrupted = (c.status === "failed" && c.agent_mode === "live") ||
+    (c.status === "waiting_capacity" && (c.steps?.length ?? 0) > 0);
 
   const [summary, nextActions] = (c.summary ?? "").split(/\n\s*Next actions:\s*\n/);
   const actions = (nextActions ?? "").split("\n").map((l) => l.replace(/^\s*-\s*/, "").trim()).filter(Boolean);
@@ -65,7 +102,7 @@ export default function CaseDetailPage() {
           <h1>Case {c.case_id}</h1>
           <div className="meta">
             <StatusPill status={c.status} />
-            {c.status === "failed" && c.agent_mode === "live" ? (
+            {isInterrupted ? (
               <span className="pill case-pill pill-warn" title="Interrupted live attempt">
                 <span className="muted">Mode</span>&nbsp;
                 <strong>Interrupted live attempt</strong>
@@ -94,7 +131,7 @@ export default function CaseDetailPage() {
             <span className="pill case-pill"><span className="muted">Reason</span>&nbsp;<strong>{REASON_TEXT[c.reason_code] ?? c.reason_code}</strong></span>
             <span className="pill case-pill"><span className="muted">Opened</span>&nbsp;{new Date(c.created_at).toLocaleString()}</span>
           </div>
-          {c.status === "failed" && c.agent_mode === "live" ? (
+          {isInterrupted ? (
             <div style={{ marginTop: 10, padding: "8px 14px", borderRadius: "var(--radius-sm)", background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.4)", fontSize: 13, color: "var(--fg)" }}>
               <strong>Interrupted live attempt:</strong> {c.agent_reason || c.summary || "Live investigation was interrupted before completion."}
             </div>

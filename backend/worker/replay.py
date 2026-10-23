@@ -8,8 +8,6 @@ from backend.common import http
 def load_replay(path_or_name: str) -> dict | None:
     p = Path(path_or_name)
     if not p.is_file():
-        p = Path(__file__).resolve().parent.parent.parent / "tests" / "fixtures" / path_or_name
-    if not p.is_file():
         return None
     with open(p, "r", encoding="utf-8") as f:
         return json.load(f)

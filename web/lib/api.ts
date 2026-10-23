@@ -77,6 +77,7 @@ export type Case = {
   status: string;
   summary: string | null;
   findings: number;
+  step_count?: number;
   confidence?: "low" | "medium" | "high" | string | null;
   agent_mode?: "live" | "replay" | string;
   agent_model?: string | null;

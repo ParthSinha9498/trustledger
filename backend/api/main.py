@@ -219,8 +219,10 @@ async def webhooks(request: Request):
 def list_cases():
     with db.connect("platform") as pc:
         return pc.execute(
-            """SELECT c.*, (SELECT COUNT(*) FROM case_steps s WHERE s.case_id=c.case_id AND s.kind='finding')
-               AS findings FROM cases c ORDER BY created_at DESC"""
+            """SELECT c.*,
+                      (SELECT COUNT(*) FROM case_steps s WHERE s.case_id=c.case_id AND s.kind='finding') AS findings,
+                      (SELECT COUNT(*) FROM case_steps s WHERE s.case_id=c.case_id) AS step_count
+               FROM cases c ORDER BY created_at DESC"""
         ).fetchall()
 
 

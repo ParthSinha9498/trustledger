@@ -16,30 +16,41 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
   const metric = result.metric ?? result.spec?.metric ?? "value";
 
   const columns = useMemo<ColDef<ResultRow>[]>(() => {
-    const cols: ColDef<ResultRow>[] = dims.map((d) => ({ field: d, headerName: label(d) }));
+    const digits = metric === "sum_amount" ? 2 : 0;
+    const fmtValue = (r: ResultRow | undefined) => {
+      const ci = r?.ci95;
+      return fmtNum(r?.value, digits) + (typeof ci === "number" ? ` ± ${fmtNum(ci, digits)}` : "");
+    };
+    const fmtMean = (r: ResultRow | undefined) => {
+      const ci = r?.ci95_mean_spend;
+      return fmtNum(r?.mean_spend, 2) + (typeof ci === "number" ? ` ± ${fmtNum(ci, 2)}` : "");
+    };
+    // Number columns are as wide as their widest cell (headers wrap), so "2,972 ± 14" is never cut to "2,9".
+    // Label columns may shrink and ellipsize instead: on a phone the numbers matter more.
+    const fit = (header: string, cells: string[]) => Math.ceil(Math.max(
+      ...header.split(/\s+/).map((w) => w.length * 7.6 + 34), ...cells.map((c) => c.length * 7.8 + 30)));
+    const num = { type: "numericColumn", filter: false, wrapHeaderText: true, autoHeaderHeight: true } as const;
+    const cols: ColDef<ResultRow>[] = dims.map((d) => ({ field: d, headerName: label(d), flex: 1, minWidth: 64, filter: false }));
     cols.push({
       field: "value",
       headerName: label(metric),
-      type: "numericColumn",
-      minWidth: 210,
-      flex: 1.6,
-      valueFormatter: (p) => {
-        const ci = p.data?.ci95;
-        return fmtNum(p.value, metric === "sum_amount" ? 2 : 0) + (typeof ci === "number" ? ` ± ${fmtNum(ci, metric === "sum_amount" ? 2 : 0)}` : "");
-      },
+      ...num,
+      minWidth: fit(label(metric), rows.map(fmtValue)),
+      flex: 1.2,
+      valueFormatter: (p) => fmtValue(p.data),
     });
     const first = rows[0] ?? {};
-    if ("buyers" in first) cols.push({ field: "buyers", headerName: "Buyers", type: "numericColumn", minWidth: 160, flex: 1.2, valueFormatter: (p) => fmtNum(p.value) });
+    if ("buyers" in first) cols.push({
+      field: "buyers", headerName: "Buyers", ...num, flex: 1,
+      minWidth: fit("Buyers", rows.map((r) => fmtNum(r.buyers))), valueFormatter: (p) => fmtNum(p.value),
+    });
     if ("mean_spend" in first) cols.push({
       field: "mean_spend",
       headerName: "Mean spend",
-      type: "numericColumn",
-      minWidth: 180,
-      flex: 1.3,
-      valueFormatter: (p) => {
-        const ci = p.data?.ci95_mean_spend;
-        return fmtNum(p.value, 2) + (typeof ci === "number" ? ` ± ${fmtNum(ci, 2)}` : "");
-      },
+      ...num,
+      minWidth: fit("Mean spend", rows.map(fmtMean)),
+      flex: 1.2,
+      valueFormatter: (p) => fmtMean(p.data),
     });
     return cols;
   }, [dims, metric, rows]);
@@ -64,30 +75,33 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
     <div className="result">
       <div className="badges">
         {title && <span className="result-title">{title}</span>}
-        {isPaypal ? <span className="badge badge-dp">PayPal-side · differentially private</span>
-          : <span className="badge badge-exact">Brand-side · exact business aggregate</span>}
-        {result.cached && <span className="badge badge-cached">cached, no budget spent</span>}
+        {isPaypal ? <span className="badge badge-dp">PayPal-side · privacy-protected estimate</span>
+          : <span className="badge badge-exact">Brand-side · exact count</span>}
+        {result.cached && <span className="badge badge-cached">Repeat question: nothing new revealed</span>}
       </div>
       {rows.length === 0 ? (
-        <p className="muted">No cells to show{result.suppressed_cells ? " (all suppressed)" : ""}.</p>
+        <p className="muted">Nothing to show{result.suppressed_cells ? ": every group was too small to show safely" : ""}.</p>
       ) : (
-        <div className="result-body">
-          <Grid<ResultRow> rows={rows} columns={columns} height={Math.min(320, 48 + rows.length * 34)} />
+        // min-width 0 all the way down: on a phone the grid and chart shrink to the card instead of overflowing it.
+        <div className="result-body" style={{ minWidth: 0 }}>
+          {/* Small results grow with their rows: no inner scrollbar eating the value column. */}
+          <Grid<ResultRow> rows={rows} columns={columns} autoHeight={rows.length <= 8} height={320} />
           {chart.length > 1 && (
-            <BarChart data={chart} valueName={label(metric)}
-                      title={`${label(metric)} by ${dims.map(label).join(" and ") || "total"}${rows.length > MAX_BARS ? ` (top ${MAX_BARS})` : ""}`} />
+            <div style={{ minWidth: 0 }}>
+              <BarChart data={chart} valueName={label(metric)}
+                        title={`${label(metric)} by ${dims.map(label).join(" and ") || "total"}${rows.length > MAX_BARS ? ` (top ${MAX_BARS})` : ""}`} />
+            </div>
           )}
         </div>
       )}
       <p className="muted result-notes">
         {isPaypal ? (
           <>
-            {noiseText(result.noise) ?? "Noisy release"}
-            {result.suppressed_cells ? ` · ${result.suppressed_cells} cell${result.suppressed_cells === 1 ? "" : "s"} suppressed` : ""}
-            {rows.some((r) => typeof r.ci95 === "number") ? " · ± is the 95% interval" : ""}
-            {result.budget ? ` · budget left ${fmtNum(result.budget.remaining, 3)}` : ""}
+            {noiseText(result.noise) ?? "Small random noise added"}
+            {result.suppressed_cells ? ` · ${result.suppressed_cells} small group${result.suppressed_cells === 1 ? "" : "s"} hidden` : ""}
+            {rows.some((r) => typeof r.ci95 === "number") ? " · ± shows the likely range" : ""}
           </>
-        ) : "Exact counts about businesses (serials, shipments, stores). No noise, no budget."}
+        ) : "Exact count (about businesses, not people): serials, shipments, stores."}
       </p>
     </div>
   );

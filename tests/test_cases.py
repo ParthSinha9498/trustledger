@@ -93,6 +93,27 @@ def test_turn_limit_forces_finish(env):
     assert sum(s["kind"] == "tool_call" for s in c["steps"]) == agent.MAX_STEPS
 
 
+def test_mock_run_is_recorded_as_mock_not_live(env):
+    """Hard rule: a scripted mock run must never be stored (and so never badged) as a live AI run."""
+    case_id = scan(env["api"], "FAKE-001")["case_id"]
+    assert process_one() is True
+    c = env["api"].get(f"/cases/{case_id}").json()
+    assert c["status"] == "complete"
+    assert c["agent_mode"] == "mock" and c["agent_model"] == "scripted-mock"
+
+
+class NamedLiveLLM(EagerLLM):
+    model = "provider/real-model"
+
+
+def test_live_run_records_real_model(env, monkeypatch):
+    monkeypatch.setenv("LLM_MODE", "live")
+    case, case_id = claimed_case(env)
+    agent.Investigation(case, NamedLiveLLM()).run()
+    c = env["api"].get(f"/cases/{case_id}").json()
+    assert c["agent_mode"] == "live" and c["agent_model"] == "provider/real-model"
+
+
 def test_capture_unapproved_order_is_clean_409(env, monkeypatch):
     api = env["api"]
     chk = scan(api, "X123", store="store_a")

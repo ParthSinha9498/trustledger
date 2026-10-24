@@ -12,7 +12,7 @@ import httpx
 from backend import config
 from backend.common import http
 from backend.common.llm import get_llm
-from backend.worker.agent import Investigation
+from backend.worker.agent import Investigation, agent_mode_of, model_of
 from backend.worker.replay import play_case_replay
 
 
@@ -44,8 +44,10 @@ def process_one() -> bool:
         return True
 
     # Try live/chained LLM investigation; if both fail (429/timeout/error), defer with honest reason
+    llm = None
     try:
-        inv = Investigation(case, get_llm())
+        llm = get_llm()
+        inv = Investigation(case, llm)
         inv.run()
     except Exception as e:
         err_str = str(e).lower()
@@ -66,7 +68,8 @@ def process_one() -> bool:
             with http.client(config.api_url()) as c:
                 c.post(f"/internal/cases/{case_id}/finish",
                        json={"status": "failed", "summary": f"Investigation failed: {e}",
-                             "agent_mode": "live", "agent_reason": str(e)[:300]})
+                             "agent_mode": agent_mode_of(llm), "agent_model": model_of(llm),
+                             "agent_reason": str(e)[:300]})
     return True
 
 

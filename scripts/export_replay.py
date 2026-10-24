@@ -23,6 +23,11 @@ def export_case_replay(case_id: str, out_path: str | Path | None = None) -> Path
         case = pc.execute("SELECT * FROM cases WHERE case_id=%s", (case_id,)).fetchone()
         if not case:
             raise ValueError(f"Case {case_id} not found")
+        if case.get("agent_mode") != "live":
+            raise ValueError(
+                f"Cannot export replay for case {case_id}: agent_mode is {case.get('agent_mode')!r}, "
+                "must be 'live' (mock and scripted runs can never become replays)"
+            )
         steps = pc.execute("SELECT * FROM case_steps WHERE case_id=%s ORDER BY n", (case_id,)).fetchall()
 
     recorded_at = case.get("updated_at") or case.get("created_at") or datetime.utcnow()

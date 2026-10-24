@@ -143,3 +143,36 @@ def test_agent_model_required_for_live_mode(monkeypatch):
     with pytest.raises(RuntimeError, match="AGENT_MODEL"):
         llm.get_llm()
 
+
+def test_export_replay_refuses_non_live_case(env, tmp_path):
+    import pytest
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    with db.connect("platform") as pc:
+        pc.execute(
+            "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+            ("case_mock_test", "complete", "mock", "scripted-mock", "Mock summary")
+        )
+
+    with pytest.raises(ValueError, match="agent_mode is 'mock', must be 'live'"):
+        export_case_replay("case_mock_test", tmp_path / "mock_replay.json")
+
+
+def test_export_replay_allows_live_case(env, tmp_path):
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    with db.connect("platform") as pc:
+        pc.execute(
+            "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+            ("case_live_test", "complete", "live", "provider/real-model", "Live summary")
+        )
+
+    out = export_case_replay("case_live_test", tmp_path / "live_replay.json")
+    assert out.exists()
+    import json
+    data = json.loads(out.read_text())
+    assert data["source_case_id"] == "case_live_test"
+    assert data["model"] == "provider/real-model"
+

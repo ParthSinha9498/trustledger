@@ -18,15 +18,20 @@ export default function Home() {
               TrustLedger connects brand serial intelligence directly to the point of sale before any PayPal payment is created.
               If verified, the buyer pays seamlessly. If unverified, the payment order is <strong>never created</strong>, so nothing can be paid, and an investigation opens.
             </p>
-            <div className="row" style={{ gap: "12px", marginBottom: "18px", flexWrap: "wrap" }}>
-              <Link className="button" href="/pos">Open the store checkout</Link>
-              <Link className="button secondary" href="/cockpit">Open the brand cockpit</Link>
-              <Link className="button secondary" href="/story">Walkthrough story mode</Link>
+            <div className="row" style={{ gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+              <Link className="button" href="/story">
+                Interactive walkthrough &amp; demo →
+              </Link>
+              <Link className="button secondary" href="/pos">
+                Store checkout
+              </Link>
+              <Link className="button secondary" href="/cockpit">
+                Brand cockpit
+              </Link>
             </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", fontSize: "13.5px", color: "var(--muted)", background: "var(--chip)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--line)" }}>
-              <span><strong>Demo walk:</strong> Fill an unsold unit at Store A, then try it at Store B (or use <code>X123 (fresh seed)</code>).</span>
-              <Link className="button secondary" href="/pos" style={{ padding: "4px 12px", fontSize: "12.5px" }}>Demo walk →</Link>
-            </div>
+            <p className="muted small" style={{ margin: 0 }}>
+              Live demo flow: Serial <code>X123</code> is verified at Store A, but blocked at Store B where an investigation opens automatically.
+            </p>
           </div>
 
           {/* Hero Visual Mock: Small static mock of the verdict card (green verified, red blocked) */}
@@ -36,12 +41,12 @@ export default function Home() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700, fontSize: "14px", color: "var(--ok)" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "50%", background: "var(--ok-bg)", border: "1px solid var(--ok-border)", fontSize: "11px" }}>✓</span>
-                  VERIFIED
+                  VERIFIED · Store A
                 </div>
-                <span style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)" }}>serial: SN-8802</span>
+                <span style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)" }}>serial: X123</span>
               </div>
-              <div style={{ fontSize: "12.5px", color: "var(--fg)", marginBottom: "4px" }}>Authenticity confirmed with brand</div>
-              <div style={{ fontSize: "11.5px", color: "var(--muted)" }}>PayPal payment order authorized</div>
+              <div style={{ fontSize: "12.5px", color: "var(--fg)", marginBottom: "4px" }}>Authenticity confirmed at Store A</div>
+              <div style={{ fontSize: "11.5px", color: "var(--muted)" }}>PayPal payment order created</div>
             </div>
 
             {/* Mini Blocked Verdict Mock */}
@@ -49,11 +54,11 @@ export default function Home() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 700, fontSize: "14px", color: "var(--bad)" }}>
                   <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: "18px", height: "18px", borderRadius: "50%", background: "var(--bad-bg)", border: "1px solid var(--bad-border)", fontSize: "11px" }}>✕</span>
-                  BLOCKED
+                  BLOCKED · Store B
                 </div>
                 <span style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)" }}>serial: X123</span>
               </div>
-              <div style={{ fontSize: "12.5px", color: "var(--fg)", marginBottom: "4px" }}>Serial not assigned to this store</div>
+              <div style={{ fontSize: "12.5px", color: "var(--fg)", marginBottom: "4px" }}>Serial not assigned to Store B</div>
               <div style={{ fontSize: "11.5px", color: "var(--bad)", fontWeight: 600 }}>Order never created · Investigation opened</div>
             </div>
           </div>

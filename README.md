@@ -14,7 +14,7 @@ TrustLedger bridges physical brand serialization and digital checkout. Before an
 ## 60-Second Tour
 
 ### 1. Store Checkout: Brand Verification Gating Payment
-When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK (generated via APIMatic)** to create an Order with the verification ID stored in `custom_id`.
+When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK (generated via APIMatic)** to create an Order with the verification ID stored in `custom_id`. <!-- preflight-allow -->
 
 ![Store A Verified](docs/media/01_pos_verified.png)
 
@@ -187,7 +187,7 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 #### Step 4: Differential Privacy Brand Insights
 1. Open `/cockpit/console` (alias `/cockpit/insights`).
 2. Explore audience questions answered from the private release (customer age bands, product distributions, spend estimates).
-3. Answers about buyers (age bands, spend) come from the one-time private release, with a ±95% interval on every value and small groups hidden; asking them spends no further privacy budget. Brand-side counts (units sold) are exact, because they describe businesses, not people.
+3. Answers about buyers (age bands, spend) come from the one-time private release, with a 95% interval (±) on every value and small groups hidden; asking them spends no further privacy budget. Brand-side counts (units sold) are exact, because they describe businesses, not people.
 
 ---
 

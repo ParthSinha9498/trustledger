@@ -119,7 +119,7 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
       {isMock ? (
         <>
           <button type="button" className={s.mockPay} onClick={doCapture} disabled={busy || phase === "loading"}>
-            {phase === "capturing" ? "Capturing…" : "Pay with PayPal (mock)"}
+            {phase === "capturing" ? "Capturing…" : "Demo payment (sandbox off)"}
           </button>
           <p className={s.note}>Mock mode: no PayPal account involved. The button captures order {paypalOrderId} directly.</p>
         </>

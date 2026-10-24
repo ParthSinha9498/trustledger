@@ -2,12 +2,35 @@
 import type { ReactNode } from "react";
 import s from "./checkout.module.css";
 
+const HUMAN_LABELS: Record<string, string> = {
+  UNKNOWN_SERIAL: "This serial isn't in the brand's records",
+  NOT_IN_CHANNEL: "This product is not in this store's supply chain",
+  ALREADY_SOLD: "This serial was already registered as sold",
+  SKU_MISMATCH: "This serial belongs to a different product",
+};
+
 export function IdleVerdict() {
   return (
-    <div className={`${s.panel} ${s.idle}`}>
-      <div style={{ fontSize: 34 }} aria-hidden>⌁</div>
-      <h3>Scan a product to start</h3>
-      <p>The brand checks the serial before any PayPal payment exists.</p>
+    <div className={`${s.panel} ${s.idle}`} role="status">
+      <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>⌁</div>
+      <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>Scan a product to start</h3>
+      <p className="muted" style={{ margin: "0 0 16px", fontSize: 13.5 }}>The brand checks unit authenticity before any PayPal payment exists.</p>
+      <div className={s.flow}>
+        <div className={s.step}>
+          <strong>1. Scan</strong>
+          <span>Scan or enter serial</span>
+        </div>
+        <span className={s.arrow} aria-hidden>→</span>
+        <div className={`${s.step} ${s.stepCenter}`} style={{ borderStyle: "solid" }}>
+          <strong>2. Brand checks</strong>
+          <span>Real-time provenance</span>
+        </div>
+        <span className={s.arrow} aria-hidden>→</span>
+        <div className={s.step}>
+          <strong>3. PayPal order</strong>
+          <span>Created only if verified</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -60,6 +83,8 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
   storeName: string;
   serial: string;
 }) {
+  const humanLabel = reasonCode ? (HUMAN_LABELS[reasonCode] ?? reason) : reason;
+
   return (
     <div className={`${s.panel} ${s.blocked}`} role="alert">
       <div className={s.verdictHead}>
@@ -69,21 +94,45 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
           <div className="muted">Authenticity condition failed at {storeName}</div>
         </div>
       </div>
-      <p className={s.reason}>{reason}</p>
-      <p className="muted" style={{ margin: 0 }}>Tell the buyer before any money moves. Do not sell this unit.</p>
+      <div className={s.reasonRow}>
+        <span className={s.reason}>{humanLabel}</span>
+        {reasonCode && (
+          <span className={s.codeTag}>
+            <code>{reasonCode}</code>
+          </span>
+        )}
+      </div>
+      <p className="muted" style={{ margin: "4px 0 0" }}>Tell the buyer before any money moves. Do not sell this unit.</p>
       <div className={s.flow}>
-        <div className={`${s.step} ${s.stepBad}`}><strong>✕ Brand check</strong>{reasonCode ?? "Not verified"}</div>
+        <div className={`${s.step} ${s.stepBad}`}>
+          <strong>✕ Brand check</strong>
+          <span>{humanLabel}</span>
+          {reasonCode && <span className={s.codeTagMini}><code>{reasonCode}</code></span>}
+        </div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}><strong>PayPal order</strong>Never created</div>
+        <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}>
+          <strong>PayPal order</strong>
+          <span>Never created</span>
+        </div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepBad}`}><strong>Investigation</strong>Opened in cockpit</div>
+        <div className={`${s.step} ${s.stepBad}`}>
+          <strong>Investigation</strong>
+          <span>Opened in cockpit</span>
+        </div>
       </div>
       <p className={s.noPayment}>
         No PayPal order or transaction was created. Stopped before any money moves.
       </p>
       <dl className={s.facts}>
         <dt>Serial</dt><dd>{serial}</dd>
-        {reasonCode && (<><dt>Reason code</dt><dd>{reasonCode}</dd></>)}
+        {reasonCode && (
+          <>
+            <dt>Reason</dt>
+            <dd>
+              {humanLabel} <span className={s.codeTag}><code>{reasonCode}</code></span>
+            </dd>
+          </>
+        )}
         {caseId && (<><dt>Case</dt><dd>{caseId}</dd></>)}
       </dl>
       {caseId && (

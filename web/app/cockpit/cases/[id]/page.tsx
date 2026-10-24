@@ -51,7 +51,7 @@ function EarlierRunSection({ er, caseId, isReplay }: { er: EarlierRun; caseId: s
   };
 
   return (
-    <details className={`card ${cs.earlierRun}`} onToggle={onToggle} style={{ marginTop: "12px", background: "var(--card)" }}>
+    <details className="card" onToggle={onToggle} style={{ marginTop: "12px", background: "var(--card)" }}>
       <summary style={{ cursor: "pointer", fontWeight: 650, fontSize: "14px", padding: "4px 0", color: "var(--fg)" }}>
         Earlier run ({er.step_count} {er.step_count === 1 ? "step" : "steps"})
       </summary>

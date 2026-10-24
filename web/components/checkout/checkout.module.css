@@ -109,8 +109,27 @@
   transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
   box-shadow: var(--shadow-md);
 }
-.idle { color: var(--muted); text-align: center; padding: 52px 24px; }
-.idle h3 { color: var(--fg); margin: 10px 0 4px; font-size: 18px; }
+.idle {
+  color: var(--muted);
+  text-align: center;
+  padding: 30px 24px;
+}
+.idleIcon {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 8px;
+  color: var(--accent);
+}
+.idle h3 {
+  color: var(--fg);
+  margin: 6px 0 4px;
+  font-size: 18px;
+}
+@media (max-width: 860px) {
+  .idle {
+    display: none;
+  }
+}
 
 .verifying { text-align: center; padding: 52px 24px; }
 .spinner {

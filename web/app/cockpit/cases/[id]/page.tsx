@@ -239,7 +239,7 @@ export default function CaseDetailPage() {
         <h2>Supply chain for {product} at {storeName}</h2>
         <p className="muted">Batches of this product that were shipped to {storeName} or turned up there.</p>
         {narrow !== null && (
-          <SupplyChainPanel sku={c.sku} storeId={c.store_id} narrow={narrow} mobileNote={
+          <SupplyChainPanel sku={c.sku} storeId={c.store_id} storeName={storeName} narrow={narrow} mobileNote={
             <div className={cs.supplyLink}>
               <p>The week-by-week timeline needs a wider screen.</p>
               <Link className="button secondary"

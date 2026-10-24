@@ -50,6 +50,8 @@ export default function SupplyChainView({ data, narrow, nested = false, mobileNo
             <p className="sc-summary sc-summary-bad">{offChannelSummary(off, names)}</p>
             <OffChannelTable rows={off} names={names} narrow={narrow} />
           </>
+        ) : data.totals.batches === 0 ? (
+          <p className="sc-summary muted">No batches in this view.</p>
         ) : (
           <p className="sc-summary muted">Every unit in this view sold at a store its batch was shipped to.</p>
         )}

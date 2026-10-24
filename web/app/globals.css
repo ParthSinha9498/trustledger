@@ -483,7 +483,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
 .refusal .muted { color: inherit; opacity: 0.85; font-size: 13px; }
 .result { display: grid; gap: 8px; }
 .result-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
-@media (max-width: 900px) { .result-body { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .result-body { grid-template-columns: minmax(0, 1fr); } }
 .result-notes { margin: 6px 0 0; font-size: 12.5px; }
 .result-block { padding: 16px 0; border-top: 1px solid var(--line); }
 .result-block:first-of-type { border-top: 0; }
@@ -576,17 +576,7 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
 .explanation p { margin: 6px 0 0; white-space: pre-wrap; }
 
 /* ---------- supply chain ---------- */
-.supply-panel { display: grid; gap: 12px; }
-.supply-panel .stat-row { margin-bottom: 0; }
 .filters { margin-bottom: 16px; }
-.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; align-items: center; }
-.legend-item { display: inline-flex; align-items: center; gap: 6px; }
-.swatch { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
-.supply-timeline-loading { height: 200px; display: grid; place-items: center; border: 1px dashed var(--line); border-radius: 10px; }
-.divergence-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 14px; }
-.divergence-list li { background: var(--bad-bg); border-radius: 8px; padding: 10px 12px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; }
-.dot-bad { background: var(--bad); }
 
 /* ---------- buyer-facing header (/pay and /receipt) ---------- */
 .buyer-header {

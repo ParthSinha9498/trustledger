@@ -74,6 +74,10 @@ function SupplyChainBody() {
 
   // The brand's partner list is the same whatever the filter, so it also feeds the store picker.
   const stores = useMemo(() => (data?.resources ?? []).filter((r) => r.tier === "store"), [data?.resources]);
+  // Drop a ?store= that names no known store, so the address and the picker agree.
+  useEffect(() => {
+    if (store && data && !stores.some((s) => s.id === store)) setStore("");
+  }, [store, data, stores]);
 
   return (
     <section className="card elevated sc-panel">

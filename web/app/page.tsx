@@ -45,7 +45,7 @@ export default function Home() {
         <div className="tile card" style={{ padding: "20px" }}>
           <b>Brand Intelligence as a Product</b>
           <span className="muted" style={{ fontSize: "13.5px", lineHeight: 1.45 }}>
-            USD 150B+ is spent a year on market insights (ESOMAR, 2024 data). While survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus, TrustLedger delivers verified purchase insights with mathematical differential privacy.
+            USD 150B+ is spent a year on market insights (ESOMAR, 2024 data). While survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus, TrustLedger answers from real, verified purchases in seconds, without exposing a single buyer.
           </span>
         </div>
       </div>
@@ -69,15 +69,15 @@ export default function Home() {
 
         <div className="card elevated" style={{ borderLeft: "4px solid var(--accent)", padding: "22px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-            <h3 style={{ margin: 0, fontSize: "16px", color: "var(--accent)" }}>Moat 2: No Person Identifiable</h3>
-            <span className="badge badge-dp">OpenDP · zCDP</span>
+            <h3 style={{ margin: 0, fontSize: "16px", color: "var(--accent)" }}>Moat 2: Buyers Stay Anonymous</h3>
+            <span className="badge badge-dp">Differential privacy · OpenDP</span>
           </div>
           <p className="muted" style={{ fontSize: "13.5px", margin: "0 0 12px", lineHeight: 1.5 }}>
-            Calibrated Gaussian differential privacy noise with ±95% intervals. Lifetime budget ρ 0.25; each release spends ρ 0.20 (ε ≈ 3.69),
-            small groups hidden, and deterministic query caching. Internal red-team: 11 attack types, none extracted a confident individual-level fact.
+            The AI only gets answers about groups, with a little noise added, so no one&apos;s purchase can be picked out.
+            Each brand has a fixed privacy limit: asking the same thing again and again can&apos;t reveal anyone. Our internal red-team tried 11 attack types; none pinned down a single buyer.
           </p>
           <div style={{ fontSize: "12.5px", color: "var(--muted)" }}>
-            ✓ One buyer unit bound · ✓ Spend clamped to 1,000 · ✓ Refused when budget spent
+            ✓ Every answer shows its margin of error · ✓ Tiny groups hidden · ✓ Questions stop when the limit is reached
           </div>
         </div>
       </div>

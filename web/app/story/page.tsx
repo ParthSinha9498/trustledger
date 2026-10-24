@@ -21,8 +21,8 @@ const CARDS: CardMeta[] = [
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
-  { id: "s4", title: "Scenario 4: Brand insights", desc: "Verified transaction insights with formal differential privacy." },
-  { id: "guarantee", title: "Formal privacy guarantee", desc: "Every buyer protected across all of a brand's questions: zCDP ρ 0.25 ≈ ε 4.2" },
+  { id: "s4", title: "Scenario 4: Brand insights", desc: "Answers from verified purchases in seconds, buyers stay anonymous." },
+  { id: "guarantee", title: "Formal privacy guarantee", desc: "Buyers stay anonymous, no matter how many questions a brand asks" },
   { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Seller POS SDK via APIMatic" },
   { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
   { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
@@ -417,7 +417,7 @@ function CardView({ cardId }: { cardId: string }) {
               Survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus.
             </p>
             <p className={s.calloutSub} style={{ color: "#38bdf8", fontSize: 20, fontWeight: 700 }}>
-              TrustLedger answers from verified purchases with formal differential privacy.
+              TrustLedger answers from verified purchases in seconds, and no buyer is ever exposed.
             </p>
           </>
         )}
@@ -426,26 +426,26 @@ function CardView({ cardId }: { cardId: string }) {
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
             <h1 className={s.titleHero}>Brand insights in seconds</h1>
-            <p className={s.subHero}>Verified transaction analytics with formal differential privacy instead of waiting weeks.</p>
+            <p className={s.subHero}>Answers from real purchases in seconds, not surveys in weeks. Buyers stay anonymous.</p>
           </>
         )}
 
         {actualCardId === "guarantee" && (
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Guarantee</div>
-            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Formal mathematical guarantee</h1>
-            <p className={s.subHero} style={{ fontSize: 24, marginBottom: 20 }}>Every buyer protected across all of a brand&apos;s questions</p>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Buyers stay anonymous. Provably.</h1>
+            <p className={s.subHero} style={{ fontSize: 24, marginBottom: 20 }}>The AI never sees a customer record, only group answers with noise added</p>
             <div className={s.guaranteeBox}>
-              <div className={s.formulaHighlight}>zCDP ρ = 0.25 ≈ ε 4.2 (δ = 10⁻⁸)</div>
+              <div className={s.formulaHighlight}>Differential privacy, built on OpenDP</div>
               <div style={{ display: "flex", gap: 20, flexWrap: "wrap", justifyContent: "center", fontSize: 20, fontWeight: 600, color: "#e2e8f0" }}>
-                <span>✓ Single privacy unit (per buyer, lifetime)</span>
-                <span>✓ OpenDP Gaussian noise (±95% CI)</span>
-                <span>✓ Lifetime budget meter</span>
-                <span>✓ Small groups hidden</span>
+                <span>✓ Each buyer’s influence is capped</span>
+                <span>✓ Every answer shows its margin of error</span>
+                <span>✓ A fixed privacy limit per brand</span>
+                <span>✓ Tiny groups hidden</span>
               </div>
             </div>
             <div className={s.sourceFooter} style={{ marginTop: 20 }}>
-              Internal red-team: 11 attack types, none extracted a confident individual-level fact (evals/results/redteam_repeated.md)
+              Our internal red-team tried 11 attack types; none pinned down a single buyer
             </div>
           </>
         )}

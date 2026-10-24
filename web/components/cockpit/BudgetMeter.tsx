@@ -7,7 +7,7 @@ export default function BudgetMeter({ budget, compact = false }: { budget: Budge
   if (!budget) {
     return (
       <div className="meter">
-        <div className="meter-head"><span>Privacy budget (rho)</span><span className="muted">unavailable</span></div>
+        <div className="meter-head"><span>Privacy limit</span><span className="muted">unavailable</span></div>
         <div className="meter-track"><div className="meter-fill" style={{ width: 0 }} /></div>
       </div>
     );
@@ -20,10 +20,10 @@ export default function BudgetMeter({ budget, compact = false }: { budget: Budge
     <div className={`meter meter-${state}`} role="meter" aria-valuemin={0} aria-valuemax={total}
          aria-valuenow={budget.remaining} aria-label="Privacy budget remaining">
       <div className="meter-head">
-        <span>Privacy budget (rho)</span>
+        <span>Privacy limit</span>
         <span>
           {budget.private_release ? (
-            <strong className="text-ok">Private release</strong>
+            <strong className="text-ok">Protected</strong>
           ) : state === "empty" ? (
             <strong className="text-bad">Exhausted</strong>
           ) : left != null ? (
@@ -37,12 +37,10 @@ export default function BudgetMeter({ budget, compact = false }: { budget: Budge
       {!compact && (
         <div className="meter-foot muted" style={{ whiteSpace: "normal", lineHeight: 1.4 }}>
           {budget.private_release ? (
-            <>Answered from the private release: no further budget spent · ρ = 0.20 spent once · ε ≈ 3.69 (δ = 10⁻⁸)</>
+            <>Answered from a privacy-protected snapshot: asking more reveals nothing new about any buyer</>
           ) : (
             <>
-              {fmtNum(budget.spent, 3)} of {fmtNum(total, 3)} {budget.unit ?? "rho"} spent
-              {budget.eps_equivalent_total != null && <> · ε ≈ {fmtNum(budget.eps_equivalent_total, 2)} total</>}
-              {" "}· budget is per dataset, PayPal-side only
+              {Math.round((1 - pctLeft) * 100)}% of this brand&apos;s privacy limit used · applies to PayPal-side questions only
             </>
           )}
         </div>

@@ -32,3 +32,19 @@ def test_blocked_window_bounds(env):
     d = env["api"].get("/cockpit/blocked", params={"weeks": 2}).json()
     assert d["weeks"] == [41, 42]
     assert all(r["week"] in (41, 42) for r in d["by_reason"] + d["by_store"])
+
+
+def test_insights_autorun_question_is_a_stored_sample():
+    """The Insights page auto-runs its first example on load. It is free only because sample questions use the
+    stored plan (no model call) and that plan is brand-side (no privacy budget). Pin both."""
+    import re
+    from pathlib import Path
+
+    from backend.api.console import SAMPLE_QUESTIONS, mock_plan
+
+    src = (Path(__file__).resolve().parents[1] / "web/app/cockpit/console/page.tsx").read_text()
+    block = re.search(r"const EXAMPLES = \[(.*?)\];", src, re.S).group(1)
+    first = re.search(r'"([^"]+)"', block).group(1)
+    assert first == SAMPLE_QUESTIONS[0]["question"]
+    specs, _ = mock_plan(first)
+    assert specs and all(s["node"] == "brand" for s in specs)

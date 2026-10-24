@@ -166,7 +166,8 @@ paths:
           description: Successful Response
           content:
             application/json:
-              schema: {}
+              schema:
+                $ref: '#/components/schemas/BlockedSummary'
         '422':
           description: Validation Error
           content:
@@ -443,6 +444,55 @@ paths:
       - internal
 components:
   schemas:
+    BlockedSummary:
+      properties:
+        brand_id:
+          type: string
+          title: Brand Id
+        current_week:
+          type: integer
+          title: Current Week
+        weeks:
+          items:
+            type: integer
+          type: array
+          title: Weeks
+        total:
+          type: integer
+          title: Total
+        by_reason:
+          items:
+            $ref: '#/components/schemas/ReasonWeek'
+          type: array
+          title: By Reason
+        by_store:
+          items:
+            $ref: '#/components/schemas/StoreWeek'
+          type: array
+          title: By Store
+        store_names:
+          additionalProperties:
+            type: string
+          type: object
+          title: Store Names
+        exact:
+          type: boolean
+          title: Exact
+        source:
+          type: string
+          title: Source
+      type: object
+      required:
+      - brand_id
+      - current_week
+      - weeks
+      - total
+      - by_reason
+      - by_store
+      - store_names
+      - exact
+      - source
+      title: BlockedSummary
     FinishIn:
       properties:
         status:
@@ -522,6 +572,25 @@ components:
       required:
       - question
       title: PlanRequest
+    ReasonWeek:
+      properties:
+        week:
+          type: integer
+          title: Week
+        reason_code:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason Code
+        value:
+          type: integer
+          title: Value
+      type: object
+      required:
+      - week
+      - reason_code
+      - value
+      title: ReasonWeek
     RunRequest:
       properties:
         specs:
@@ -578,6 +647,25 @@ components:
       - kind
       - payload
       title: StepIn
+    StoreWeek:
+      properties:
+        week:
+          type: integer
+          title: Week
+        store_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Store Id
+        value:
+          type: integer
+          title: Value
+      type: object
+      required:
+      - week
+      - store_id
+      - value
+      title: StoreWeek
     ValidationError:
       properties:
         loc:

@@ -8,11 +8,36 @@ Store display names come from the platform's own `stores` table.
 """
 import httpx
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from backend import config, db
 from backend.common import http
 
 router = APIRouter(prefix="/cockpit", tags=["cockpit"])
+
+
+class ReasonWeek(BaseModel):
+    week: int
+    reason_code: str | None
+    value: int
+
+
+class StoreWeek(BaseModel):
+    week: int
+    store_id: str | None
+    value: int
+
+
+class BlockedSummary(BaseModel):
+    brand_id: str
+    current_week: int
+    weeks: list[int]
+    total: int
+    by_reason: list[ReasonWeek]
+    by_store: list[StoreWeek]
+    store_names: dict[str, str]
+    exact: bool
+    source: str
 
 
 def _failures(group_by: list[str], week_from: int) -> list[dict]:
@@ -28,7 +53,7 @@ def _failures(group_by: list[str], week_from: int) -> list[dict]:
     return r.json().get("rows", [])
 
 
-@router.get("/blocked")
+@router.get("/blocked", response_model=BlockedSummary)
 def blocked(weeks: int = Query(8, ge=1, le=26)):
     """Failed authenticity checks in the last `weeks` weeks (exact counts from the brand's verification API)."""
     now = config.current_week()

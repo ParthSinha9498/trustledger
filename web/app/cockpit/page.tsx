@@ -38,20 +38,26 @@ function Confidence({ value }: { value?: string | null }) {
   );
 }
 
-/** Who ran the investigation. Never defaults to "Live AI": an unknown mode shows a dash. */
-type Mode = "Live AI" | "Interrupted" | "Offline mock" | "Replay" | "—";
+/**
+ * Who ran the investigation. Never defaults to "Live AI": cases start with the DB default agent_mode 'live'
+ * before any agent has run, so status comes first, and an unknown mode shows a dash.
+ */
+type Mode = "Running" | "Waiting" | "Live AI" | "Interrupted" | "Offline mock" | "Replay" | "—";
 function modeOf(c: Case): Mode {
+  if (c.status === "open" || c.status === "investigating") return "Running";
+  if (c.status === "waiting_capacity" && !c.step_count) return "Waiting";
+  // Legacy rows from the scripted mock agent were stored as 'live' (same rule as the case page).
+  if (c.agent_mode === "mock" || c.agent_model === "scripted-mock" || /LLM_MODE=mock/.test(c.summary ?? "")) return "Offline mock";
   if (c.agent_mode === "live") {
     const interrupted = c.status === "failed" ||
       (c.status === "waiting_capacity" && ((c.step_count ?? 0) > 0 || (c.findings ?? 0) > 0));
     return interrupted ? "Interrupted" : "Live AI";
   }
-  if (c.agent_mode === "mock") return "Offline mock";
   if (c.agent_mode === "replay") return "Replay";
   return "—";
 }
 const MODE_PILL: Record<Mode, string | null> = {
-  "Live AI": "pill-ok", Interrupted: "pill-open", "Offline mock": "", Replay: "pill-run", "—": null,
+  Running: "pill-run", Waiting: "pill-open", "Live AI": "pill-ok", Interrupted: "pill-open", "Offline mock": "", Replay: "pill-run", "—": null,
 };
 
 const shortDate = (v?: string) => v
@@ -143,7 +149,7 @@ export default function Cockpit() {
           <h1>Investigations</h1>
           <p className="muted">
             When the brand says no at checkout, no PayPal order is created and the AI investigator opens a case.
-            It sees only privacy-protected aggregates.
+            It sees only aggregates: exact brand counts and privacy-protected buyer data.
           </p>
         </div>
         <div className={styles.headSide}>
@@ -176,7 +182,7 @@ export default function Cockpit() {
         <KpiTile tone="ok" value={cases ? findings : "–"} label="Agent findings"
                  sub={conf.high + conf.medium + conf.low
                    ? `Confidence: ${conf.high} high · ${conf.medium} medium · ${conf.low} low`
-                   : "Cited from privacy-protected aggregates"}
+                   : "Cited from aggregates only, never raw rows"}
                  chart={cases ? { kind: "donut", name: "Completed investigations by confidence", segments: [
                    { label: "High", value: conf.high, color: (d) => ink(d).ok },
                    { label: "Medium", value: conf.medium, color: (d) => ink(d).warn },
@@ -191,7 +197,7 @@ export default function Cockpit() {
           <BlockedChart data={{ ...blocked, store_names: names }} header={
             <>
               <h2>Failed authenticity checks by week</h2>
-              <p>Exact counts from the brand&apos;s verification API. Each one stopped the sale before a PayPal order existed.</p>
+              <p>Exact counts from the brand&apos;s verification API. A failed check means no PayPal order is created.</p>
             </>
           } />
         )}

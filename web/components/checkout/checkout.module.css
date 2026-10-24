@@ -23,7 +23,7 @@
 .tile {
   text-align: left; background: var(--bg); color: var(--fg); border: 1px solid var(--line);
   border-radius: 10px; padding: 10px 12px; font-weight: 600; cursor: pointer; display: grid; gap: 2px;
-  justify-items: start; align-content: start;
+  justify-items: start; align-content: start; justify-content: start;
   transition: border-color 120ms, box-shadow 120ms;
 }
 .tile:hover { border-color: var(--accent); }
@@ -38,8 +38,28 @@
   background: transparent; color: var(--accent); border: 1px solid var(--line);
 }
 .ghost:hover { border-color: var(--accent); }
-.primary { width: 100%; margin-top: 18px; padding: 14px 16px; font-size: 16px; }
-.primary:disabled, .ghost:disabled { opacity: 0.6; cursor: default; }
+.primary {
+  width: 100%; margin-top: 18px; padding: 14px 16px; font-size: 16px;
+  background: var(--accent); color: #fff; border: 1px solid transparent;
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: var(--shadow-glow-accent);
+  transform: translateY(-0.5px);
+}
+.primary:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+@media (prefers-color-scheme: dark) {
+  .primary { color: #0b1020; font-weight: 650; }
+}
+.ghost:disabled { opacity: 0.6; cursor: default; }
 
 /* ---- scanner ---- */
 .scanner { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #000; position: relative; }

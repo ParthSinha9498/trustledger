@@ -1,7 +1,8 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getReceipt, money, readableError, type Receipt } from "@/lib/paypal";
+import AuthenticityStamp from "@/components/checkout/AuthenticityStamp";
 import s from "@/components/checkout/checkout.module.css";
 
 function when(ts?: string) {
@@ -12,6 +13,7 @@ function when(ts?: string) {
 
 export default function ReceiptPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [r, setR] = useState<Receipt | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { getReceipt(id).then(setR).catch((e) => setError(readableError(e))); }, [id]);
@@ -39,32 +41,45 @@ export default function ReceiptPage() {
             </div>
           </header>
           <div className={s.receiptBody}>
+            {verified && (
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <AuthenticityStamp />
+              </div>
+            )}
             <p className={s.product}>{r.product}</p>
             <p className={s.storeLine}>{r.store_name}</p>
             <div className={s.total}><span>{verified ? "Paid with PayPal" : "Amount"}</span><span>{money(r.amount)}</span></div>
             <dl className={s.facts}>
               <dt>Serial</dt><dd>{r.serial}</dd>
               <dt>SKU</dt><dd>{r.sku}</dd>
-              <dt>Verification ID</dt><dd>{r.verification_id ?? "—"}</dd>
-              <dt>PayPal order ID</dt><dd>{r.paypal_order_id ?? "None (never created)"}</dd>
             </dl>
+            <details className={s.detailsCollapse}>
+              <summary className={s.detailsSummary}>Technical verification details</summary>
+              <dl className={s.facts} style={{ marginTop: 8 }}>
+                <dt>Verification ID</dt><dd>{r.verification_id ?? "—"}</dd>
+                <dt>PayPal order ID</dt><dd>{r.paypal_order_id ?? "None (never created)"}</dd>
+              </dl>
+            </details>
             {verified && (
               <div style={{ marginTop: "18px", padding: "14px 16px", borderRadius: "10px", background: "var(--ok-bg)", border: "1px solid var(--ok-border)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, color: "var(--ok)", fontSize: "14px", marginBottom: "4px" }}>
                   <span aria-hidden>✓</span> Proof of Brand Authenticity
                 </div>
                 <p style={{ margin: 0, fontSize: "13px", color: "var(--fg)", lineHeight: 1.45 }}>
-                  The brand verified this unit at the store checkout prior to payment. The verification ID is stored on the
-                  PayPal order in its <code>custom_id</code> field, so the payment points to the brand verification.
+                  The brand verified this unit at the store checkout prior to payment. This payment is permanently linked to the brand&apos;s check (stored in the PayPal order&apos;s <code>custom_id</code> field).
                 </p>
               </div>
             )}
             {r.status === "AWAITING_PAYMENT" && (
               <div className={s.links}><a href={`/pay/${r.checkout_id}`}>Go to payment →</a></div>
             )}
-            <div className={`${s.links} ${s.noPrint}`}>
-              <a href="/pos">New checkout</a>
-              <a href="#" onClick={(e) => { e.preventDefault(); window.print(); }}>Print</a>
+            <div className={`${s.actionButtons} ${s.noPrint}`}>
+              <button type="button" className="button secondary" onClick={() => router.push("/pos")}>
+                New checkout
+              </button>
+              <button type="button" className="button secondary" onClick={() => window.print()}>
+                Print receipt
+              </button>
             </div>
           </div>
         </article>

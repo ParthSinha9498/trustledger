@@ -272,3 +272,94 @@
   text-decoration: underline; cursor: pointer;
 }
 .linkButton:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- authenticity stamp ---- */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  border: 2px dashed var(--ok);
+  background: var(--ok-bg);
+  color: var(--ok);
+  padding: 8px 14px;
+  border-radius: 12px;
+  box-shadow: 0 0 16px -2px rgba(5, 150, 105, 0.2);
+  transform: rotate(-1.5deg);
+  transition: transform var(--transition-fast);
+  margin-bottom: 16px;
+}
+.stamp:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+.stampInner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stampIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.stampText {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.stampTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.stampSub {
+  font-size: 11.5px;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* ---- collapsed details ---- */
+.detailsCollapse {
+  margin-top: 18px;
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+}
+.detailsSummary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.detailsSummary:hover {
+  color: var(--fg);
+}
+
+/* ---- action buttons ---- */
+.actionButtons {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+.actionButtons button, .actionButtons .actionBtn {
+  flex: 1;
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+.actionButtons button:hover, .actionButtons .actionBtn:hover {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+

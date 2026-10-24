@@ -3,6 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getReceipt, money, readableError, type Receipt } from "@/lib/paypal";
 import PayPalPay from "@/components/checkout/PayPalPay";
+import AuthenticityStamp from "@/components/checkout/AuthenticityStamp";
 import s from "@/components/checkout/checkout.module.css";
 
 /** Customer-facing pay screen for a checkout the store already verified (PLAN B10 "Customer pay"). */
@@ -36,6 +37,9 @@ export default function PayPage() {
                 </div>
               </div>
               <div className={s.receiptBody}>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <AuthenticityStamp />
+                </div>
                 <p className={s.product}>{r.product}</p>
                 <p className={s.storeLine}>{r.store_name} · Serial <code>{r.serial}</code></p>
                 <div className={s.total}><span>Total</span><span>{money(r.amount)}</span></div>
@@ -43,10 +47,13 @@ export default function PayPage() {
                   <PayPalPay checkoutId={r.checkout_id} paypalOrderId={r.paypal_order_id}
                     onPaid={() => router.push(`/receipt/${r.checkout_id}`)} />
                 </div>
-                <dl className={s.facts}>
-                  <dt>Verification ID</dt><dd>{r.verification_id}</dd>
-                  <dt>PayPal order</dt><dd>{r.paypal_order_id}</dd>
-                </dl>
+                <details className={s.detailsCollapse}>
+                  <summary className={s.detailsSummary}>Technical verification details</summary>
+                  <dl className={s.facts} style={{ marginTop: 8 }}>
+                    <dt>Verification ID</dt><dd>{r.verification_id}</dd>
+                    <dt>PayPal order</dt><dd>{r.paypal_order_id}</dd>
+                  </dl>
+                </details>
               </div>
             </>
           ) : (

@@ -80,7 +80,7 @@ FALLBACK = {
                  "USD 150B+ a year on market insights (ESOMAR, 2024 data). Survey results take weeks.",
                  "In a 2024 Pew survey, 18% of responses were flagged as bogus."],
     "s4": ["Scenario 4", "Brand insights from verified purchases"],
-    "guarantee": ["Buyers stay anonymous, no matter how many questions a brand asks",
+    "guarantee": ["Buyers stay anonymous: one fixed privacy limit per brand, for life",
                   "Differential privacy (OpenDP) · internal red-team: 11 attack types, none pinned down a single buyer"],
     "levels": ["One API. Every checkout.",
                "Brand: verification API + node · PayPal: checkout gate + private node · Seller: one SDK call (APIMatic)"],

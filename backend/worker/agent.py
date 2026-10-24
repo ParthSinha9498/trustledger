@@ -52,10 +52,11 @@ TOOLS = [
         "name": "query_paypal_node",
         "description": "Differentially private aggregates of PayPal-side transactions (distinct buyers, or "
                        "spend with buyers and mean spend, by store, region, sku, week, age band, gender). "
-                       "Each value has a ±ci95. Spends privacy budget (buyers 0.01, sum_amount 0.02 rho).",
+                       "Each value has a ±ci95. Answered from the brand's one-time private release at no extra privacy "
+                       "cost; questions the release cannot answer are refused (NOT_IN_RELEASE).",
         "parameters": tool_parameters("paypal")}},
     {"type": "function", "function": {
-        "name": "get_budget", "description": "Remaining PayPal-side privacy budget for today.",
+        "name": "get_budget", "description": "The brand's lifetime PayPal-side privacy budget (fixed, never resets).",
         "parameters": {"type": "object", "properties": {}}}},
     {"type": "function", "function": {
         "name": "record_finding", "description": "Record one finding with citations to step numbers.",

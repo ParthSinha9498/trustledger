@@ -8,8 +8,10 @@ const storeName = (id: string) => `Store ${id.replace("store_", "").toUpperCase(
 type ListKey = "sku" | "region" | "store_id";
 
 /** One planned query as editable chips: node, metric, up to two dimensions, filters. */
-export default function SpecEditor({ value, onChange, onRemove, index }: {
+export default function SpecEditor({ value, onChange, onRemove, index, privateRelease = true }: {
   value: PlannedSpec;
+  /** Buyer answers come from the one-time private release (no further cost); false only on the legacy path. */
+  privateRelease?: boolean;
   onChange: (v: PlannedSpec) => void;
   onRemove: () => void;
   index: number;
@@ -115,7 +117,9 @@ export default function SpecEditor({ value, onChange, onRemove, index }: {
         </div>
       </div>
       {node === "paypal" && (
-        <p className="muted small">Spends privacy budget ({spec.metric === "sum_amount" ? "rho 0.02" : "rho 0.01"}) unless the same query was run before.</p>
+        <p className="muted small">{privateRelease
+          ? "Answered from the privacy-protected snapshot: no extra privacy cost."
+          : "Uses a little of the brand's privacy allowance."}</p>
       )}
     </div>
   );

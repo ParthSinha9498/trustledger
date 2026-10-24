@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BudgetMeter from "@/components/cockpit/BudgetMeter";
 import ResultView from "@/components/cockpit/ResultView";
 import SpecEditor from "@/components/cockpit/SpecEditor";
@@ -46,6 +46,18 @@ export default function InsightsPage() {
 
   useEffect(() => {
     api<Budget>("/console/budget").then(setBudget).catch(() => setBudget(null));
+  }, []);
+
+  // First load: answer the first example so a real grid and chart are on screen straight away.
+  // It is a brand-side question (exact business counts): no privacy allowance is used, and sample
+  // questions are planned from a stored plan on the server, never by a model.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    autoRan.current = true;
+    setQuestion(EXAMPLES[0]);
+    void ask(EXAMPLES[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function execute(list: PlannedSpec[], explain: boolean, started: number) {
@@ -105,19 +117,26 @@ export default function InsightsPage() {
       </div>
 
       <section className="card">
-        <form className={`ask ${styles.ask}`}onSubmit={(e) => { e.preventDefault(); ask(); }}>
+        <form className={`ask ${styles.ask}`} onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <input aria-label="Question" value={question} onChange={(e) => setQuestion(e.target.value)}
                  placeholder="Ask a business question, e.g. Where did the P8 128GB sell in the last 8 weeks?" />
-          <button type="submit" disabled={busy !== null || !question.trim()}>{busy === "ask" ? "Answering…" : "Get answer"}</button>
+          <button type="submit" className={`primary ${styles.askButton}`} disabled={busy !== null}>{busy === "ask" ? "Answering…" : "Get answer"}</button>
           <button type="button" className="secondary" onClick={() => setSpecs((s) => [...s, newSpec()])}>Add query by hand</button>
         </form>
         <div className="chips examples">
           {EXAMPLES.map((q) => (
-            <button key={q} type="button" className="chip" disabled={busy !== null} onClick={() => { setQuestion(q); ask(q); }}>{q}</button>
+            <button key={q} type="button" className={`chip${q === question && results ? ` ${styles.exampleOn}` : ""}`} aria-pressed={q === question && !!results} disabled={busy !== null} onClick={() => { setQuestion(q); ask(q); }}>{q}</button>
           ))}
         </div>
         {err && <div className="refusal" role="alert">{err}</div>}
       </section>
+
+      {!results && busy === "ask" && (
+        <section className={`card elevated ${styles.heroAnswerCard}`} aria-busy="true">
+          <h2 className={styles.heroAnswerTitle}>Answer</h2>
+          <div className={`skeleton ${styles.answerSkeleton}`} />
+        </section>
+      )}
 
       {results && (
         <section className={`card elevated ${styles.heroAnswerCard}`}>
@@ -166,15 +185,15 @@ export default function InsightsPage() {
               <span className="count">{specs.length}</span>
             </h2>
           </div>
-          <p className="muted small">Each question becomes structured queries (never SQL). Only aggregates come back; PayPal-side answers carry noise and spend privacy budget. Edit a query and re-run to refine.</p>
+          <p className="muted small">Each question becomes structured queries (never SQL), and only totals come back. Brand-side answers are exact. Buyer answers come from a privacy-protected snapshot: they carry a little noise, show a margin of error, and hide groups too small to share. Edit a query and re-run to refine.</p>
           {rationale && <p className="rationale">{rationale}</p>}
           {specs.map((s, i) => (
-            <SpecEditor key={i} index={i} value={s} onChange={(v) => update(i, v)} onRemove={() => remove(i)} />
+            <SpecEditor key={i} index={i} value={s} privateRelease={budget?.private_release !== false} onChange={(v) => update(i, v)} onRemove={() => remove(i)} />
           ))}
           <div className="row actions">
             <button type="button" className="secondary" onClick={() => setSpecs([...specs, newSpec()])}>Add query</button>
             <span className="spacer" />
-            {exhausted && needsBudget && <span className="text-bad small">Privacy budget exhausted: PayPal-side queries will be refused unless cached.</span>}
+            {exhausted && needsBudget && <span className="text-bad small">Privacy limit reached: buyer questions are paused.</span>}
             <button type="button" className="secondary" disabled={busy !== null || !specs.length} onClick={() => run(false)}>
               {busy === "run" ? "Running…" : `${results ? "Re-run" : "Run"} ${specs.length} quer${specs.length === 1 ? "y" : "ies"}`}
             </button>

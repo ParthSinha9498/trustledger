@@ -229,6 +229,37 @@
           ]
         },
         {
+          "name": "Blocked checkouts by week (cockpit chart)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBaseUrl}}/cockpit/blocked",
+              "host": [
+                "{{apiBaseUrl}}"
+              ],
+              "path": [
+                "cockpit",
+                "blocked"
+              ]
+            },
+            "description": "Exact counts of failed brand checks by week, reason and store, asked of the brand node's aggregate API (no buyer data, no privacy budget)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r = pm.response.json();",
+                  "pm.test('exact brand counts', () => pm.expect(r.exact).to.eql(true));",
+                  "pm.test('includes the Store B block', () => pm.expect(r.by_store.some(x => x.store_id === pm.collectionVariables.get('storeB'))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Case detail (agent steps)",
           "request": {
             "method": "GET",

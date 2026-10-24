@@ -641,9 +641,11 @@ def membership_experiment(trials: int, brand_id: str, rng: random.Random) -> dic
     """Offline membership test with a planted heavy buyer K in 8 weeks at one store.
 
     World IN contains K, world OUT doesn't. Each trial is a fresh release (cache cleared, ledger reset)
-    of buyers by week at that store. The adversary thresholds the sum of released counts (threshold
-    calibrated on half the trials, tested on the other half). DP bound for one query at rho 0.01:
-    TPR <= e^eps * FPR + delta. The mean shift also checks the k cap: K is in 8 cells, the cap keeps 4.
+    of buyers by week at that store. This experiment attacks marginal M1 only (dimensions store_id, sku, week;
+    rho = 0.060, eps ≈ 1.934 at delta = 1e-8; full release context rho = 0.20, eps = 3.69).
+    The adversary thresholds the sum of released counts (threshold calibrated on half the trials, tested on the other half).
+    DP bound for M1 marginal query: TPR <= e^eps * FPR + delta. The mean shift also checks the k cap: K is in 8 cells,
+    the M1 cap keeps k=4 cells.
     """
     from backend import db
     from backend.common import privacy
@@ -683,17 +685,21 @@ def membership_experiment(trials: int, brand_id: str, rng: random.Random) -> dic
     thr = (statistics.mean(cal_in) + statistics.mean(cal_out)) / 2 if half else 0.0
     tpr = sum(s > thr for s in test_in) / max(len(test_in), 1)
     fpr = sum(s > thr for s in test_out) / max(len(test_out), 1)
-    # Under the private release, queries are answered from marginal M1 (rho=0.060, eps≈1.93; full release eps=3.69)
-    m_rho = 0.060
+    # Under the private release, this test attacks marginal M1 only (dimensions store_id, sku, week)
+    m1_entry = next(m for m in privacy.WORKLOAD if m["id"] == "M1")
+    m_rho = m1_entry["rho"]
     eps = privacy.eps_equivalent(m_rho)
     se = math.sqrt(max(tpr * (1 - tpr), fpr * (1 - fpr), 0.25 / max(len(test_in), 1)) / max(len(test_in), 1))
     bound_ok = tpr <= math.exp(eps) * fpr + privacy.DELTA + 3 * se * (1 + math.exp(eps))
     shift = statistics.mean(stats[True]) - statistics.mean(stats[False])
     shift_se = math.sqrt(statistics.pvariance(stats[True]) / trials + statistics.pvariance(stats[False]) / trials) if trials > 1 else float("inf")
     cap_ok = shift <= k + 3 * shift_se
-    return {"name": "membership_offline_and_k_cap", "label": "private release", "path": "private release M1 marginal",
+    return {"name": "membership_offline_and_k_cap",
+            "target": "attacks marginal M1 only (not whole release)",
+            "label": "private release M1 marginal",
+            "path": "attacks private release marginal M1 only (rho=0.060, eps≈1.934; release context rho=0.20, eps≈3.69)",
             "passed": bool(bound_ok and cap_ok), "trials_per_world": trials,
-            "eps_marginal": round(eps, 3), "eps_release": privacy.RELEASE_EPS, "tpr": round(tpr, 3), "fpr": round(fpr, 3),
+            "eps_marginal": round(eps, 3), "eps_release_context": privacy.RELEASE_EPS, "tpr": round(tpr, 3), "fpr": round(fpr, 3),
             "advantage": round(tpr - fpr, 3), "bound_tpr_max": round(min(1.0, math.exp(eps) * fpr + privacy.DELTA), 3),
             "within_bound": bool(bound_ok), "cells_heavy_buyer_is_in": len(weeks), "k": k, "sigma": sigma,
             "mean_shift": round(shift, 2), "mean_shift_se": round(shift_se, 2), "k_cap_holds": bool(cap_ok),

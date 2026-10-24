@@ -378,7 +378,7 @@ function CardView({ cardId }: { cardId: string }) {
                   Transactions, keyed hashed buyer IDs, and demographics remain locked inside.
                 </p>
                 <div style={{ marginTop: "auto", fontSize: 20, color: "#34d399", fontWeight: 700 }}>
-                  Answers with noisy aggregates (±95% CI)
+                  Answers with noisy aggregates (95% CI)
                 </div>
               </div>
             </div>

@@ -147,3 +147,55 @@ def test_capture_unapproved_order_is_clean_409(env, monkeypatch):
     monkeypatch.setattr(paypal, "capture_order", boom)
     r = api.post(f"/checkout/{chk['checkout_id']}/capture")
     assert r.status_code == 409 and r.json()["detail"]["paypal_issue"] == "ORDER_NOT_APPROVED"
+
+
+def test_case_rerun_returns_latest_run_and_earlier_runs(env):
+    """Reproduces case_487ef88d9f's shape: 2 runs with identical findings -> API returns 1 latest set and lists 1 earlier run."""
+    api = env["api"]
+    case_id = scan(api, "FAKE-001")["case_id"]
+    # Run 1
+    assert process_one() is True
+    c1 = api.get(f"/cases/{case_id}").json()
+    assert c1["status"] == "complete"
+    assert c1["run_count"] == 1
+    assert c1["earlier_runs"] == []
+    steps_1 = c1["steps"]
+    findings_1 = [s for s in steps_1 if s["kind"] == "finding"]
+    assert len(findings_1) == 1
+    assert all(s.get("run") == 1 for s in steps_1)
+
+    # Trigger rerun on material change (second failure)
+    scan(api, "FAKE-002")
+    c_open = api.get(f"/cases/{case_id}").json()
+    assert c_open["status"] == "open"
+    # Run 2
+    assert process_one() is True
+    c2 = api.get(f"/cases/{case_id}").json()
+    assert c2["status"] == "complete"
+    assert c2["run_count"] == 2
+
+    # Earlier runs listed with step counts
+    assert len(c2["earlier_runs"]) == 1
+    assert c2["earlier_runs"][0]["run"] == 1
+    assert c2["earlier_runs"][0]["step_count"] == len(steps_1)
+
+    # c2["steps"] only contains run 2's steps, so only ONE finding is returned (no duplicate finding!)
+    steps_2 = c2["steps"]
+    assert all(s.get("run") == 2 for s in steps_2)
+    findings_2 = [s for s in steps_2 if s["kind"] == "finding"]
+    assert len(findings_2) == 1
+
+    # list_cases also reports findings count for the latest run only
+    cases_list = api.get("/cases").json()
+    case_row = next(x for x in cases_list if x["case_id"] == case_id)
+    assert case_row["findings"] == 1
+    assert case_row["step_count"] == len(steps_2)
+
+    # Query param ?run=1 retrieves run 1's steps
+    run_1_resp = api.get(f"/cases/{case_id}?run=1").json()
+    assert len(run_1_resp["steps"]) == len(steps_1)
+    assert all(s.get("run") == 1 for s in run_1_resp["steps"])
+
+    # Query param ?include_earlier_steps=true embeds earlier steps in earlier_runs
+    embed_resp = api.get(f"/cases/{case_id}?include_earlier_steps=true").json()
+    assert len(embed_resp["earlier_runs"][0]["steps"]) == len(steps_1)

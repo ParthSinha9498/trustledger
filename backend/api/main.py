@@ -221,20 +221,40 @@ def list_cases():
     with db.connect("platform") as pc:
         return pc.execute(
             """SELECT c.*,
-                      (SELECT COUNT(*) FROM case_steps s WHERE s.case_id=c.case_id AND s.kind='finding') AS findings,
-                      (SELECT COUNT(*) FROM case_steps s WHERE s.case_id=c.case_id) AS step_count
+                      (SELECT COUNT(*) FROM case_steps s 
+                       WHERE s.case_id=c.case_id 
+                         AND s.kind='finding' 
+                         AND COALESCE(s.run, 1) = GREATEST(COALESCE(c.run_count, 1), 1)) AS findings,
+                      (SELECT COUNT(*) FROM case_steps s 
+                       WHERE s.case_id=c.case_id 
+                         AND COALESCE(s.run, 1) = GREATEST(COALESCE(c.run_count, 1), 1)) AS step_count
                FROM cases c ORDER BY created_at DESC"""
         ).fetchall()
 
 
 @app.get("/cases/{case_id}")
-def get_case(case_id: str):
+def get_case(case_id: str, run: int | None = None, include_earlier_steps: bool = False):
     with db.connect("platform") as pc:
         case = pc.execute("SELECT * FROM cases WHERE case_id=%s", (case_id,)).fetchone()
         if case is None:
             raise HTTPException(404)
-        steps = pc.execute("SELECT * FROM case_steps WHERE case_id=%s ORDER BY n", (case_id,)).fetchall()
-    return {**case, "steps": steps}
+        all_steps = pc.execute("SELECT * FROM case_steps WHERE case_id=%s ORDER BY n", (case_id,)).fetchall()
+
+    runs_in_steps = {s.get("run") or 1 for s in all_steps}
+    latest_run = case.get("run_count") or (max(runs_in_steps) if runs_in_steps else 1)
+    target_run = run if run is not None else latest_run
+
+    earlier_runs = []
+    earlier_run_numbers = sorted(r for r in runs_in_steps if r < latest_run)
+    for r_num in earlier_run_numbers:
+        r_steps = [s for s in all_steps if (s.get("run") or 1) == r_num]
+        entry = {"run": r_num, "step_count": len(r_steps)}
+        if include_earlier_steps:
+            entry["steps"] = r_steps
+        earlier_runs.append(entry)
+
+    selected_steps = [s for s in all_steps if (s.get("run") or 1) == target_run]
+    return {**case, "steps": selected_steps, "earlier_runs": earlier_runs}
 
 
 # ---------------------------------------------------------------- internal (worker)
@@ -242,6 +262,7 @@ def get_case(case_id: str):
 class StepIn(BaseModel):
     kind: str          # thought | tool_call | tool_result | finding
     payload: dict
+    run: int | None = None
 
 
 class FinishIn(BaseModel):
@@ -273,11 +294,15 @@ def claim_case():
 @app.post("/internal/cases/{case_id}/steps", dependencies=[Depends(require_node_token)])
 def add_step(case_id: str, step: StepIn):
     with db.connect("platform") as pc, pc.transaction():
+        run = step.run
+        if run is None:
+            c = pc.execute("SELECT run_count FROM cases WHERE case_id=%s", (case_id,)).fetchone()
+            run = (c["run_count"] if c and c.get("run_count") else 1)
         n = pc.execute("SELECT COALESCE(MAX(n), 0) + 1 AS n FROM case_steps WHERE case_id=%s", (case_id,)).fetchone()["n"]
         step_id = f"{case_id}:s{n}"
-        pc.execute("INSERT INTO case_steps (step_id, case_id, n, kind, payload) VALUES (%s,%s,%s,%s,%s)",
-                   (step_id, case_id, n, step.kind, Jsonb(step.payload)))
-    return {"step_id": step_id, "n": n}
+        pc.execute("INSERT INTO case_steps (step_id, case_id, n, run, kind, payload) VALUES (%s,%s,%s,%s,%s,%s)",
+                   (step_id, case_id, n, run, step.kind, Jsonb(step.payload)))
+    return {"step_id": step_id, "n": n, "run": run}
 
 
 @app.post("/internal/cases/{case_id}/finish", dependencies=[Depends(require_node_token)])

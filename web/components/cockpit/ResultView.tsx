@@ -59,7 +59,7 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
   const columns = useMemo<ColDef<ResultRow>[]>(() => {
     // Spend shows cents only for small sums: "1,912,801 ± 13,859" carries no false precision and fits a phone.
     const digits = metric === "sum_amount" && rows.some((r) => typeof r.value === "number" && Math.abs(r.value) < 1000) ? 2 : 0;
-    const pad = dense ? 20 : 32;  // horizontal cell padding, both sides
+    const pad = dense ? 12 : 32;  // horizontal cell padding, both sides (Grid's dense theme: 6px a side)
     // "1,207 ± 26": the only break is before "±", so a narrow cell wraps to "1,207" over "± 26", never "± 2".
     const withCi = (v: unknown, ci: unknown, dg: number) =>
       fmtNum(v, dg) + (typeof ci === "number" ? ` ±\u00a0${fmtNum(ci, dg)}` : "");
@@ -104,9 +104,23 @@ export default function ResultView({ result, title }: { result: QueryResult; tit
     const dimMin = dimCols.reduce((n, c) => n + (c.minWidth ?? 64), 0);
     const oneLine = nums.reduce((n, c) => n + fit(c.header, c.cells), 0);
     const twoLines = !!grid.w && dimMin + oneLine + (autoHeight ? 0 : SCROLLBAR) > grid.w;
-    const numCols: ColDef<ResultRow>[] = nums.map(({ def, header, cells }) => ({
+    const numMins = nums.map(({ header, cells }) => (twoLines ? fit(header, parts(cells)) : fit(header, cells)));
+    // Still too wide (a phone with three number columns): label columns give up width first, down to their
+    // longest single word, so the row fits the card and nothing scrolls sideways.
+    if (twoLines) {
+      let over = dimMin + numMins.reduce((n, w) => n + w, 0) + (autoHeight ? 0 : SCROLLBAR) + 2 - grid.w;
+      dimCols.forEach((c, i) => {
+        if (over <= 0) return;
+        const d = dims[i];
+        const floor = fit(label(d), rows.flatMap((r) => displayValue(d, r[d], names).split(/\s+/)));
+        const cut = Math.min(over, Math.max(0, (c.minWidth ?? 64) - floor));
+        c.minWidth = (c.minWidth ?? 64) - cut;
+        over -= cut;
+      });
+    }
+    const numCols: ColDef<ResultRow>[] = nums.map(({ def, header }, i) => ({
       ...def, headerName: header, type: "numericColumn", filter: false, wrapHeaderText: true, autoHeaderHeight: true,
-      minWidth: twoLines ? fit(header, parts(cells)) : fit(header, cells),
+      minWidth: numMins[i],
       ...(twoLines ? { wrapText: true, autoHeight: true, cellStyle: { lineHeight: "1.35", paddingTop: "8px", paddingBottom: "8px" } } : {}),
     }));
     return [...dimCols, ...numCols];

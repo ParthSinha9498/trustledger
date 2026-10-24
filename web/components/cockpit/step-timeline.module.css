@@ -1,0 +1,13 @@
+.toolbar { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.title { font-weight: 600; font-size: 14px; color: var(--fg); min-width: 0; overflow-wrap: anywhere; }
+.quote {
+  margin: 4px 0 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--ok);
+  background: var(--chip);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+.head { flex-wrap: wrap; row-gap: 2px; }

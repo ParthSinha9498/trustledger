@@ -1,0 +1,13 @@
+.title { margin-bottom: 10px; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
+.chip { font-size: 13px; padding: 4px 12px; background: var(--chip); color: var(--fg); border: 1px solid var(--line); }
+.mock { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn-border); font-weight: 650; }
+.meta { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.6; overflow-wrap: anywhere; }
+.meta code { font-size: 12px; padding: 1px 5px; border-radius: var(--radius-sm); background: var(--chip); border: 1px solid var(--line); color: var(--fg); }
+.notice { margin-top: 12px; padding: 8px 14px; border-radius: var(--radius-sm); font-size: 13px; color: var(--fg); border: 1px solid var(--line); background: var(--chip); }
+.noticeWarn { background: var(--warn-bg); border-color: var(--warn-border); }
+.noticeBad { background: var(--bad-bg); border-color: var(--bad-border); }
+.finding { margin-top: 16px; }
+.finding h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 8px; }
+.supplyLink { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.supplyLink p { margin: 0; }

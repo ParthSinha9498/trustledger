@@ -159,7 +159,7 @@ class Investigation:
             # Implicit prompt caching: the fixed prompt + tools prefix and earlier turns are billed at a discount.
             self.log("usage", usage)
 
-    def _finish(self, status: str, args: dict, agent_mode: str = "live", agent_model: str | None = None, agent_reason: str | None = None) -> None:
+    def _finish(self, status: str, args: dict, agent_reason: str | None = None) -> None:
         text = args.get("summary", "")
         if args.get("next_actions"):
             text += "\n\nNext actions:\n" + "\n".join(f"- {a}" for a in args["next_actions"])
@@ -167,10 +167,24 @@ class Investigation:
             "status": status,
             "summary": text,
             "confidence": args.get("confidence"),
-            "agent_mode": agent_mode,
-            "agent_model": agent_model or getattr(self.llm, "model", "live"),
+            # Record what actually ran: "mock" for the scripted stand-in, never a default "live".
+            "agent_mode": agent_mode_of(self.llm),
+            "agent_model": model_of(self.llm),
             "agent_reason": agent_reason,
         }
         if agent_reason is None and getattr(self.llm, "used_fallback", False) and getattr(self.llm, "is_smaller", False):
             payload["agent_reason"] = "Running on a smaller model due to free-tier limits"
         self.api.post(f"/internal/cases/{self.case['case_id']}/finish", json=payload).raise_for_status()
+
+
+def agent_mode_of(llm) -> str:
+    """"mock" for the scripted stand-in (or whenever LLM_MODE=mock), else "live"."""
+    if getattr(llm, "mode", None) == "mock" or config.env("LLM_MODE", "live") == "mock":
+        return "mock"
+    return "live"
+
+
+def model_of(llm) -> str | None:
+    """The model name that actually answered (the fallback's, if the chain switched); None if unknown."""
+    m = getattr(llm, "model", None)
+    return m if isinstance(m, str) and m else None

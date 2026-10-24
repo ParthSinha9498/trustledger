@@ -3,6 +3,9 @@ from backend.common.llm import ToolCall, Turn
 
 
 class ScriptedLLM:
+    mode = "mock"           # recorded on the case as agent_mode, so a mock run is never badged as live AI
+    model = "scripted-mock"
+
     def __init__(self) -> None:
         self.i = 0
 
@@ -21,7 +24,7 @@ class ScriptedLLM:
             Turn("Record what the evidence shows.",
                  [ToolCall("c5", "record_finding",
                            {"text": "Verification failures cluster at the trigger store.",
-                            "citations": ["step:2"]})]),
+                            "citations": ["step:6"]})]),
             Turn("Done.", [ToolCall("c6", "finish",
                                     {"summary": "Scripted mock investigation (LLM_MODE=mock).",
                                      "confidence": "low"})]),

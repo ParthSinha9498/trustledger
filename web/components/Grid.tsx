@@ -20,6 +20,8 @@ const theme = themeQuartz.withParams({
   spacing: 6,
   rowHoverColor: "var(--chip)",
 });
+// Auto-height grids that always have rows: no empty band under a 3-row result.
+const tightTheme = theme.withParams({ autoHeightMinBodyHeight: 0 });
 
 export default function Grid<T>({ rows, columns, height = 360, onRowClick, autoHeight = false }: {
   rows: T[];
@@ -30,9 +32,9 @@ export default function Grid<T>({ rows, columns, height = 360, onRowClick, autoH
   autoHeight?: boolean;
 }) {
   return (
-    <div style={autoHeight ? { width: "100%" } : { height, width: "100%" }} className={onRowClick ? "grid-clickable" : undefined}>
+    <div style={autoHeight ? { width: "100%", minWidth: 0 } : { height, width: "100%", minWidth: 0 }} className={onRowClick ? "grid-clickable" : undefined}>
       <AgGridReact<T>
-        theme={theme}
+        theme={autoHeight && rows.length > 0 ? tightTheme : theme}
         rowData={rows}
         columnDefs={columns}
         domLayout={autoHeight ? "autoHeight" : "normal"}

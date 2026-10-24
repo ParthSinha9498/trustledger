@@ -29,17 +29,31 @@ export function rowLabel(row: ResultRow, dims: string[]): string {
   return dims.length ? dims.map((d) => String(row[d] ?? "")).join(" · ") : "Total";
 }
 
-/** "Gaussian noise σ=14.1, cells under 28 hidden" */
+/** Plain-language privacy note for a PayPal-side result. The ± on each value carries the numbers. */
 export function noiseText(n?: Noise): string | null {
   if (!n) return null;
-  const parts: string[] = [];
-  const mech = n.mechanism ? n.mechanism.charAt(0).toUpperCase() + n.mechanism.slice(1) : "DP";
-  if (n.sigma != null) parts.push(`${mech} noise σ=${fmtNum(n.sigma, 1)}`);
-  else if (n.epsilon != null) parts.push(`${mech} noise ε=${n.epsilon}`);
-  else parts.push(`${mech} noise`);
-  if (n.display_floor != null) parts.push(`cells under ${fmtNum(n.display_floor, 0)} hidden`);
-  return parts.join(", ");
+  return n.display_floor != null ? "Small random noise added · tiny groups hidden" : "Small random noise added";
 }
+
+/** Display names for the fictional catalogue (mirrors backend seed PRODUCTS). */
+export const PRODUCT_NAMES: Record<string, string> = {
+  "NMB-P8-128": "Nimbus P8 128GB", "NMB-P8-256": "Nimbus P8 256GB", "NMB-A5-64": "Nimbus A5 64GB",
+};
+export const productName = (sku: string) => PRODUCT_NAMES[sku] ?? sku;
+
+/** "store_a" -> "Store A" when no name is known. */
+export function prettyId(id: string): string {
+  const m = id.match(/^(store|dist)_(\w+)$/i);
+  if (!m) return id;
+  return `${m[1].toLowerCase() === "store" ? "Store" : "Distributor"} ${m[2].toUpperCase()}`;
+}
+
+export const REASON_TEXT: Record<string, string> = {
+  NOT_IN_CHANNEL: "Not in this store's supply chain",
+  ALREADY_SOLD: "Serial already sold",
+  UNKNOWN_SERIAL: "Unknown serial",
+  SKU_MISMATCH: "Serial belongs to a different product",
+};
 
 export function budgetTotal(b: Budget): number {
   return b.total ?? b.daily ?? b.spent + b.remaining;

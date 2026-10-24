@@ -4,6 +4,8 @@ from pathlib import Path
 
 from backend import config
 from backend.common import http
+from backend.worker.agent import agent_mode_of
+
 
 def load_replay(path_or_name: str) -> dict | None:
     p = Path(path_or_name)
@@ -23,7 +25,7 @@ def play_case_replay(case_id: str, reason: str, replay_name: str | None = None, 
         "status": "waiting_capacity",
         "summary": "This case will be investigated live when capacity frees up.",
         "confidence": None,
-        "agent_mode": "replay" if rep else "live",
+        "agent_mode": "replay" if rep else agent_mode_of(None),
         "agent_model": rep.get("model") if rep else None,
         "agent_reason": reason,
         "source_case_id": rep.get("source_case_id") if rep else None,

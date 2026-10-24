@@ -5,7 +5,7 @@ export default function Home() {
     <main>
       {/* Hero Section */}
       <div className="card hero" style={{ padding: "36px 32px", marginBottom: "28px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "28px", alignItems: "center" }}>
+        <div className="hero-grid">
           <div>
             <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", padding: "4px 12px", borderRadius: "999px", background: "var(--accent-bg)", color: "var(--accent)", fontSize: "13px", fontWeight: 650, marginBottom: "16px", border: "1px solid var(--accent-border)" }}>
               <span aria-hidden>◆</span> Authenticity as a Condition of Payment
@@ -18,7 +18,7 @@ export default function Home() {
               TrustLedger connects brand serial intelligence directly to the point of sale before any PayPal payment is created.
               If verified, the buyer pays seamlessly. If unverified, the payment order is <strong>never created</strong>, so nothing can be paid, and an investigation opens.
             </p>
-            <div className="row" style={{ gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <div className="hero-ctas">
               <Link className="button" href="/story">
                 Interactive walkthrough &amp; demo →
               </Link>
@@ -30,7 +30,7 @@ export default function Home() {
               </Link>
             </div>
             <p className="muted small" style={{ margin: 0 }}>
-              Live demo flow: Serial <code>X123</code> is verified at Store A, but blocked at Store B where an investigation opens automatically.
+              Live demo: Scan <code>X123</code> (fresh seed) at Store A (verified) and Store B (blocked). Once sold, click &ldquo;Fill an unsold unit&rdquo; at the checkout to test newly stocked inventory.
             </p>
           </div>
 

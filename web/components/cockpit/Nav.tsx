@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/pos", label: "Store checkout" },
@@ -12,18 +12,37 @@ const LINKS = [
   { href: "/privacy", label: "Privacy" },
 ];
 
-function NavContent() {
+export default function Nav() {
   const path = usePathname() ?? "/";
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [isStoryCard, setIsStoryCard] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
 
-  // Close mobile drawer on route change
+  // Close mobile drawer on route change & detect story presentation card mode
   useEffect(() => {
     setOpen(false);
+    if (path === "/story") {
+      const params = new URLSearchParams(window.location.search);
+      setIsStoryCard(params.has("card"));
+    } else {
+      setIsStoryCard(false);
+    }
   }, [path]);
 
-  // Hide nav on full-screen presentation cards, but show on /story index
-  const isStoryCard = path === "/story" && !!searchParams.get("card");
+  // Handle Escape key to close mobile menu and return focus to toggle button
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  // Hide nav on individual presentation cards, but prerender and display on all static pages and /story index
   if (isStoryCard || (path.startsWith("/story/") && path !== "/story")) return null;
 
   const active = (href: string, exact?: boolean, alias?: string) =>
@@ -52,11 +71,17 @@ function NavContent() {
 
         {/* Mobile Hamburger Button */}
         <button
+          ref={toggleRef}
           type="button"
           className="navToggle"
           aria-label={open ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
+          aria-controls="mobile-nav-sheet"
+          onClick={() => {
+            const next = !open;
+            setOpen(next);
+            if (!next) toggleRef.current?.focus();
+          }}
         >
           <span className="navToggleIcon" aria-hidden>{open ? "✕" : "☰"}</span>
         </button>
@@ -64,29 +89,26 @@ function NavContent() {
 
       {/* Mobile Menu Sheet */}
       {open && (
-        <div className="mobileMenuBackdrop" onClick={() => setOpen(false)}>
-          <div className="mobileMenuSheet" onClick={(e) => e.stopPropagation()}>
+        <div className="mobileMenuBackdrop" onClick={() => { setOpen(false); toggleRef.current?.focus(); }}>
+          <nav
+            id="mobile-nav-sheet"
+            className="mobileMenuSheet"
+            aria-label="Mobile navigation"
+            onClick={(e) => e.stopPropagation()}
+          >
             {LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 className={`mobileNavLink ${active(l.href, l.exact, l.alias) ? "active" : ""}`}
-                onClick={() => setOpen(false)}
+                onClick={() => { setOpen(false); toggleRef.current?.focus(); }}
               >
                 {l.label}
               </Link>
             ))}
-          </div>
+          </nav>
         </div>
       )}
     </>
-  );
-}
-
-export default function Nav() {
-  return (
-    <Suspense fallback={null}>
-      <NavContent />
-    </Suspense>
   );
 }

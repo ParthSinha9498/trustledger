@@ -23,7 +23,7 @@ const CARDS: CardMeta[] = [
   { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
   { id: "s4", title: "Scenario 4: Brand insights", desc: "Answers from verified purchases in seconds, buyers stay anonymous." },
   { id: "guarantee", title: "Formal privacy guarantee", desc: "Buyers stay anonymous: one fixed privacy limit per brand, for life" },
-  { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Seller POS SDK via APIMatic" },
+  { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Store POS API" },
   { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
   { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
 ];
@@ -476,9 +476,9 @@ function CardView({ cardId }: { cardId: string }) {
 
               <div className={`${s.levelBox} ${s.levelBoxHighlight}`}>
                 <div style={{ fontSize: 15, color: "#38bdf8", fontWeight: 700, letterSpacing: "0.05em" }}>3. FOR SELLERS / POS</div>
-                <div style={{ fontSize: 24, fontWeight: 750, color: "#ffffff" }}>One SDK Call</div>
+                <div style={{ fontSize: 24, fontWeight: 750, color: "#ffffff" }}>One API Call</div>
                 <p style={{ margin: 0, fontSize: 20, color: "#cbd5e1", lineHeight: 1.45 }}>
-                  Single verifyProduct call at scan. SDK generated from OpenAPI spec by APIMatic.
+                  In production, the store&apos;s POS sends the scanned serial through the TrustLedger API.
                 </p>
               </div>
             </div>

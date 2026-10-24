@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                 Holds transactions, store payments, hashed buyer IDs, and demographics (demographics exist only on the PayPal side).
               </p>
               <div style={{ padding: "10px", borderRadius: "8px", background: "var(--card)", border: "1px solid var(--line)", fontSize: "12.5px" }}>
-                <strong>Allowed out:</strong> Calibrated differential privacy aggregates with ±95% confidence intervals.
+                <strong>Allowed out:</strong> Calibrated differential privacy aggregates with 95% confidence intervals.
               </div>
             </div>
 
@@ -196,7 +196,7 @@ export default function PrivacyPage() {
             <span>Evidence &amp; red-team validation</span>
           </div>
           <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.5, color: "var(--fg)" }}>
-            Internal red-team: 11 attack types tested against private releases, none extracted an individual-level fact.
+            Internal red-team: 11 attack types, none extracted a confident individual-level fact (<code>evals/results/redteam_repeated.md</code>).
           </p>
           <details style={{ marginTop: "12px", fontSize: "12px", color: "var(--muted)", borderTop: "1px dashed var(--line)", paddingTop: "10px", cursor: "pointer" }}>
             <summary style={{ fontWeight: 650, color: "var(--fg)" }}>Note on scope &amp; credentials</summary>

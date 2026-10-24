@@ -53,6 +53,8 @@
   --transition-fast: 140ms var(--ease-out);
   --transition-normal: 240ms var(--ease-out);
 
+  --nav-height: 56px;
+
   color-scheme: light;
 }
 
@@ -161,7 +163,7 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
   font-size: 17px;
   transform: translateY(-0.5px);
 }
-.navlinks { display: flex; gap: 4px; align-items: center; }
+.navlinks { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
 .navgroup { display: flex; align-items: center; gap: 4px; }
 .navlinks a {
   font-weight: 500;
@@ -203,7 +205,7 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
   line-height: 1;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   nav, .topnav {
     padding: 10px 16px;
   }
@@ -217,7 +219,7 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
 
 .mobileMenuBackdrop {
   position: fixed;
-  top: 57px;
+  top: var(--nav-height, 56px);
   left: 0;
   right: 0;
   bottom: 0;
@@ -262,14 +264,6 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
 @keyframes navSlideDown {
   from { transform: translateY(-8px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
-}
-
-/* Scroll target offset for sticky nav */
-.scroll-offset,
-[data-scroll-target],
-section[aria-label="Verification result"],
-.brand-verified {
-  scroll-margin-top: 76px;
 }
 
 /* ---------- cards & layout ---------- */
@@ -438,6 +432,29 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
 .stat.links { display: grid; gap: 4px; align-content: center; font-size: 14px; font-weight: 600; }
 .stat.links a { text-decoration: none; }
 .hero h1 { font-size: 28px; letter-spacing: -0.025em; }
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 28px;
+  align-items: center;
+}
+.hero-ctas {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+@media (min-width: 900px) {
+  .hero-ctas {
+    flex-wrap: nowrap;
+  }
+}
+@media (max-width: 800px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .tile {
   display: grid;

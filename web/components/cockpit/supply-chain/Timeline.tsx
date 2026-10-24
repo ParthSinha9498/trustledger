@@ -1,5 +1,5 @@
 "use client";
-// Client-only Bryntum Scheduler for the supply chain page. Import through next/dynamic (ssr: false).
+// Client-only Bryntum Scheduler (supply chain page and case page). Import through next/dynamic (ssr: false).
 import "@bryntum/scheduler/fontawesome/css/fontawesome.css";
 import "@bryntum/scheduler/fontawesome/css/solid.css";
 import "@bryntum/scheduler/scheduler.css";
@@ -12,7 +12,7 @@ import {
 import { BryntumScheduler } from "@bryntum/scheduler-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { weekToDate, type SupplyChain, type SupplyEvent } from "@/lib/api";
-import { productName, weekLabel } from "./format";
+import { productName, weekLabel } from "../format";
 
 const TIER_LABEL = { brand: "Brand", distributor: "Distributor", store: "Store" } as const;
 const KIND_COLOR: Record<SupplyEvent["kind"], string> = {

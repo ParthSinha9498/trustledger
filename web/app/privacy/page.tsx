@@ -133,11 +133,11 @@ export default function PrivacyPage() {
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
             <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              A fixed privacy limit ensures asking more questions never exposes anyone.
+              A fixed privacy limit: asking more questions can&apos;t reveal more about anyone.
             </div>
             <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>4. Private release (budget spent once)</h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Each brand operates under a private release measured once under zCDP. Under post-processing immunity (Dwork &amp; Roth 2014), queries are answered without spending further budget.
+              Buyer answers come from a one-time private release; answering questions from it spends no further privacy budget (post-processing).
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
               ρ = 0.20 (≈ ε 3.69 at δ = 10⁻⁸) · Post-processing immunity
@@ -153,7 +153,7 @@ export default function PrivacyPage() {
               Repeating a query returns the cached answer with identical noise, preventing attackers from repeatedly sampling noise to average it out.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              deterministic cache_key = hash(query_spec + seed)
+              repeat questions return the stored answer (same noise) · _cache_key (paypal_node/main.py:83)
             </div>
           </div>
 
@@ -189,10 +189,10 @@ export default function PrivacyPage() {
             </div>
             <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>8. Hashed payer IDs on arrival</h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Buyer IDs are replaced by a keyed hash on arrival; the key never leaves the PayPal-side node. Raw buyer names and payment details never enter the query database.
+              Buyer IDs are replaced by a keyed hash on arrival; the secret key never leaves the PayPal-side node. Payer IDs are never stored raw (paypal_node/main.py:424).
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              HMAC-SHA256(buyer_id, node_secret)
+              HMAC-SHA256(payer_hash_key, payer_ref)
             </div>
           </div>
 

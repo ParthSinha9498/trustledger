@@ -16,7 +16,7 @@ export default function Home() {
             </h1>
             <p className="muted" style={{ fontSize: "16px", maxWidth: "600px", lineHeight: 1.5, margin: "0 0 24px" }}>
               TrustLedger connects brand serial intelligence directly to the point of sale before any PayPal payment is created.
-              If verified, the buyer pays seamlessly. If unverified, the payment order is <strong>never created</strong>, money never moves, and an investigation opens.
+              If verified, the buyer pays seamlessly. If unverified, the payment order is <strong>never created</strong>, so nothing can be paid, and an investigation opens.
             </p>
             <div className="row" style={{ gap: "12px", marginBottom: "18px", flexWrap: "wrap" }}>
               <Link className="button" href="/pos">Open the store checkout</Link>
@@ -24,7 +24,7 @@ export default function Home() {
               <Link className="button secondary" href="/story">Walkthrough story mode</Link>
             </div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", flexWrap: "wrap", fontSize: "13.5px", color: "var(--muted)", background: "var(--chip)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--line)" }}>
-              <span><strong>Demo walk:</strong> Serial <code>X123</code> at Store A (Verified) vs Store B (Blocked).</span>
+              <span><strong>Demo walk:</strong> Fill an unsold unit at Store A, then try it at Store B (or use <code>X123 (fresh seed)</code>).</span>
               <Link className="button secondary" href="/pos" style={{ padding: "4px 12px", fontSize: "12.5px" }}>Demo walk →</Link>
             </div>
           </div>
@@ -66,7 +66,7 @@ export default function Home() {
         <div className="tile card" style={{ padding: "20px", display: "flex", flexDirection: "column" }}>
           <b>Payment Gate, Not Paper Warranties</b>
           <span className="muted" style={{ fontSize: "13.5px", lineHeight: 1.45, marginTop: "6px" }}>
-            Authenticity is verified at the POS scanner before the PayPal order is created. Failed units never create an order, stopped before any money moves.
+            Authenticity is verified at the POS scanner before the PayPal order is created. Failed units never create an order, so nothing can be paid.
           </span>
         </div>
         <div className="tile card" style={{ padding: "20px", display: "flex", flexDirection: "column" }}>
@@ -81,7 +81,7 @@ export default function Home() {
           </div>
           <b style={{ fontSize: "14px" }}>Spent on market insights</b>
           <span className="muted" style={{ fontSize: "13px", lineHeight: 1.45, marginTop: "6px", flex: 1 }}>
-            While surveys take weeks and 18% of responses can be flagged as bogus (Pew, 2024), TrustLedger answers from verified purchases in seconds without exposing buyers.
+            While surveys take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus, TrustLedger answers from verified purchases in seconds without exposing buyers.
           </span>
           <span className="muted" style={{ fontSize: "11px", marginTop: "10px" }}>(ESOMAR, 2024 data)</span>
         </div>

@@ -8,7 +8,7 @@ import StatusPill from "@/components/cockpit/StatusPill";
 import StepTimeline, { Cites, citationsOf, linkSteps } from "@/components/cockpit/StepTimeline";
 import SupplyChainPanel from "@/components/cockpit/supply-chain/SupplyChainPanel";
 import { prettyId, productName, REASON_TEXT } from "@/components/cockpit/format";
-import { api, errorText, type Budget, type CaseDetail, type Step } from "@/lib/api";
+import { api, errorText, type Budget, type CaseDetail, type EarlierRun, type Step } from "@/lib/api";
 import cs from "./case.module.css";
 
 /** Short reason for the page title: "<reason> at <store> · <product>". */
@@ -34,6 +34,38 @@ function useNarrow(query = "(max-width: 700px)"): boolean | null {
     return () => mq.removeEventListener("change", on);
   }, [query]);
   return narrow;
+}
+
+function EarlierRunSection({ er, caseId, isReplay }: { er: EarlierRun; caseId: string; isReplay: boolean }) {
+  const [steps, setSteps] = useState<Step[] | null>(er.steps ?? null);
+  const [loading, setLoading] = useState(false);
+
+  const onToggle = (e: React.SyntheticEvent<HTMLDetailsElement>) => {
+    if ((e.target as HTMLDetailsElement).open && !steps && !loading) {
+      setLoading(true);
+      api<{ steps: Step[] }>(`/cases/${caseId}?run=${er.run}`)
+        .then((res) => setSteps(res.steps))
+        .catch(() => setSteps([]))
+        .finally(() => setLoading(false));
+    }
+  };
+
+  return (
+    <details className={`card ${cs.earlierRun}`} onToggle={onToggle} style={{ marginTop: "12px", background: "var(--card)" }}>
+      <summary style={{ cursor: "pointer", fontWeight: 650, fontSize: "14px", padding: "4px 0", color: "var(--fg)" }}>
+        Earlier run ({er.step_count} {er.step_count === 1 ? "step" : "steps"})
+      </summary>
+      <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid var(--line)" }}>
+        {loading ? (
+          <p className="muted small">Loading steps...</p>
+        ) : steps && steps.length > 0 ? (
+          <StepTimeline steps={steps} isReplay={isReplay} />
+        ) : (
+          <p className="muted small">No steps recorded for this run.</p>
+        )}
+      </div>
+    </details>
+  );
 }
 
 function FindingItem({ f }: { f: Step }) {
@@ -228,6 +260,16 @@ export default function CaseDetailPage() {
         <p className="muted">What each query returned. Brand-side counts are exact business data; PayPal-side answers are privacy-protected estimates about buyers, shown with ± ranges.</p>
         {/* AG Charts Community has no map series, so results chart by region/store as bars. */}
         <StepTimeline steps={c.steps} isReplay={isReplay} />
+        {c.earlier_runs && c.earlier_runs.length > 0 && (
+          <div style={{ marginTop: "24px", paddingTop: "16px", borderTop: "1px dashed var(--line)" }}>
+            <h3 style={{ fontSize: "14px", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "10px" }}>
+              Earlier runs
+            </h3>
+            {c.earlier_runs.map((er) => (
+              <EarlierRunSection key={er.run} er={er} caseId={c.case_id} isReplay={isReplay} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="card">
@@ -239,7 +281,7 @@ export default function CaseDetailPage() {
       <section className="card">
         <h2>Supply chain for {product} at {storeName}</h2>
         <p className="muted">{scWide
-          ? `None of this product was ever shipped to ${storeName}, so this shows every batch of it.`
+          ? "From the brand's own shipment records."
           : `Batches of this product that were shipped to ${storeName} or turned up there.`}</p>
         {narrow !== null && (
           <SupplyChainPanel sku={c.sku} storeId={c.store_id} storeName={storeName} narrow={narrow} onWidened={setScWide} mobileNote={

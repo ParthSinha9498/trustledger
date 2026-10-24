@@ -81,7 +81,8 @@ class Investigation:
         self.api = http.client(config.api_url())
 
     def log(self, kind: str, payload: dict) -> int:
-        r = self.api.post(f"/internal/cases/{self.case['case_id']}/steps", json={"kind": kind, "payload": payload})
+        run = self.case.get("run_count") or 1
+        r = self.api.post(f"/internal/cases/{self.case['case_id']}/steps", json={"kind": kind, "payload": payload, "run": run})
         r.raise_for_status()
         return r.json()["n"]
 

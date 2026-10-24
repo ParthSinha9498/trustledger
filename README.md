@@ -42,7 +42,7 @@ The brand's AI investigator automatically claims the case. Operating under stric
 ---
 
 ### 5. Privacy Console: Zero-Concentrated Differential Privacy
-Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP), dynamic confidence intervals (±CI), and automated cell suppression.
+Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP $\approx \varepsilon = 4.16$, $\delta = 10^{-8}$) and a one-time private release ($\rho = 0.20 \approx \varepsilon = 3.69$, $\delta = 10^{-8}$), dynamic confidence intervals (±CI), and automated cell suppression.
 
 ![Privacy Console](docs/media/05_console_aggregate.png)
 
@@ -80,9 +80,9 @@ flowchart TD
         PayPalSDK["PayPal Server SDK (APIMatic)<br/>Orders v2 (intent: CAPTURE, custom_id)"]
     end
 
-    subgraph Intelligence["Privacy-Preserving Investigation"]
+    subgraph Intelligence["Privacy-Preserving Intelligence"]
         Worker["Autonomous Investigation Agent<br/>Multi-Turn Tool Calling"]
-        DPNode["PayPal Data Node (Port 8002)<br/>OpenDP zCDP Gaussian Engine (rho=0.25)"]
+        DPNode["PayPal Data Node (Port 8002)<br/>OpenDP zCDP Gaussian Engine (rho=0.25, release rho=0.20)"]
     end
 
     subgraph Agentic["Agentic Commerce"]
@@ -124,12 +124,9 @@ flowchart TD
 
 ### Differential Privacy Red-Teaming
 TrustLedger underwent rigorous differential privacy red-teaming evaluating resistance against privacy extraction attacks:
-- **Result:** **220 of 220 reconstruction attacks blocked** across 20 repeated runs of 11 distinct attack archetypes (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion). Attacker success was **0 of 220** (no attack exceeded the confidence threshold needed for linkage).
+- **Result:** Across 11 distinct attack types (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion), none extracted a confident individual-level fact (no attack exceeded the confidence threshold needed for linkage).
 - **Best guesses:** when the attacks fell back to unconfident guesses about a buyer's age band or gender, they were right **23%** of the time (25 of 107), in line with chance (20% for age band, 33% for gender). Details: [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 - **Report:** Full methodology, audit logs, and parameters documented in [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
-
-### Live Detection Evaluation
-- Placeholder for live detection evaluation benchmarks against real counterfeit diversion patterns (to be populated from live evaluation runs).
 
 ---
 
@@ -144,9 +141,9 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 3. **Bryntum Scheduler**:
    - Delivers the interactive multi-tier supply chain visualization (`/cockpit/supply-chain`), displaying brand dispatches, distributor inventory, and store receipts across time.
 4. **OpenDP**:
-   - Core mathematical foundation for the differential privacy Gaussian mechanism guaranteeing bounded privacy leakage on federated demographic analytics.
+   - Core mathematical foundation for the differential privacy Gaussian mechanism and private releases on federated demographic analytics.
 5. **Render**:
-   - All-in-one free-plan container / Render web service connecting the web frontend, platform gateway, brand node, and PayPal node. See [docs/DEPLOY.md](docs/DEPLOY.md).
+   - All-in-one Starter plans container / Render web service connecting the web frontend, platform gateway, brand node, and PayPal node. See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ---
 
@@ -185,7 +182,7 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 2. The Store B case appears (new, or added to an open case for the same store).
 3. Open the case to observe the autonomous investigation agent at work.
 4. The agent sees only aggregates: business-level counts from the brand node and privacy-protected aggregates from PayPal. It never sees a record.
-5. If the AI provider is unavailable, the case shows "waiting for capacity" with the reason and is retried later.
+5. If the AI provider is unavailable, the case shows waiting capacity with the reason and is retried later.
 
 #### Step 4: Differential Privacy Brand Insights
 1. Open `/cockpit/console` (alias `/cockpit/insights`).
@@ -216,6 +213,7 @@ You can run the entire platform locally in mock mode without configuring externa
 cp .env.example .env
 sed -i 's/^LLM_MODE=live/LLM_MODE=mock/' .env  # offline: PayPal and LLM mocked
 docker compose up -d postgres
+until docker compose exec -T postgres pg_isready -U postgres; do sleep 1; done
 uv sync
 
 # 2. Seed Database (catalog, shipments, transactions, and private release)

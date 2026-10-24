@@ -114,7 +114,7 @@ CREATE TABLE cases (case_id TEXT PRIMARY KEY, brand_id TEXT, verification_id TEX
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE case_failures (verification_id TEXT PRIMARY KEY, case_id TEXT, serial TEXT, sku TEXT,
     at TIMESTAMPTZ NOT NULL DEFAULT now());
-CREATE TABLE case_steps (step_id TEXT PRIMARY KEY, case_id TEXT, n INT, kind TEXT, payload JSONB,
+CREATE TABLE case_steps (step_id TEXT PRIMARY KEY, case_id TEXT, n INT, run INT NOT NULL DEFAULT 1, kind TEXT, payload JSONB,
     at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE (case_id, n));
 """
 

@@ -343,6 +343,21 @@ paths:
         schema:
           type: string
           title: Case Id
+      - name: run
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Run
+      - name: include_earlier_steps
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Include Earlier Steps
       responses:
         '200':
           description: Successful Response
@@ -642,6 +657,11 @@ components:
           additionalProperties: true
           type: object
           title: Payload
+        run:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Run
       type: object
       required:
       - kind

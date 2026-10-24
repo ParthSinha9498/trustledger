@@ -88,8 +88,9 @@ export type Case = {
 };
 
 export type StepKind = "thought" | "tool_call" | "tool_result" | "finding";
-export type Step = { step_id?: string; n: number; kind: StepKind | string; payload: Record<string, unknown>; at: string };
-export type CaseDetail = Case & { steps: Step[] };
+export type Step = { step_id?: string; n: number; run?: number; kind: StepKind | string; payload: Record<string, unknown>; at: string };
+export type EarlierRun = { run: number; step_count: number; steps?: Step[] };
+export type CaseDetail = Case & { steps: Step[]; earlier_runs?: EarlierRun[] };
 
 // ---------------------------------------------------------------- queries and privacy
 

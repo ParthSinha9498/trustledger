@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import s from "./story.module.css";
 
@@ -378,7 +377,7 @@ function CardView({ cardId }: { cardId: string }) {
                   Transactions, keyed hashed buyer IDs, and demographics remain locked inside.
                 </p>
                 <div style={{ marginTop: "auto", fontSize: 20, color: "#34d399", fontWeight: 700 }}>
-                  Answers with noisy aggregates (±95% CI)
+                  Answers with noisy aggregates (95% interval, ±)
                 </div>
               </div>
             </div>
@@ -543,22 +542,10 @@ function StoryIndex() {
   );
 }
 
-function StoryContent() {
-  const searchParams = useSearchParams();
-  const card = searchParams.get("card");
-
-  if (card && CARDS.some((c) => c.id === card)) {
-
-    return <CardView cardId={card} />;
-  }
-
+// ?card= is read from the page's searchParams (not useSearchParams), so a card renders on the server with
+// storyCardRoot and the nav is hidden from the first paint.
+export default function StoryPage({ searchParams }: { searchParams: Promise<{ card?: string }> }) {
+  const { card } = use(searchParams);
+  if (card && CARDS.some((c) => c.id === card)) return <CardView cardId={card} />;
   return <StoryIndex />;
-}
-
-export default function StoryPage() {
-  return (
-    <Suspense fallback={<div className={s.storyContainer}><div className={s.safeArea}><p>Loading story card…</p></div></div>}>
-      <StoryContent />
-    </Suspense>
-  );
 }

@@ -23,7 +23,7 @@
 .kpi_bad { border-top-color: var(--bad); }
 .kpi_ok { border-top-color: var(--ok); }
 .kpi_accent { border-top-color: var(--accent); }
-.kpiText { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.kpiText { display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; }
 .kpiValue {
   font-size: 38px;
   line-height: 1.05;

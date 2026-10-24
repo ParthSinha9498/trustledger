@@ -53,6 +53,7 @@ export default function CaseDetailPage() {
   const [liveBudget, setLiveBudget] = useState<Budget | null>(null);
   const [stores, setStores] = useState<Record<string, string>>({});
   const narrow = useNarrow();
+  const [scWide, setScWide] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -237,13 +238,15 @@ export default function CaseDetailPage() {
 
       <section className="card">
         <h2>Supply chain for {product} at {storeName}</h2>
-        <p className="muted">Batches of this product that were shipped to {storeName} or turned up there.</p>
+        <p className="muted">{scWide
+          ? `None of this product was ever shipped to ${storeName}, so this shows every batch of it.`
+          : `Batches of this product that were shipped to ${storeName} or turned up there.`}</p>
         {narrow !== null && (
-          <SupplyChainPanel sku={c.sku} storeId={c.store_id} storeName={storeName} narrow={narrow} mobileNote={
+          <SupplyChainPanel sku={c.sku} storeId={c.store_id} storeName={storeName} narrow={narrow} onWidened={setScWide} mobileNote={
             <div className={cs.supplyLink}>
               <p>The week-by-week timeline needs a wider screen.</p>
               <Link className="button secondary"
-                href={`/cockpit/supply-chain?sku=${encodeURIComponent(c.sku)}&store=${encodeURIComponent(c.store_id)}`}>
+                href={`/cockpit/supply-chain?sku=${encodeURIComponent(c.sku)}${scWide ? "" : `&store=${encodeURIComponent(c.store_id)}`}`}>
                 Open supply chain
               </Link>
             </div>

@@ -12,8 +12,10 @@ function fetchChain(sku?: string, storeId?: string) {
 
 /** Fetches the brand's own supply chain (exact business data) for one product/store and renders it.
  *  If no batch of the product ever reached the store (a not-in-channel case), shows the whole product instead. */
-export default function SupplyChainPanel({ sku, storeId, storeName, narrow, mobileNote }: {
+export default function SupplyChainPanel({ sku, storeId, storeName, narrow, mobileNote, onWidened }: {
   sku?: string; storeId?: string; storeName?: string; narrow: boolean; mobileNote?: ReactNode;
+  /** Told whether the view fell back to the whole product, so the caller can word its heading and links. */
+  onWidened?: (widened: boolean) => void;
 }) {
   const [data, setData] = useState<SupplyChain | null>(null);
   const [widened, setWidened] = useState(false);
@@ -27,8 +29,8 @@ export default function SupplyChainPanel({ sku, storeId, storeName, narrow, mobi
       .then(async (d) => {
         if (storeId && sku && d.totals.batches === 0) {
           const all = await fetchChain(sku);
-          if (live) { setData(all); setWidened(true); }
-        } else if (live) setData(d);
+          if (live) { setData(all); setWidened(true); onWidened?.(true); }
+        } else if (live) { setData(d); onWidened?.(false); }
       })
       .catch((e) => live && setErr(errorText(e)));
     return () => { live = false; };
@@ -39,7 +41,7 @@ export default function SupplyChainPanel({ sku, storeId, storeName, narrow, mobi
   return (
     <>
       {widened && (
-        <p className="sc-summary sc-summary-bad">
+        <p className="sc-summary sc-summary-bad sc-widened">
           No batch of this product was ever shipped to {storeName ?? "this store"}. Showing every batch of the product instead.
         </p>
       )}

@@ -587,3 +587,46 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
 .divergence-list li { background: var(--bad-bg); border-radius: 8px; padding: 10px 12px; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: middle; }
 .dot-bad { background: var(--bad); }
+
+/* ---------- buyer-facing header (/pay and /receipt) ---------- */
+.buyer-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+.buyer-header-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.buyer-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--fg);
+}
+.buyer-logo-mark {
+  color: var(--accent);
+  font-size: 18px;
+}
+.buyer-secure-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ok);
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-border);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+}
+

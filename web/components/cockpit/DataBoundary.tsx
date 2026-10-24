@@ -45,8 +45,12 @@ export function exchangesOf(steps: Step[]): Exchange[] {
     if (p.tool !== "query_brand_node" && p.tool !== "query_paypal_node") continue;
     const node: Node = p.tool === "query_brand_node" ? "brand" : "paypal";
     const r = results.get(st.n) ?? {};
-    const rows = Array.isArray(r.rows) ? r.rows.length : 0;
-    const noise = (r.noise ?? {}) as { sigma?: number; rho?: number };
+    const rowList = Array.isArray(r.rows) ? (r.rows as { ci95?: unknown }[]) : [];
+    const rows = rowList.length;
+    // Each row carries its own ci95 (it grows with the number of release cells summed), so quote the widest.
+    const ci = rowList.map((x) => Number(x.ci95)).filter((v) => Number.isFinite(v));
+    const widest = ci.length ? Math.max(...ci) : null;
+    const noise = (r.noise ?? {}) as { rho?: number };
     let kind: Exchange["kind"]; let answer: string; let rho = 0;
     if (r.refused) {
       kind = "refused";
@@ -59,7 +63,7 @@ export function exchangesOf(steps: Step[]): Exchange[] {
     } else {
       kind = "private"; rho = Number(noise.rho ?? 0);
       const hidden = Number(r.suppressed_cells ?? 0);
-      answer = `${rows} group rows · ±${Math.round(Number(noise.sigma ?? 0) * 1.96)} noise${hidden ? ` · ${hidden} tiny groups hidden` : ""}`;
+      answer = `${rows} group rows${widest !== null ? ` · 95% ranges up to ±${Math.round(widest).toLocaleString()}` : ""}${hidden ? ` · ${hidden} tiny groups hidden` : ""}`;
     }
     out.push({ n: st.n, node, question: describe(p.args ?? {}), answer, kind, rho });
   }
@@ -95,6 +99,7 @@ export default function DataBoundary({ steps }: { steps: Step[] }) {
   const ex = useMemo(() => exchangesOf(steps), [steps]);
   const [run, setRun] = useState(0);
   if (!ex.length) return null;
+  const noisy = ex.filter((e) => e.kind === "private").length;
   return (
     <div className={s.wrap} key={run}>
       <Vault node="brand" />
@@ -111,9 +116,9 @@ export default function DataBoundary({ steps }: { steps: Step[] }) {
       </ol>
       <Vault node="paypal" />
       <div className={s.footer}>
-        <span><b>{ex.length}</b> questions sent</span>
+        <span><b>{ex.length}</b> question{ex.length === 1 ? "" : "s"} sent</span>
         <span><b>0</b> records left a node</span>
-        <span><b>{ex.filter((e) => e.kind === "private").length}</b> answers with privacy noise</span>
+        <span><b>{noisy}</b> answer{noisy === 1 ? "" : "s"} with privacy noise</span>
         <button type="button" className="secondary" onClick={() => setRun((r) => r + 1)}>Replay</button>
       </div>
     </div>

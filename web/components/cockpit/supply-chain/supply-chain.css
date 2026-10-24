@@ -1,8 +1,9 @@
-/* Supply chain page layout (route-local). Bryntum styles live in timeline.css. */
-.sc-panel { display: grid; gap: 16px; min-width: 0; }
-.sc-panel .stat-row { margin-bottom: 0; }
+/* Supply chain layout, shared by the supply chain page and the case page. Bryntum styles live in timeline.css. */
+.sc-panel, .sc-view { display: grid; gap: 16px; min-width: 0; }
+.sc-panel .stat-row, .sc-view .stat-row { margin-bottom: 0; }
 .sc-section { display: grid; gap: 10px; min-width: 0; }
 .sc-section h2 { margin: 0; font-size: 17px; }
+.sc-section h3 { margin: 0; font-size: 15px; }
 .sc-summary { margin: 0; font-size: 15px; line-height: 1.55; }
 .sc-summary-bad { border-inline-start: 3px solid var(--bad); padding: 8px 12px; background: var(--bad-bg); border-radius: 0 8px 8px 0; }
 .sc-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
@@ -10,6 +11,7 @@
 .sc-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .sc-swatch { width: 14px; height: 10px; border-radius: 3px; display: inline-block; }
 .sc-now { width: 2px; height: 14px; background: #f59e0b; display: inline-block; }
+.sc-widened { margin-bottom: 14px; }
 .sc-note { margin: 0; font-size: 13.5px; }
 .sc-mobile-note { border: 1px dashed var(--line); border-radius: var(--radius-md); padding: 14px; font-size: 14px; }
 .sc-loading { height: 200px; display: grid; place-items: center; border: 1px dashed var(--line); border-radius: 10px; }

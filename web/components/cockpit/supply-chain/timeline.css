@@ -1,4 +1,4 @@
-/* Bryntum Scheduler on the supply chain page. Theme CSS is imported in Timeline.tsx. */
+/* Bryntum Scheduler for the supply chain page and the case page. Theme CSS is imported in Timeline.tsx. */
 @import "@bryntum/scheduler/svalbard-dark.css" (prefers-color-scheme: dark);
 
 .sc-timeline {

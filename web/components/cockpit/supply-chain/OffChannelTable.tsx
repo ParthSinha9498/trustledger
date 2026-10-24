@@ -2,7 +2,7 @@
 import type { ColDef } from "ag-grid-community";
 import Grid from "@/components/Grid";
 import type { OffChannel } from "@/lib/api";
-import { joinNames, productName, weekLabel } from "./format";
+import { joinNames, productName, weekLabel } from "../format";
 
 type Row = {
   batch: string;

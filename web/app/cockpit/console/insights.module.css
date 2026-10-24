@@ -126,3 +126,15 @@
   gap: 8px;
 }
 
+
+/* Strong primary action (globals give .primary the accent fill) */
+.askButton { min-width: 132px; font-size: 15px; padding: 10px 22px; box-shadow: var(--shadow-md); }
+.answerSkeleton { height: 240px; margin-top: 16px; }
+/* The example currently answered (stays readable in both themes) */
+:global(.examples) .exampleOn { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); font-weight: 600; }
+
+@media (max-width: 600px) {
+  .heroAnswerCard { padding: 16px 14px; }
+  .heroBanner { padding: 12px 14px; }
+  .chartHeroContainer { padding: 12px; }
+}

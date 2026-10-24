@@ -86,6 +86,13 @@ demo = {
         request("List cases", "GET", "apiBaseUrl", "/cases", tests=[
             "const ids = pm.response.json().map(c => c.case_id);",
             "pm.test('Store B case listed', () => pm.expect(ids).to.include(pm.collectionVariables.get('caseId')));"]),
+        request("Failed authenticity checks by week (cockpit chart)", "GET", "apiBaseUrl", "/cockpit/blocked",
+                description="Exact counts of failed brand checks by week, reason and store, asked of the brand "
+                            "node's aggregate API (no buyer data, no privacy budget).",
+                tests=[
+                    "const r = pm.response.json();",
+                    "pm.test('exact brand counts', () => pm.expect(r.exact).to.eql(true));",
+                    "pm.test('includes the Store B block', () => pm.expect(r.by_store.some(x => x.store_id === pm.collectionVariables.get('storeB'))).to.eql(true));"]),
         request("Case detail (agent steps)", "GET", "apiBaseUrl", "/cases/{{caseId}}",
                 description="Re-send until status is `complete`; the worker fills in steps as it investigates.",
                 tests=[

@@ -40,7 +40,7 @@ const DEFAULT_CODE_PAYLOAD: ShowCodePayload = {
   title: "src/checkout.ts",
   language: "TypeScript",
   code: `// 1. Any checkout: scan serial with TrustLedger before payment
-const res = await fetch("https://api.trustledger.io/checkout/scan", {
+const res = await fetch(TRUSTLEDGER_API + "/checkout/scan", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({

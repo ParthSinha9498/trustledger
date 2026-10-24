@@ -522,7 +522,7 @@ function StoryIndex() {
         </div>
         <h1 className={s.indexTitle}>TrustLedger in 3 minutes</h1>
         <p className={s.indexSubtitle}>
-          Full-screen presentation cards designed for the video demo and judges review (1280×720)
+          Interactive walkthrough covering checkout authenticity verification, differential privacy, and brand insights.
         </p>
       </div>
 

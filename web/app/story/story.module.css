@@ -657,8 +657,8 @@
 /* Index Page (Judges Dashboard) */
 .indexContainer {
   min-height: 100vh;
-  background-color: #0b1220;
-  color: #f8fafc;
+  background-color: var(--bg);
+  color: var(--fg);
   padding: 48px 32px;
   font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   box-sizing: border-box;
@@ -671,17 +671,19 @@
 }
 
 .indexTitle {
-  font-size: 40px;
+  font-size: 36px;
   font-weight: 800;
   letter-spacing: -0.02em;
   margin-bottom: 12px;
-  color: #ffffff;
+  color: var(--fg);
 }
 
 .indexSubtitle {
-  font-size: 18px;
-  color: #94a3b8;
-  margin: 0;
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 720px;
+  margin: 0 auto;
+  line-height: 1.5;
 }
 
 .indexGrid {
@@ -693,23 +695,24 @@
 }
 
 .indexCard {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(51, 65, 85, 0.6);
-  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 14px);
   padding: 24px;
   text-decoration: none;
-  color: inherit;
+  color: var(--fg);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .indexCard:hover {
-  border-color: #3b82f6;
-  transform: translateY(-3px);
-  background: rgba(30, 41, 59, 0.8);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-md);
 }
 
 .indexCardTop {
@@ -717,25 +720,25 @@
 }
 
 .indexCardId {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #60a5fa;
+  color: var(--accent);
   letter-spacing: 0.08em;
   margin-bottom: 8px;
 }
 
 .indexCardTitle {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
-  color: #f1f5f9;
-  line-height: 1.3;
+  color: var(--fg);
+  line-height: 1.35;
 }
 
 .indexCardDesc {
-  font-size: 14px;
-  color: #94a3b8;
-  line-height: 1.4;
+  font-size: 13.5px;
+  color: var(--muted);
+  line-height: 1.45;
   margin: 0;
 }
 

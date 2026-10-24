@@ -1,0 +1,47 @@
+/* Bryntum Scheduler on the supply chain page. Theme CSS is imported in Timeline.tsx. */
+@import "@bryntum/scheduler/svalbard-dark.css" (prefers-color-scheme: dark);
+
+.sc-timeline {
+  height: min(720px, 78vh);
+  min-height: 420px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--card);
+}
+.sc-timeline.auto { height: auto; min-height: 0; }
+.sc-timeline .b-sch-event.leak { outline: 2px solid #d92d20; outline-offset: 1px; font-weight: 600; }
+.sc-timeline .b-sch-dependency.leak { stroke: #d92d20; stroke-width: 2px; }
+.sc-timeline .b-grid-row.sc-row-off .b-grid-cell { color: var(--bad); font-weight: 600; }
+.sc-timeline .b-grid-row.sc-row-off,
+.sc-timeline .b-grid-row.sc-row-off .b-grid-cell { background: var(--bad-bg); }
+.sc-timeline .b-sch-event { font-size: 13px; padding-inline: 6px; color: #fff !important; }
+.sc-timeline .b-sch-event .b-sch-event-content { margin-inline: 0; color: #fff !important; }
+.sc-timeline .sc-who { display: grid; line-height: 1.25; min-width: 0; }
+.sc-timeline .sc-who span, .sc-timeline .sc-who small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-timeline .sc-who small { font-size: 12px; font-weight: 500; opacity: 0.75; }
+
+@media (prefers-color-scheme: dark) {
+  .sc-timeline .b-grid-headers,
+  .sc-timeline .b-grid-header,
+  .sc-timeline .b-sch-timeaxis-column,
+  .sc-timeline .b-sch-header-timeaxis-cell {
+    background: var(--chip) !important;
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .sc-timeline .b-grid-body-container,
+  .sc-timeline .b-grid-row,
+  .sc-timeline .b-grid-cell,
+  .sc-timeline .b-timeline-subgrid,
+  .sc-timeline .b-grid-subgrid {
+    background: var(--card) !important;
+    color: var(--fg) !important;
+    border-color: var(--line) !important;
+  }
+  .sc-timeline .b-grid-row.sc-row-off,
+  .sc-timeline .b-grid-row.sc-row-off .b-grid-cell { background: var(--bad-bg) !important; color: var(--bad) !important; }
+  .sc-timeline .b-grid-row:hover,
+  .sc-timeline .b-grid-row:hover .b-grid-cell { background: var(--chip-hover) !important; }
+  .sc-timeline .b-column-line { border-color: var(--line-subtle) !important; }
+}

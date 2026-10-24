@@ -150,21 +150,69 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 ---
 
-## Quickstart & Local Setup
+## Try It & Testing Instructions
 
-### 1. Prerequisites
-- Python 3.12+ with `uv`
-- Node.js 22+ with `npm`
-- Docker (for PostgreSQL 17 on port 5433)
+> **Hosted Application:** [https://trustledger.onrender.com](https://trustledger.onrender.com) *(live link active upon final deployment)*
 
-### 2. Start Services
+### 1. Step-by-Step Testing Walkthrough
+
+Follow these 4 steps to evaluate the end-to-end checkout protection and autonomous intelligence flow:
+
+#### Step 1: Authentic Checkout at Store A
+1. Open `/pos` (Store Checkout).
+2. Ensure **Store A** is selected. The serial field defaults to `X123`.
+3. Click **Verify and check out**.
+4. The brand verifies unit provenance against Store A's authorized distributor shipments.
+5. Verification succeeds before any payment order exists.
+6. The PayPal checkout flow initiates. Complete the purchase using the **sandbox buyer (provided privately)**.
+7. The customer receipt confirms the verified transaction, with the brand verification ID stored in the PayPal order's `custom_id`.
+
+#### Step 2: Out-of-Channel & Counterfeit Block at Store B
+1. Return to `/pos`.
+2. Switch store selection to **Store B**.
+3. Enter serial `X123` (Store A stock) or an unsold Store A unit (e.g. `XA000001`).
+4. Click **Verify and check out**.
+5. The transaction is deterministically blocked: `NOT_IN_CHANNEL`.
+6. **No PayPal order is ever created.** Customer funds never move. An automated investigation case is opened for the brand.
+
+#### Step 3: Autonomous Investigation in the Cockpit
+1. Open `/cockpit` (Investigations).
+2. The newly opened Store B case appears in the table.
+3. Open the case to observe the autonomous investigation agent at work.
+4. The agent queries isolated brand shipment records and bounded PayPal transaction aggregates without ever seeing raw customer personal data.
+5. In mock mode, high-fidelity replays demonstrate the complete multi-step timeline, cited findings, and timeline status pills.
+
+#### Step 4: Differential Privacy Brand Insights
+1. Open `/cockpit/insights` (or `/cockpit/console`).
+2. Explore audience questions answered from the private release (customer age bands, product distributions, spend estimates).
+3. Every answer is served directly from the private release with ±95% confidence intervals and small groups hidden, spending no further privacy budget.
+
+---
+
+### 2. Demo Serials Reference
+
+All test serials originate deterministically from `backend/seed.py`:
+
+| Serial / Pattern | Origin in `backend/seed.py` | Behavior & Expected Verdict |
+|---|---|---|
+| `X123` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens.<br/>**Blocked at Store B (`NOT_IN_CHANNEL`):** Store B is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store B, the brand detects an out-of-channel batch (`seed.py:236`), halting payment with zero PayPal order created. |
+| `XA000001` .. `XA000020` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store B. |
+| `XB000001` .. `XB000020` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250) | Unsold genuine inventory at Store B. Verified at Store B; blocked if scanned at Store A. |
+| Pre-seeded clone attempts | `backend/seed.py:235-238` | 40 historical blocked attempts at Store B (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
+
+---
+
+### 3. Quick Local Run (Zero External Keys Required)
+
+You can run the entire platform locally in mock mode without configuring external LLM or PayPal API keys:
+
 ```bash
 # 1. Environment & Database
 cp .env.example .env
 docker compose up -d postgres
 uv sync
 
-# 2. Seed Data
+# 2. Seed Database (catalog, shipments, transactions, and private release)
 uv run python -m backend.seed
 
 # 3. Start Backend Nodes
@@ -179,7 +227,7 @@ cd web && npm install && npm run dev
 Visit **http://localhost:3000** to explore the application:
 - `/pos`: Test retail verification (Store A = Verified, Store B = Blocked)
 - `/cockpit`: View live investigations and agent findings
-- `/cockpit/console` (alias `/cockpit/insights`): Brand Insights, business questions answered from verified purchases with privacy guarantees
+- `/cockpit/insights` (or `/cockpit/console`): Brand Insights, business questions answered from verified purchases with privacy guarantees
 - `/cockpit/supply-chain`: Explore the Bryntum timeline
 - `/story`: Walk through the pitch deck
 

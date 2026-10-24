@@ -14,7 +14,7 @@ import kpi from "@/components/cockpit/cockpit-charts.module.css";
 import { api, errorText, type Budget, type Case } from "@/lib/api";
 import styles from "./cockpit.module.css";
 
-const WEEKS = 8;
+const WEEKS = 4;
 type Store = { store_id: string; name: string };
 /** /cases rows also carry how many blocked checkouts were grouped into the case. */
 type CaseRow = Case & { failure_count?: number };
@@ -36,6 +36,15 @@ function Confidence({ value }: { value?: string | null }) {
       {c.text}
     </span>
   );
+}
+
+/**
+ * Show a donut only when there are ≥ 2 active slices, avoiding monochromatic or empty grey rings.
+ */
+function donutOrNull(name: string, segments: { label: string; value: number; color: (dark: boolean) => string }[]) {
+  const active = segments.filter((s) => s.value > 0);
+  if (active.length < 2) return null;
+  return { kind: "donut" as const, name, segments };
 }
 
 /**
@@ -70,7 +79,17 @@ export default function Cockpit() {
   const [stores, setStores] = useState<Record<string, string>>({});
   const [blocked, setBlocked] = useState<BlockedSummary | null>(null);
   const [blockedErr, setBlockedErr] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 640px)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -102,11 +121,11 @@ export default function Cockpit() {
     { field: "store_id", headerName: "Store", minWidth: 100, valueFormatter: (p) => storeName(p.value as string, names) },
     { field: "sku", headerName: "Product", minWidth: 150, valueFormatter: (p) => productName(p.value as string) },
     { field: "reason_code", headerName: "Reason", minWidth: 140, valueFormatter: (p) => reasonName(p.value as string) },
-    { field: "failure_count", headerName: "Blocked", maxWidth: 110, minWidth: 96, type: "numericColumn",
+    { field: "failure_count", headerName: "Blocked", maxWidth: 110, minWidth: 96, cellClass: "ag-right-aligned-cell",
       headerTooltip: "Blocked checkouts grouped into this case" },
     { field: "status", headerName: "Status", minWidth: 130, cellRenderer: (p: { value: string }) => <StatusPill status={p.value} /> },
     { field: "confidence", headerName: "Confidence", minWidth: 130, cellRenderer: (p: { value?: string }) => <Confidence value={p.value} /> },
-    { field: "findings", headerName: "Findings", maxWidth: 110, minWidth: 96, type: "numericColumn" },
+    { field: "findings", headerName: "Findings", maxWidth: 110, minWidth: 96, cellClass: "ag-right-aligned-cell" },
     { colId: "mode", headerName: "Run", minWidth: 130, valueGetter: (p) => (p.data ? modeOf(p.data) : ""),
       cellRenderer: (p: { value: Mode }) => MODE_PILL[p.value] == null ? <span className="muted">—</span>
         : <span className={`pill ${MODE_PILL[p.value]}`}>{p.value}</span> },
@@ -168,26 +187,26 @@ export default function Cockpit() {
                  chart={blocked ? { kind: "spark", points: weekly, name: "Failed authenticity checks per week" } : null} />
         <KpiTile value={blocked ? Object.keys(perStore).length : "–"} label="Stores with failed checks"
                  sub={topStore ? `Most: ${storeName(topStore[0], names)} (${topStore[1]})` : "None in this period"}
-                 chart={blocked ? { kind: "donut", name: "Failed authenticity checks by store", segments: storeOrder.map((s, i) => ({
-                   label: storeName(s, names), value: perStore[s] ?? 0, color: (d: boolean) => slot(i, d) })) } : null} />
+                 chart={blocked ? donutOrNull("Failed authenticity checks by store", storeOrder.map((s, i) => ({
+                   label: storeName(s, names), value: perStore[s] ?? 0, color: (d: boolean) => slot(i, d) }))) : null} />
         <KpiTile tone="accent" value={cases ? cases.length : "–"} label="Investigations"
                  sub={`${inProgress} in progress · ${counts.complete ?? 0} complete`}
-                 chart={cases ? { kind: "donut", name: "Investigations by status", segments: [
+                 chart={cases ? donutOrNull("Investigations by status", [
                    { label: "Open", value: counts.open ?? 0, color: (d) => ink(d).warn },
                    { label: "Investigating", value: counts.investigating ?? 0, color: (d) => ink(d).accent },
                    { label: "Waiting for capacity", value: counts.waiting_capacity ?? 0, color: (d) => ink(d).neutral },
                    { label: "Complete", value: counts.complete ?? 0, color: (d) => ink(d).ok },
                    { label: "Failed", value: counts.failed ?? 0, color: (d) => ink(d).bad },
-                 ] } : null} />
+                 ]) : null} />
         <KpiTile tone="ok" value={cases ? findings : "–"} label="Agent findings"
                  sub={conf.high + conf.medium + conf.low
                    ? `Confidence: ${conf.high} high · ${conf.medium} medium · ${conf.low} low`
                    : "Cited from aggregates only, never raw rows"}
-                 chart={cases ? { kind: "donut", name: "Completed investigations by confidence", segments: [
+                 chart={cases ? donutOrNull("Completed investigations by confidence", [
                    { label: "High", value: conf.high, color: (d) => ink(d).ok },
                    { label: "Medium", value: conf.medium, color: (d) => ink(d).warn },
                    { label: "Low", value: conf.low, color: (d) => ink(d).neutral },
-                 ] } : null} />
+                 ]) : null} />
       </div>
 
       <section className="card elevated">
@@ -221,6 +240,55 @@ export default function Cockpit() {
           </div>
         ) : cases === null && !err ? (
           <div className={`skeleton ${styles.gridSkeleton}`} />
+        ) : isMobile ? (
+          <div style={{ display: "grid", gap: "10px" }}>
+            {(cases ?? []).map((c) => (
+              <div
+                key={c.case_id}
+                onClick={() => router.push(`/cockpit/cases/${c.case_id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/cockpit/cases/${c.case_id}`); }}
+                style={{
+                  background: "var(--card)",
+                  border: "1px solid var(--line)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "14px",
+                  cursor: "pointer",
+                  display: "grid",
+                  gap: "8px",
+                  boxShadow: "var(--shadow-sm)",
+                  transition: "border-color var(--transition-fast)",
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <span className={styles.caseRef}>{shortCase(c.case_id)}</span>
+                    <strong style={{ fontSize: "14px" }}>{storeName(c.store_id, names)}</strong>
+                  </div>
+                  <StatusPill status={c.status} />
+                </div>
+                <div style={{ fontSize: "13.5px", color: "var(--fg)" }}>
+                  {reasonName(c.reason_code)}
+                </div>
+                <div className="muted small" style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", alignItems: "center" }}>
+                  <span>{productName(c.sku)}</span>
+                  <span>·</span>
+                  <span>{c.failure_count ?? 1} blocked</span>
+                  {c.findings ? (
+                    <>
+                      <span>·</span>
+                      <span>{c.findings} findings</span>
+                    </>
+                  ) : null}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", borderTop: "1px dashed var(--line)", paddingTop: "8px" }}>
+                  <Confidence value={c.confidence} />
+                  <span className="muted small">{shortDate(c.created_at)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className={styles.casesGrid}>
             <Grid<CaseRow> rows={cases ?? []} columns={columns} autoHeight

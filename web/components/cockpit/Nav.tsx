@@ -15,18 +15,11 @@ const LINKS = [
 export default function Nav() {
   const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
-  const [isStoryCard, setIsStoryCard] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
-  // Close mobile drawer on route change & detect story presentation card mode
+  // Close mobile drawer on route change
   useEffect(() => {
     setOpen(false);
-    if (path === "/story") {
-      const params = new URLSearchParams(window.location.search);
-      setIsStoryCard(params.has("card"));
-    } else {
-      setIsStoryCard(false);
-    }
   }, [path]);
 
   // Handle Escape key to close mobile menu and return focus to toggle button
@@ -41,9 +34,6 @@ export default function Nav() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open]);
-
-  // Hide nav on individual presentation cards, but prerender and display on all static pages and /story index
-  if (isStoryCard || (path.startsWith("/story/") && path !== "/story")) return null;
 
   const active = (href: string, exact?: boolean, alias?: string) =>
     exact

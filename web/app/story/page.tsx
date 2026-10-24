@@ -25,7 +25,7 @@ const CARDS: CardMeta[] = [
   { id: "guarantee", title: "Formal privacy guarantee", desc: "Buyers stay anonymous: one fixed privacy limit per brand, for life" },
   { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Store POS API" },
   { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
-  { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },
+  { id: "code", title: "Checkout Integration Code", desc: "One POST to /checkout/scan before PayPal payment creation" },
 ];
 
 
@@ -39,25 +39,27 @@ interface ShowCodePayload {
 const DEFAULT_CODE_PAYLOAD: ShowCodePayload = {
   title: "src/checkout.ts",
   language: "TypeScript",
-  code: `import { verifyProduct } from "@trustledger/sdk";
-
-// 1. Any checkout: verify serial with brand before payment
-const verdict = await verifyProduct({
-  serialNumber: item.serial,
-  sku: item.sku,
-  storeId: checkout.storeId,
+  code: `// 1. Any checkout: scan serial with TrustLedger before payment
+const res = await fetch("https://api.trustledger.io/checkout/scan", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    serial: item.serial,
+    sku: item.sku,
+    amount: item.amount,
+    store_id: checkout.storeId,
+  }),
 });
+const verdict = await res.json();
 
-// 2. Only genuine goods reach PayPal payment creation
+// 2. Only genuine goods create a PayPal payment order
 if (verdict.status === "VERIFIED") {
-  return await paypal.createOrder({
-    ...orderData,
-    custom_id: verdict.id,
-  });
+  return verdict.paypal_order_id;
 }
 
-throw new Error(\`Authenticity check failed: \${verdict.reason}\`);`,
-  highlight: [4, 5, 6, 7, 8, 11, 12, 13, 14],
+// 3. Failed items never create an order; investigation opens automatically
+throw new Error(\`Authenticity check failed: \${verdict.reason_code}\`);`,
+  highlight: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16],
 };
 
 function formatCodeLine(line: string) {
@@ -238,7 +240,7 @@ function CardView({ cardId }: { cardId: string }) {
   }, [actualCardId]);
 
   return (
-    <div className={s.storyContainer}>
+    <div className={`${s.storyContainer} storyCardRoot`}>
       <Link href="/story" style={{ position: "fixed", top: "20px", left: "24px", color: "#94a3b8", textDecoration: "none", fontSize: "14px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px", zIndex: 100, background: "rgba(15, 23, 42, 0.6)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(51, 65, 85, 0.5)", backdropFilter: "blur(6px)" }}>
         ← All cards
       </Link>

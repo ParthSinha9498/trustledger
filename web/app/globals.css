@@ -135,7 +135,11 @@ a:hover { color: var(--accent-hover); }
 code { font-family: var(--font-mono); font-size: 12.5px; }
 
 /* ---------- nav ---------- */
-nav, .topnav {
+body:has(.storyCardRoot) .topnav {
+  display: none !important;
+}
+
+.topnav {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -148,7 +152,7 @@ nav, .topnav {
   z-index: 50;
   transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
-nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
+.topnav a { color: var(--fg); text-decoration: none; font-weight: 600; }
 .topnav .brand {
   display: flex;
   align-items: center;
@@ -206,7 +210,7 @@ nav a { color: var(--fg); text-decoration: none; font-weight: 600; }
 }
 
 @media (max-width: 800px) {
-  nav, .topnav {
+  .topnav {
     padding: 10px 16px;
   }
   .desktopOnly {

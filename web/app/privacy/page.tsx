@@ -196,7 +196,7 @@ export default function PrivacyPage() {
             <span>Evidence &amp; red-team validation</span>
           </div>
           <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.5, color: "var(--fg)" }}>
-            Internal red-team: 11 attack types, none extracted a confident individual-level fact (<code>evals/results/redteam_repeated.md</code>).
+            Internal red-team: 11 attack types, none extracted a confident individual-level fact (<a href="https://github.com/ParthSinha9498/trustledger/blob/main/evals/results/redteam_repeated.md" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "underline" }}>red-team results</a>).
           </p>
           <details style={{ marginTop: "12px", fontSize: "12px", color: "var(--muted)", borderTop: "1px dashed var(--line)", paddingTop: "10px", cursor: "pointer" }}>
             <summary style={{ fontWeight: 650, color: "var(--fg)" }}>Note on scope &amp; credentials</summary>

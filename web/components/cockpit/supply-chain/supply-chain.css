@@ -1,8 +1,9 @@
-/* Supply chain page layout (route-local). Bryntum styles live in timeline.css. */
-.sc-panel { display: grid; gap: 16px; min-width: 0; }
-.sc-panel .stat-row { margin-bottom: 0; }
+/* Supply chain layout, shared by the supply chain page and the case page. Bryntum styles live in timeline.css. */
+.sc-panel, .sc-view { display: grid; gap: 16px; min-width: 0; }
+.sc-panel .stat-row, .sc-view .stat-row { margin-bottom: 0; }
 .sc-section { display: grid; gap: 10px; min-width: 0; }
 .sc-section h2 { margin: 0; font-size: 17px; }
+.sc-section h3 { margin: 0; font-size: 15px; }
 .sc-summary { margin: 0; font-size: 15px; line-height: 1.55; }
 .sc-summary-bad { border-inline-start: 3px solid var(--bad); padding: 8px 12px; background: var(--bad-bg); border-radius: 0 8px 8px 0; }
 .sc-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }

@@ -56,7 +56,10 @@
 .paypal .question { animation-name: toPaypal; animation-duration: .4s; animation-delay: calc(var(--i) * .45s); }
 .brand .answer { animation-name: fromBrand; animation-duration: .4s; animation-delay: calc(var(--i) * .45s + .22s); }
 .paypal .answer { animation-name: fromPaypal; animation-duration: .4s; animation-delay: calc(var(--i) * .45s + .22s); }
-.answer { font-weight: 600; align-self: center; box-shadow: var(--shadow-md); }  /* answers come back to the agent in the middle */
+/* Each answer sits on the side of the node that sent it (brand left, PayPal-side right), just inside its question. */
+.answer { font-weight: 600; box-shadow: var(--shadow-md); }
+.lane.brand .answer { margin-left: 28px; }
+.lane.paypal .answer { margin-right: 28px; }
 .agent {
   align-self: center; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: var(--muted); padding: 3px 12px; border: 1px dashed var(--line); border-radius: var(--radius-pill); margin-bottom: 6px;
@@ -83,6 +86,7 @@
   .wrap { grid-template-columns: 1fr 1fr; grid-template-areas: "brand paypal" "lanes lanes" "foot foot"; }
   .vault { position: static; }
   .q { max-width: 100%; }
+  .lane .answer { max-width: calc(100% - 28px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .q { animation: none !important; opacity: 1 !important; transform: none !important; }

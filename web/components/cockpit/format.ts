@@ -1,4 +1,4 @@
-import type { Budget, Noise, QueryResult, ResultRow } from "@/lib/api";
+import { weekToDate, type Budget, type Noise, type QueryResult, type ResultRow } from "@/lib/api";
 
 export const DIM_LABELS: Record<string, string> = {
   region: "Region", city: "City", store_id: "Store", sku: "Product", week: "Week",
@@ -25,8 +25,25 @@ export function dimsOf(result: QueryResult): string[] {
 }
 export const MEASURES = new Set(["value", "ci95", "buyers", "mean_spend"]);
 
-export function rowLabel(row: ResultRow, dims: string[]): string {
-  return dims.length ? dims.map((d) => String(row[d] ?? "")).join(" · ") : "Total";
+/** Chart/row label from the display names of a row's dimension values. */
+export function rowLabel(row: ResultRow, dims: string[], names?: Record<string, string>): string {
+  return dims.length ? dims.map((d) => displayValue(d, row[d], names)).join(" · ") : "Total";
+}
+
+/** Dimensions whose raw values are ids or codes; the grid shows a name and keeps the raw value in a tooltip. */
+export const NAMED_DIMS = new Set(["store_id", "distributor_id", "sku", "reason_code"]);
+
+/** Display name for one dimension value: store/distributor names, product names, plain reason labels. */
+export function displayValue(dim: string, raw: unknown, names?: Record<string, string>): string {
+  if (raw == null) return "";
+  const v = String(raw);
+  switch (dim) {
+    case "store_id":
+    case "distributor_id": return names?.[v] ?? prettyId(v);
+    case "sku": return productName(v);
+    case "reason_code": return REASON_TEXT[v] ?? v.toLowerCase().replace(/_/g, " ");
+    default: return v;
+  }
 }
 
 /** Plain-language privacy note for a PayPal-side result. The ± on each value carries the numbers. */
@@ -46,6 +63,20 @@ export function prettyId(id: string): string {
   const m = id.match(/^(store|dist)_(\w+)$/i);
   if (!m) return id;
   return `${m[1].toLowerCase() === "store" ? "Store" : "Distributor"} ${m[2].toUpperCase()}`;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "7 Sep" for the Monday that starts the given demo week. */
+export function weekLabel(week: number): string {
+  const d = weekToDate(week);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+/** "Northline Distribution, Crestway Supply and Store C" */
+export function joinNames(names: string[]): string {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 export const REASON_TEXT: Record<string, string> = {

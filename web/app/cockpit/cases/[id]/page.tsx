@@ -6,7 +6,7 @@ import BudgetMeter from "@/components/cockpit/BudgetMeter";
 import DataBoundary from "@/components/cockpit/DataBoundary";
 import StatusPill from "@/components/cockpit/StatusPill";
 import StepTimeline, { Cites, citationsOf, linkSteps } from "@/components/cockpit/StepTimeline";
-import SupplyChainPanel from "@/components/cockpit/SupplyChainPanel";
+import SupplyChainPanel from "@/components/cockpit/supply-chain/SupplyChainPanel";
 import { prettyId, productName, REASON_TEXT } from "@/components/cockpit/format";
 import { api, errorText, type Budget, type CaseDetail, type Step } from "@/lib/api";
 import cs from "./case.module.css";
@@ -24,7 +24,7 @@ type Store = { store_id: string; name?: string };
 type CaseExtra = CaseDetail & { failure_count?: number; skus?: string[] };
 
 /** true / false once known on the client; null before the first check (so nothing heavy mounts on SSR). */
-function useNarrow(query = "(max-width: 640px)"): boolean | null {
+function useNarrow(query = "(max-width: 700px)"): boolean | null {
   const [narrow, setNarrow] = useState<boolean | null>(null);
   useEffect(() => {
     const mq = window.matchMedia(query);
@@ -188,7 +188,7 @@ export default function CaseDetailPage() {
             {modeMeta}
             {c.serial && <> · Serial <code>{c.serial}</code></>}
             {(c.failure_count ?? 1) > 1 && <> · {c.failure_count} failed scans</>}
-            {" "}· Opened {new Date(c.created_at).toLocaleString()} · {c.case_id}
+            {" "}· Opened {new Date(c.created_at).toLocaleString()}
           </p>
           {isMock && !waitingNoRun ? (
             <div className={`${cs.notice} ${cs.noticeWarn}`}>
@@ -236,13 +236,18 @@ export default function CaseDetailPage() {
       </section>
 
       <section className="card">
-        <h2>Supply chain for {product}</h2>
-        {narrow === false && <SupplyChainPanel sku={c.sku} compact />}
-        {narrow === true && (
-          <div className={cs.supplyLink}>
-            <p className="muted small">The shipment timeline needs a wider screen.</p>
-            <Link className="button secondary" href={`/cockpit/supply-chain?sku=${encodeURIComponent(c.sku)}`}>Open supply chain</Link>
-          </div>
+        <h2>Supply chain for {product} at {storeName}</h2>
+        <p className="muted">Batches of this product that were shipped to {storeName} or turned up there.</p>
+        {narrow !== null && (
+          <SupplyChainPanel sku={c.sku} storeId={c.store_id} narrow={narrow} mobileNote={
+            <div className={cs.supplyLink}>
+              <p>The week-by-week timeline needs a wider screen.</p>
+              <Link className="button secondary"
+                href={`/cockpit/supply-chain?sku=${encodeURIComponent(c.sku)}&store=${encodeURIComponent(c.store_id)}`}>
+                Open supply chain
+              </Link>
+            </div>
+          } />
         )}
       </section>
     </main>

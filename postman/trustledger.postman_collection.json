@@ -229,7 +229,7 @@
           ]
         },
         {
-          "name": "Blocked checkouts by week (cockpit chart)",
+          "name": "Failed authenticity checks by week (cockpit chart)",
           "request": {
             "method": "GET",
             "header": [],

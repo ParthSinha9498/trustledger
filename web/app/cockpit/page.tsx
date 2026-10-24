@@ -38,12 +38,21 @@ function Confidence({ value }: { value?: string | null }) {
   );
 }
 
-function modeOf(c: Case): "Live" | "Replay" | "Interrupted" {
-  const interrupted = (c.status === "failed" && c.agent_mode === "live") ||
-    (c.status === "waiting_capacity" && ((c.step_count ?? 0) > 0 || (c.findings ?? 0) > 0));
-  if (interrupted) return "Interrupted";
-  return c.agent_mode === "replay" ? "Replay" : "Live";
+/** Who ran the investigation. Never defaults to "Live AI": an unknown mode shows a dash. */
+type Mode = "Live AI" | "Interrupted" | "Offline mock" | "Replay" | "—";
+function modeOf(c: Case): Mode {
+  if (c.agent_mode === "live") {
+    const interrupted = c.status === "failed" ||
+      (c.status === "waiting_capacity" && ((c.step_count ?? 0) > 0 || (c.findings ?? 0) > 0));
+    return interrupted ? "Interrupted" : "Live AI";
+  }
+  if (c.agent_mode === "mock") return "Offline mock";
+  if (c.agent_mode === "replay") return "Replay";
+  return "—";
 }
+const MODE_PILL: Record<Mode, string | null> = {
+  "Live AI": "pill-ok", Interrupted: "pill-open", "Offline mock": "", Replay: "pill-run", "—": null,
+};
 
 const shortDate = (v?: string) => v
   ? new Date(v).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
@@ -69,7 +78,7 @@ export default function Cockpit() {
     return () => { live = false; clearInterval(t); };
   }, []);
 
-  // Blocked checkouts change only when a scan is blocked, which also touches a case: refetch on that signal.
+  // Failed checks change only when a scan is blocked, which also touches a case: refetch on that signal.
   const signal = (cases ?? []).reduce((n, c) => n + (c.failure_count ?? 1), 0);
   useEffect(() => {
     let live = true;
@@ -92,9 +101,9 @@ export default function Cockpit() {
     { field: "status", headerName: "Status", minWidth: 130, cellRenderer: (p: { value: string }) => <StatusPill status={p.value} /> },
     { field: "confidence", headerName: "Confidence", minWidth: 130, cellRenderer: (p: { value?: string }) => <Confidence value={p.value} /> },
     { field: "findings", headerName: "Findings", maxWidth: 110, minWidth: 96, type: "numericColumn" },
-    { colId: "mode", headerName: "Run", minWidth: 110, valueGetter: (p) => (p.data ? modeOf(p.data) : ""),
-      cellRenderer: (p: { value: string }) => p.value === "Live" ? <span className="muted">Live</span>
-        : <span className={`pill ${p.value === "Replay" ? "pill-run" : "pill-open"}`}>{p.value}</span> },
+    { colId: "mode", headerName: "Run", minWidth: 130, valueGetter: (p) => (p.data ? modeOf(p.data) : ""),
+      cellRenderer: (p: { value: Mode }) => MODE_PILL[p.value] == null ? <span className="muted">—</span>
+        : <span className={`pill ${MODE_PILL[p.value]}`}>{p.value}</span> },
     { field: "created_at", headerName: "Opened", minWidth: 140, sort: "desc", valueFormatter: (p) => shortDate(p.value as string) },
   ], [names]);
 
@@ -148,12 +157,12 @@ export default function Cockpit() {
       </div>
 
       <div className={kpi.kpiRow}>
-        <KpiTile tone="bad" value={blocked ? blocked.total : "–"} label="Blocked checkouts"
+        <KpiTile tone="bad" value={blocked ? blocked.total : "–"} label="Failed checks"
                  sub={topReason ? `Last ${WEEKS} weeks · mostly ${reasonName(topReason[0]).toLowerCase()}` : `Last ${WEEKS} weeks`}
-                 chart={blocked ? { kind: "spark", points: weekly, name: "Blocked checkouts per week" } : null} />
-        <KpiTile value={blocked ? Object.keys(perStore).length : "–"} label="Stores with blocks"
+                 chart={blocked ? { kind: "spark", points: weekly, name: "Failed authenticity checks per week" } : null} />
+        <KpiTile value={blocked ? Object.keys(perStore).length : "–"} label="Stores with failed checks"
                  sub={topStore ? `Most: ${storeName(topStore[0], names)} (${topStore[1]})` : "None in this period"}
-                 chart={blocked ? { kind: "donut", name: "Blocked checkouts by store", segments: storeOrder.map((s, i) => ({
+                 chart={blocked ? { kind: "donut", name: "Failed authenticity checks by store", segments: storeOrder.map((s, i) => ({
                    label: storeName(s, names), value: perStore[s] ?? 0, color: (d: boolean) => slot(i, d) })) } : null} />
         <KpiTile tone="accent" value={cases ? cases.length : "–"} label="Investigations"
                  sub={`${inProgress} in progress · ${counts.complete ?? 0} complete`}
@@ -176,13 +185,13 @@ export default function Cockpit() {
       </div>
 
       <section className="card elevated">
-        {blockedErr && <div className="refusal">Couldn&apos;t load blocked checkouts: {blockedErr}</div>}
+        {blockedErr && <div className="refusal">Couldn&apos;t load failed checks: {blockedErr}</div>}
         {!blocked && !blockedErr && <div className={`skeleton ${styles.chartSkeleton}`} />}
         {blocked && (
           <BlockedChart data={{ ...blocked, store_names: names }} header={
             <>
-              <h2>Blocked checkouts by week</h2>
-              <p>Exact counts from the brand&apos;s verification API, last {WEEKS} weeks. Each one stopped the sale before a PayPal order existed.</p>
+              <h2>Failed authenticity checks by week</h2>
+              <p>Exact counts from the brand&apos;s verification API. Each one stopped the sale before a PayPal order existed.</p>
             </>
           } />
         )}

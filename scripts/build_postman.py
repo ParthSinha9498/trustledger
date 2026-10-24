@@ -86,7 +86,7 @@ demo = {
         request("List cases", "GET", "apiBaseUrl", "/cases", tests=[
             "const ids = pm.response.json().map(c => c.case_id);",
             "pm.test('Store B case listed', () => pm.expect(ids).to.include(pm.collectionVariables.get('caseId')));"]),
-        request("Blocked checkouts by week (cockpit chart)", "GET", "apiBaseUrl", "/cockpit/blocked",
+        request("Failed authenticity checks by week (cockpit chart)", "GET", "apiBaseUrl", "/cockpit/blocked",
                 description="Exact counts of failed brand checks by week, reason and store, asked of the brand "
                             "node's aggregate API (no buyer data, no privacy budget).",
                 tests=[

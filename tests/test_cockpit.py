@@ -1,4 +1,4 @@
-"""Cockpit overview: blocked checkouts by reason/store over time, via the brand node's aggregate API."""
+"""Cockpit overview: failed authenticity checks by reason/store over time, via the brand node's aggregate API."""
 
 
 def test_blocked_counts_seeded_clone_attempts(env):

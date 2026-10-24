@@ -1,8 +1,9 @@
-"""Cockpit overview data: blocked checkouts over time, by reason and by store.
+"""Cockpit overview data: failed authenticity checks over time, by reason and by store.
 
 The api never reads the brand database. It asks the brand node through its existing aggregate query API
 (`POST /v1/query`, metric verification_failures), which returns exact business counts (no buyer data, no
-privacy budget). Every NOT_VERIFIED answer from the brand blocks the checkout, so these are blocked checkouts.
+privacy budget). These are all NOT_VERIFIED answers in the brand's verification log: a live one blocks the checkout
+before any PayPal order exists; the seeded clone attempts never became checkouts.
 Store display names come from the platform's own `stores` table.
 """
 import httpx
@@ -29,7 +30,7 @@ def _failures(group_by: list[str], week_from: int) -> list[dict]:
 
 @router.get("/blocked")
 def blocked(weeks: int = Query(8, ge=1, le=26)):
-    """Blocked checkouts in the last `weeks` weeks (exact counts from the brand's verification API)."""
+    """Failed authenticity checks in the last `weeks` weeks (exact counts from the brand's verification API)."""
     now = config.current_week()
     week_from = max(1, now - weeks + 1)
     by_reason = _failures(["week", "reason_code"], week_from)

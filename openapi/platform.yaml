@@ -148,7 +148,8 @@ paths:
       tags:
       - cockpit
       summary: Blocked
-      description: Blocked checkouts in the last `weeks` weeks (exact counts from the brand's verification API).
+      description: Failed authenticity checks in the last `weeks` weeks (exact counts from the brand's verification
+        API).
       operationId: blocked_cockpit_blocked_get
       parameters:
       - name: weeks

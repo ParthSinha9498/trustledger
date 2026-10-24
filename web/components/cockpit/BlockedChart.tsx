@@ -17,8 +17,17 @@ export type BlockedSummary = {
 };
 
 type Split = "reason" | "store";
+const MIN_WEEKS = 4;
 
-/** Stacked weekly columns of blocked checkouts, split by reason or by store (exact brand counts). */
+/** Weeks to plot: from the first week with data (at least the last MIN_WEEKS), so bars fill the width. */
+export function shownWeeks(data: BlockedSummary): number[] {
+  const withData = data.weeks.filter((w) => data.by_reason.some((r) => r.week === w && r.value > 0));
+  const first = withData.length ? withData[0] : data.weeks[data.weeks.length - 1];
+  const start = Math.min(first, data.weeks[Math.max(0, data.weeks.length - MIN_WEEKS)]);
+  return data.weeks.filter((w) => w >= start);
+}
+
+/** Stacked weekly columns of failed authenticity checks, split by reason or by store (exact brand counts). */
 export default function BlockedChart({ data, header, height = 220 }: { data: BlockedSummary; header?: ReactNode; height?: number }) {
   const dark = useDarkMode();
   const [split, setSplit] = useState<Split>("reason");
@@ -29,12 +38,13 @@ export default function BlockedChart({ data, header, height = 220 }: { data: Blo
       ? [...REASONS, ...new Set(data.by_reason.map((r) => r.reason_code).filter((c) => !(REASONS as readonly string[]).includes(c)))]
       : Object.keys(data.store_names).sort();
     const present = new Set(split === "reason" ? data.by_reason.map((r) => r.reason_code) : data.by_store.map((r) => r.store_id));
-    const rows = data.weeks.map((w) => {
+    const weeks = shownWeeks(data);
+    const rows = weeks.map((w) => {
       const row: Record<string, number | string> = { week: `Wk ${w}` };
       for (const k of keys) row[k] = 0;
       return row;
     });
-    const at = (w: number) => rows[data.weeks.indexOf(w)];
+    const at = (w: number) => rows[weeks.indexOf(w)];
     if (split === "reason") for (const r of data.by_reason) { const row = at(r.week); if (row) row[r.reason_code] = r.value; }
     else for (const r of data.by_store) { const row = at(r.week); if (row) row[r.store_id] = r.value; }
     const c = ink(dark);
@@ -69,7 +79,7 @@ export default function BlockedChart({ data, header, height = 220 }: { data: Blo
     <div>
       <div className={styles.chartHead}>
         <div className={styles.chartTitle}>{header}</div>
-        <div className="seg" role="group" aria-label="Split blocked checkouts by">
+        <div className="seg" role="group" aria-label="Split failed checks by">
           <button type="button" className={split === "reason" ? "on" : ""} aria-pressed={split === "reason"} onClick={() => setSplit("reason")}>By reason</button>
           <button type="button" className={split === "store" ? "on" : ""} aria-pressed={split === "store"} onClick={() => setSplit("store")}>By store</button>
         </div>

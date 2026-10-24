@@ -10,8 +10,8 @@ export default function AuthenticityStamp({ className = "" }: { className?: stri
           </svg>
         </div>
         <div className={s.stampText}>
-          <span className={s.stampTitle}>Authenticity verified ✓</span>
-          <span className={s.stampSub}>Brand verified</span>
+          <span className={s.stampTitle}>Authenticity verified</span>
+          <span className={s.stampSub}>Checked by the brand before payment</span>
         </div>
       </div>
     </div>

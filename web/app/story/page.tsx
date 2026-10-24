@@ -239,6 +239,9 @@ function CardView({ cardId }: { cardId: string }) {
 
   return (
     <div className={s.storyContainer}>
+      <Link href="/story" style={{ position: "fixed", top: "20px", left: "24px", color: "#94a3b8", textDecoration: "none", fontSize: "14px", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: "6px", zIndex: 100, background: "rgba(15, 23, 42, 0.6)", padding: "6px 12px", borderRadius: "8px", border: "1px solid rgba(51, 65, 85, 0.5)", backdropFilter: "blur(6px)" }}>
+        ← All cards
+      </Link>
       <div className={`${s.safeArea} ${s.fadeIn}`} key={actualCardId}>
         {actualCardId === "hook" && (
           <>
@@ -512,7 +515,12 @@ function StoryIndex() {
   return (
     <div className={s.indexContainer}>
       <div className={s.indexHeader}>
-        <h1 className={s.indexTitle}>TrustLedger Pitch Storyboard</h1>
+        <div style={{ marginBottom: "16px" }}>
+          <Link href="/" style={{ display: "inline-flex", alignItems: "center", gap: "6px", color: "var(--accent, #60a5fa)", textDecoration: "none", fontSize: "14px", fontWeight: 600 }}>
+            ← Back to Home
+          </Link>
+        </div>
+        <h1 className={s.indexTitle}>TrustLedger in 3 minutes</h1>
         <p className={s.indexSubtitle}>
           Full-screen presentation cards designed for the video demo and judges review (1280×720)
         </p>

@@ -74,8 +74,11 @@ export function offChannelSummary(rows: OffChannel[], names: Map<string, string>
   const stores = [...new Set(rows.map((o) => o.sold_store_id))].map(name);
   const dists = [...new Set(rows.map((o) => o.distributor_id))].map(name);
   const b = batches === 1 ? "1 batch" : `${batches} batches`;
-  const who = batches === 1 ? "It" : dists.length > 1 ? "They" : batches === 2 ? "Both" : `All ${batches}`;
-  return `${units.toLocaleString()} units from ${b} sold at ${joinNames(stores)}, where the brand never shipped `
-    + `${batches === 1 ? "that batch" : "those batches"}. ${who} passed through ${joinNames(dists)}, so the `
-    + `earliest point they could have left the planned route is after ${dists.length === 1 ? "that distributor" : "those distributors"}.`;
+  const first = `${units.toLocaleString()} units from ${b} sold at ${joinNames(stores)}, where the brand never shipped `
+    + `${batches === 1 ? "that batch" : "those batches"}.`;
+  // The route clause only holds when every row went through the same distributor.
+  if (dists.length !== 1) return first;
+  const who = batches === 1 ? "It" : batches === 2 ? "Both" : `All ${batches}`;
+  return `${first} ${who} went through ${dists[0]}, so ${batches === 1 ? "it" : "they"} left the planned route `
+    + `at or after that distributor.`;
 }

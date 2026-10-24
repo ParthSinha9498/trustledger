@@ -150,31 +150,88 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 ---
 
-## Quickstart & Local Setup
+## Try It & Testing Instructions
 
-### 1. Prerequisites
+> **Hosted demo:** URL added after deployment.
+
+### Prerequisites
 - Python 3.12+ with `uv`
 - Node.js 22+ with `npm`
 - Docker (for PostgreSQL 17 on port 5433)
 
-### 2. Start Services
+### 1. Step-by-Step Testing Walkthrough
+
+Follow these 4 steps to evaluate the end-to-end checkout protection and autonomous intelligence flow:
+
+#### Step 1: Authentic Checkout at Store A
+1. Open `/pos` (Store Checkout).
+2. Ensure **Store A** is selected. Click **Fill an unsold unit from this store** (or use `X123` on a freshly seeded local stack).
+3. Click **Verify and check out**.
+4. The brand verifies unit provenance against Store A's authorized distributor shipments.
+5. Verification succeeds before any payment order exists.
+6. The PayPal checkout flow initiates. Complete the purchase using the **sandbox buyer (provided privately)**.
+7. The customer receipt confirms the verified transaction, with the brand verification ID stored in the PayPal order's `custom_id`.
+
+#### Step 2: Out-of-channel block at Store B
+1. Return to `/pos`.
+2. Switch store selection to **Store B**.
+3. Enter serial `X123` (Store A stock) or an unsold Store A unit (e.g. `XA000001`).
+4. Click **Verify and check out**.
+5. The transaction is deterministically blocked: `NOT_IN_CHANNEL`.
+6. No PayPal order exists, so nothing can be paid. An automated investigation case is opened for the brand.
+
+#### Step 3: Autonomous Investigation in the Cockpit
+1. Open `/cockpit` (Investigations).
+2. The Store B case appears (new, or added to an open case for the same store).
+3. Open the case to observe the autonomous investigation agent at work.
+4. The agent sees only aggregates: business-level counts from the brand node and privacy-protected aggregates from PayPal. It never sees a record.
+5. If the AI provider is unavailable, the case shows "waiting for capacity" with the reason and is retried later.
+
+#### Step 4: Differential Privacy Brand Insights
+1. Open `/cockpit/console` (alias `/cockpit/insights`).
+2. Explore audience questions answered from the private release (customer age bands, product distributions, spend estimates).
+3. Answers about buyers (age bands, spend) come from the one-time private release, with a ±95% interval on every value and small groups hidden; asking them spends no further privacy budget. Brand-side counts (units sold) are exact, because they describe businesses, not people.
+
+---
+
+### 2. Demo Serials Reference
+
+All test serials originate deterministically from `backend/seed.py`:
+
+| Serial / Pattern | SKU | Origin in `backend/seed.py` | Behavior & Expected Verdict |
+|---|---|---|---|
+| `X123` | `NMB-P8-128` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens until it is sold (reseed to reset).<br/>**Blocked at Store B (`NOT_IN_CHANNEL`):** Store B is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store B, the brand node finds the unit's batch was shipped to Store A, not Store B (`backend/brand_node/main.py:59-62`), halting payment with zero PayPal order created. |
+| `XA000001` .. `XA000491` | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store B (`NOT_IN_CHANNEL`). |
+| `XB000001` .. `XB000528` | `NMB-P8-256` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store B. Verified at Store B. *(Note: scanning XB at Store A with the default P8 128GB gives `SKU_MISMATCH`; to get `NOT_IN_CHANNEL`, select Nimbus P8 256GB first).* |
+| Pre-seeded clone attempts | Various | `backend/seed.py:235-238` | 40 historical blocked attempts at Store B (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
+
+---
+
+### 3. Quick Local Run (Zero External Keys Required)
+
+You can run the entire platform locally in mock mode without configuring external LLM or PayPal API keys:
+
 ```bash
 # 1. Environment & Database
 cp .env.example .env
+sed -i 's/^LLM_MODE=live/LLM_MODE=mock/' .env  # offline: PayPal and LLM mocked
 docker compose up -d postgres
 uv sync
 
-# 2. Seed Data
+# 2. Seed Database (catalog, shipments, transactions, and private release)
 uv run python -m backend.seed
 
-# 3. Start Backend Nodes
+# 3. Start Backend Nodes & Worker
 uv run --env-file .env uvicorn backend.brand_node.main:app --port 8001 &
 uv run --env-file .env uvicorn backend.paypal_node.main:app --port 8002 &
 uv run --env-file .env uvicorn backend.api.main:app --port 8000 &
+uv run --env-file .env python -m backend.worker.main &
 
 # 4. Start Web Application
 cd web && npm install && npm run dev
 ```
+
+*(Note: The sandbox buyer checkout applies only to hosted deployments or when `PAYPAL_MODE=sandbox`.)*
 
 Visit **http://localhost:3000** to explore the application:
 - `/pos`: Test retail verification (Store A = Verified, Store B = Blocked)
@@ -190,3 +247,4 @@ Full cloud deployment and production configuration details are available in [doc
 ## License
 
 MIT
+

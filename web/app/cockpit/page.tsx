@@ -121,11 +121,13 @@ export default function Cockpit() {
     { field: "store_id", headerName: "Store", minWidth: 100, valueFormatter: (p) => storeName(p.value as string, names) },
     { field: "sku", headerName: "Product", minWidth: 150, valueFormatter: (p) => productName(p.value as string) },
     { field: "reason_code", headerName: "Reason", minWidth: 140, valueFormatter: (p) => reasonName(p.value as string) },
-    { field: "failure_count", headerName: "Blocked", maxWidth: 110, minWidth: 96, cellClass: "ag-right-aligned-cell",
+    { field: "failure_count", headerName: "Blocked", maxWidth: 110, minWidth: 96,
+      headerClass: "ag-right-aligned-header", cellClass: "ag-right-aligned-cell",
       headerTooltip: "Blocked checkouts grouped into this case" },
     { field: "status", headerName: "Status", minWidth: 130, cellRenderer: (p: { value: string }) => <StatusPill status={p.value} /> },
     { field: "confidence", headerName: "Confidence", minWidth: 130, cellRenderer: (p: { value?: string }) => <Confidence value={p.value} /> },
-    { field: "findings", headerName: "Findings", maxWidth: 110, minWidth: 96, cellClass: "ag-right-aligned-cell" },
+    { field: "findings", headerName: "Findings", maxWidth: 110, minWidth: 96,
+      headerClass: "ag-right-aligned-header", cellClass: "ag-right-aligned-cell" },
     { colId: "mode", headerName: "Run", minWidth: 130, valueGetter: (p) => (p.data ? modeOf(p.data) : ""),
       cellRenderer: (p: { value: Mode }) => MODE_PILL[p.value] == null ? <span className="muted">—</span>
         : <span className={`pill ${MODE_PILL[p.value]}`}>{p.value}</span> },
@@ -241,53 +243,47 @@ export default function Cockpit() {
         ) : cases === null && !err ? (
           <div className={`skeleton ${styles.gridSkeleton}`} />
         ) : isMobile ? (
-          <div style={{ display: "grid", gap: "10px" }}>
-            {(cases ?? []).map((c) => (
-              <div
-                key={c.case_id}
-                onClick={() => router.push(`/cockpit/cases/${c.case_id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") router.push(`/cockpit/cases/${c.case_id}`); }}
-                style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--radius-md)",
-                  padding: "14px",
-                  cursor: "pointer",
-                  display: "grid",
-                  gap: "8px",
-                  boxShadow: "var(--shadow-sm)",
-                  transition: "border-color var(--transition-fast)",
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span className={styles.caseRef}>{shortCase(c.case_id)}</span>
-                    <strong style={{ fontSize: "14px" }}>{storeName(c.store_id, names)}</strong>
+          <div className={styles.mobileCasesList}>
+            {(cases ?? []).map((c) => {
+              const m = modeOf(c);
+              const pillClass = MODE_PILL[m];
+              return (
+                <Link
+                  key={c.case_id}
+                  href={`/cockpit/cases/${c.case_id}`}
+                  className={styles.caseCard}
+                >
+                  <div className={styles.caseCardHeader}>
+                    <div className={styles.caseCardHeadLeft}>
+                      <span className={styles.caseRef}>{shortCase(c.case_id)}</span>
+                      <strong>{storeName(c.store_id, names)}</strong>
+                    </div>
+                    <div className={styles.caseCardPills}>
+                      {pillClass != null && <span className={`pill ${pillClass}`}>{m}</span>}
+                      <StatusPill status={c.status} />
+                    </div>
                   </div>
-                  <StatusPill status={c.status} />
-                </div>
-                <div style={{ fontSize: "13.5px", color: "var(--fg)" }}>
-                  {reasonName(c.reason_code)}
-                </div>
-                <div className="muted small" style={{ display: "flex", flexWrap: "wrap", gap: "6px 10px", alignItems: "center" }}>
-                  <span>{productName(c.sku)}</span>
-                  <span>·</span>
-                  <span>{c.failure_count ?? 1} blocked</span>
-                  {c.findings ? (
-                    <>
-                      <span>·</span>
-                      <span>{c.findings} findings</span>
-                    </>
-                  ) : null}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px", borderTop: "1px dashed var(--line)", paddingTop: "8px" }}>
-                  <Confidence value={c.confidence} />
-                  <span className="muted small">{shortDate(c.created_at)}</span>
-                </div>
-              </div>
-            ))}
+                  <div className={styles.caseCardReason}>
+                    {reasonName(c.reason_code)}
+                  </div>
+                  <div className={`muted small ${styles.caseCardMeta}`}>
+                    <span>{productName(c.sku)}</span>
+                    <span>·</span>
+                    <span>{c.failure_count ?? 1} blocked</span>
+                    {c.findings ? (
+                      <>
+                        <span>·</span>
+                        <span>{c.findings} {c.findings === 1 ? "finding" : "findings"}</span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className={styles.caseCardFooter}>
+                    <Confidence value={c.confidence} />
+                    <span className="muted small">{shortDate(c.created_at)}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         ) : (
           <div className={styles.casesGrid}>

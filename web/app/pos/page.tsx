@@ -102,6 +102,9 @@ export default function Pos() {
                 {scanning ? "Close camera" : "Scan with camera"}
               </button>
             </div>
+            <p className={`muted ${s.hint}`} style={{ marginTop: 6, marginBottom: 4 }}>
+              Demo: type or paste a serial. In production, the store&apos;s POS sends the scanned serial through the TrustLedger API.
+            </p>
             <p className={`muted ${s.hint}`}>
               Demo serials: <code>XA…</code> is Store A stock, <code>XB…</code> is Store B stock. Try one at the
               other store, or make one up, to see a block.{" "}

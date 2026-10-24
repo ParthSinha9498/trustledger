@@ -10,7 +10,7 @@ os.makedirs(DOCS_MEDIA, exist_ok=True)
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        context = browser.new_context(viewport={"width": 1280, "height": 720})
+        context = browser.new_context(viewport={"width": 1440, "height": 900}, color_scheme="light")
         page = context.new_page()
 
         hide_devtools = "nextjs-portal, [data-nextjs-dev-tools-button], #__next-build-watcher, [data-nextjs-toast] { display: none !important; }"
@@ -24,12 +24,11 @@ def main():
         page.fill("#serial", "X123")
         page.click("button:has-text('Verify and check out')")
         page.wait_for_selector("text=Brand verified", timeout=15000)
-        # Wait for PayPal container / buttons to load to avoid "Loading PayPal..."
         try:
             page.wait_for_selector("iframe, [class*='paypal-button'], text=Open the pay screen", timeout=6000)
         except Exception:
             pass
-        time.sleep(2.5)
+        time.sleep(2.0)
         pos_a_path = os.path.join(DOCS_MEDIA, "01_pos_verified.png")
         page.screenshot(path=pos_a_path)
 
@@ -38,8 +37,8 @@ def main():
         page.click("button:has-text('Store B')")
         page.fill("#serial", "X123")
         page.click("button:has-text('Verify and check out')")
-        page.wait_for_selector("text=Not verified", timeout=15000)
-        time.sleep(1.2)
+        page.wait_for_selector("text=Payment Blocked", timeout=15000)
+        time.sleep(1.5)
         pos_b_path = os.path.join(DOCS_MEDIA, "02_pos_blocked.png")
         page.screenshot(path=pos_b_path)
 
@@ -64,10 +63,10 @@ def main():
         <head>
           <style>
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-            body {{ background: #0f172a; display: flex; width: 1280px; height: 720px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
+            body {{ background: #0f172a; display: flex; width: 1440px; height: 900px; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
             .split {{ flex: 1; height: 100%; border-right: 2px solid #334155; position: relative; overflow: hidden; display: flex; }}
             .split:last-child {{ border-right: none; }}
-            img {{ width: 100%; height: 100%; object-fit: cover; object-position: 50% 12%; }}
+            img {{ width: 100%; height: 100%; object-fit: cover; object-position: 72% 16%; }}
             .badge {{ position: absolute; top: 20px; left: 20px; padding: 10px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 10; }}
             .badge-verified {{ background: #10b981; color: #fff; }}
             .badge-blocked {{ background: #ef4444; color: #fff; }}
@@ -95,13 +94,20 @@ def main():
         print("Capturing 04_cockpit_case...")
         if case_id:
             page.goto(f"http://localhost:3000/cockpit/cases/{case_id}")
+            # Wait for mock worker to process case
+            for _ in range(20):
+                time.sleep(1)
+                page.reload()
+                page.add_style_tag(content=hide_devtools)
+                if page.query_selector("text=Offline mock run, not AI"):
+                    break
         else:
             page.goto("http://localhost:3000/cockpit")
             time.sleep(1.0)
             cl = page.query_selector("a[href*='/cockpit/cases/']")
             if cl:
                 cl.click()
-        page.add_style_tag(content=hide_devtools)
+                page.add_style_tag(content=hide_devtools)
         time.sleep(2.0)
         page.screenshot(path=os.path.join(DOCS_MEDIA, "04_cockpit_case.png"))
 
@@ -110,10 +116,8 @@ def main():
         page.goto("http://localhost:3000/cockpit/console")
         page.add_style_tag(content=hide_devtools)
         time.sleep(1.5)
-        # Click the PayPal demographic example question (Brand Insights plans and runs it in one step)
         pp_btn = page.wait_for_selector("button:has-text('Which age bands buy')", timeout=10000)
         pp_btn.click()
-        # Wait for the answer with its "vs. survey" line
         try:
             page.wait_for_selector("text=A survey: weeks", timeout=15000)
         except Exception:
@@ -125,7 +129,7 @@ def main():
         print("Capturing 06_supply_chain...")
         page.goto("http://localhost:3000/cockpit/supply-chain")
         page.add_style_tag(content=hide_devtools)
-        time.sleep(3.0)
+        time.sleep(3.5)
         page.screenshot(path=os.path.join(DOCS_MEDIA, "06_supply_chain.png"))
 
         # 7. 07_story_hook.png: Story Card Hook
@@ -133,7 +137,7 @@ def main():
         page.goto("http://localhost:3000/story?card=hook")
         page.add_style_tag(content=hide_devtools)
         page.wait_for_selector("body[data-ready='1']", timeout=5000)
-        time.sleep(0.5)
+        time.sleep(1.0)
         page.screenshot(path=os.path.join(DOCS_MEDIA, "07_story_hook.png"))
 
         print("All screenshots captured successfully to docs/media/!")
@@ -141,3 +145,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

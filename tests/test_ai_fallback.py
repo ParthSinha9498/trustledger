@@ -143,3 +143,74 @@ def test_agent_model_required_for_live_mode(monkeypatch):
     with pytest.raises(RuntimeError, match="AGENT_MODEL"):
         llm.get_llm()
 
+
+def test_export_replay_refuses_non_live_case(env, tmp_path):
+    import pytest
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    with db.connect("platform") as pc:
+        pc.execute(
+            "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+            ("case_mock_test", "complete", "mock", "scripted-mock", "Mock summary")
+        )
+
+    with pytest.raises(ValueError, match="not a genuine live run"):
+        export_case_replay("case_mock_test", tmp_path / "mock_replay.json")
+
+
+def test_export_replay_refuses_legacy_mock_row(env, tmp_path):
+    """Before #51, mock runs had mode='live', model='live', and LLM_MODE=mock summary."""
+    import pytest
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    with db.connect("platform") as pc:
+        pc.execute(
+            "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+            ("case_legacy_mock", "complete", "live", "live", "Scripted mock investigation (LLM_MODE=mock).")
+        )
+
+    with pytest.raises(ValueError, match="not a genuine live run"):
+        export_case_replay("case_legacy_mock", tmp_path / "legacy_replay.json")
+
+
+def test_export_replay_refuses_disguised_mock_models(env, tmp_path):
+    import pytest
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    cases = [
+        ("case_empty_model", "live", "", "Investigated."),
+        ("case_named_mock", "live", "my-mock-v2", "Investigated."),
+        ("case_scripted_model", "live", "scripted_runner", "Investigated."),
+    ]
+    with db.connect("platform") as pc:
+        for cid, mode, model, summary in cases:
+            pc.execute(
+                "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+                (cid, "complete", mode, model, summary)
+            )
+
+    for cid, _, _, _ in cases:
+        with pytest.raises(ValueError, match="not a genuine live run"):
+            export_case_replay(cid, tmp_path / f"{cid}.json")
+
+
+def test_export_replay_allows_live_case(env, tmp_path):
+    from backend import db
+    from scripts.export_replay import export_case_replay
+
+    with db.connect("platform") as pc:
+        pc.execute(
+            "INSERT INTO cases (case_id, status, agent_mode, agent_model, summary) VALUES (%s, %s, %s, %s, %s)",
+            ("case_live_test", "complete", "live", "provider/real-model", "Live summary")
+        )
+
+    out = export_case_replay("case_live_test", tmp_path / "live_replay.json")
+    assert out.exists()
+    import json
+    data = json.loads(out.read_text())
+    assert data["source_case_id"] == "case_live_test"
+    assert data["model"] == "provider/real-model"
+

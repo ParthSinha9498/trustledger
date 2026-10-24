@@ -8,6 +8,7 @@ Usage:
     python scripts/export_replay.py <case_id> [output_path]
 """
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,20 @@ def export_case_replay(case_id: str, out_path: str | Path | None = None) -> Path
         case = pc.execute("SELECT * FROM cases WHERE case_id=%s", (case_id,)).fetchone()
         if not case:
             raise ValueError(f"Case {case_id} not found")
+        mode = case.get("agent_mode")
+        model = case.get("agent_model") or ""
+        summary = case.get("summary") or ""
+        if (
+            mode != "live"
+            or not model
+            or model == "live"
+            or bool(re.search(r"mock|scripted", model, re.I))
+            or "LLM_MODE=mock" in summary
+        ):
+            raise ValueError(
+                f"Cannot export replay for case {case_id}: not a genuine live run "
+                f"(mode={mode!r}, model={model!r}, summary={summary[:40]!r})"
+            )
         steps = pc.execute("SELECT * FROM case_steps WHERE case_id=%s ORDER BY n", (case_id,)).fetchall()
 
     recorded_at = case.get("updated_at") or case.get("created_at") or datetime.utcnow()

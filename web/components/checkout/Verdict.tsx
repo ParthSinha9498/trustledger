@@ -7,6 +7,7 @@ const HUMAN_LABELS: Record<string, string> = {
   NOT_IN_CHANNEL: "This product is not in this store's supply chain",
   ALREADY_SOLD: "This serial was already registered as sold",
   SKU_MISMATCH: "This serial belongs to a different product",
+  WRONG_BRAND: "This serial belongs to a different brand",
 };
 
 export function IdleVerdict() {
@@ -106,8 +107,7 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
       <div className={s.flow}>
         <div className={`${s.step} ${s.stepBad}`}>
           <strong>✕ Brand check</strong>
-          <span>{humanLabel}</span>
-          {reasonCode && <span className={s.codeTagMini}><code>{reasonCode}</code></span>}
+          <span>Not verified</span>
         </div>
         <span className={s.arrow} aria-hidden>→</span>
         <div className={`${s.step} ${s.stepCenter} ${s.stepCenterBlocked} ${s.stepNever}`}>
@@ -125,14 +125,6 @@ export function BlockedVerdict({ reason, reasonCode, caseId, storeName, serial }
       </p>
       <dl className={s.facts}>
         <dt>Serial</dt><dd>{serial}</dd>
-        {reasonCode && (
-          <>
-            <dt>Reason</dt>
-            <dd>
-              {humanLabel} <span className={s.codeTag}><code>{reasonCode}</code></span>
-            </dd>
-          </>
-        )}
         {caseId && (<><dt>Case</dt><dd>{caseId}</dd></>)}
       </dl>
       {caseId && (

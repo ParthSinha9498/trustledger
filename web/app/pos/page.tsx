@@ -111,7 +111,7 @@ export default function Pos() {
             </div>
             <div className={s.hintRow}>
               <span className={`muted ${s.hint}`}>
-                Store A: <code>XA…</code> · Store B: <code>XB…</code> · or <code>X123</code>
+                In production, the store&apos;s POS sends the scanned serial through the TrustLedger API. Demo: Store A: <code>XA…</code>, Store B: <code>XB…</code>, or <code>X123</code> (fresh seed).
               </span>
               <button type="button" className={s.chip} disabled={busy} onClick={tryGenuine}>
                 Fill an unsold unit

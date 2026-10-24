@@ -13,7 +13,7 @@ const HUMAN_LABELS: Record<string, string> = {
 export function IdleVerdict() {
   return (
     <div className={`${s.panel} ${s.idle}`} role="status">
-      <div style={{ fontSize: 32, marginBottom: 8 }} aria-hidden>⌁</div>
+      <div className={s.idleIcon} aria-hidden>⌁</div>
       <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>Scan a product to start</h3>
       <p className="muted" style={{ margin: "0 0 16px", fontSize: 13.5 }}>The brand checks unit authenticity before any PayPal payment exists.</p>
       <div className={s.flow}>
@@ -22,7 +22,7 @@ export function IdleVerdict() {
           <span>Scan or enter serial</span>
         </div>
         <span className={s.arrow} aria-hidden>→</span>
-        <div className={`${s.step} ${s.stepCenter}`} style={{ borderStyle: "solid" }}>
+        <div className={s.step}>
           <strong>2. Brand checks</strong>
           <span>Real-time provenance</span>
         </div>

@@ -131,7 +131,7 @@ export default function Pos() {
           {error && <div className={s.error} role="alert">{error}</div>}
         </section>
 
-        <section ref={verdictRef} aria-label="Verification result" aria-live="polite">
+        <section ref={verdictRef} aria-label="Verification result" aria-live="polite" style={{ scrollMarginTop: "80px" }}>
           {!result && !busy && <IdleVerdict />}
           {busy && checked && <VerifyingVerdict serial={checked.serial} storeName={checked.storeName} />}
 

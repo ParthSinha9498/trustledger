@@ -74,7 +74,7 @@ export default function PrivacyPage() {
                 Holds transactions, store payments, hashed buyer IDs, and demographics (demographics exist only on the PayPal side).
               </p>
               <div style={{ padding: "10px", borderRadius: "8px", background: "var(--card)", border: "1px solid var(--line)", fontSize: "12.5px" }}>
-                <strong>Allowed out:</strong> Calibrated differential privacy aggregates with ±95% confidence intervals.
+                <strong>Allowed out:</strong> Calibrated differential privacy aggregates with 95% confidence intervals.
               </div>
             </div>
 
@@ -93,25 +93,23 @@ export default function PrivacyPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", marginBottom: "32px" }}>
           
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              One buyer is protected across all queries, not per transaction.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>1. Single privacy unit</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              1. One buyer protected across all purchases
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              The mathematical privacy unit binds to a single buyer across all of a brand&apos;s lifetime questions, preventing reconstruction from multiple purchases.
+              The mathematical privacy unit binds to a single buyer across all of a brand&apos;s lifetime questions, preventing reconstruction of activity from multiple transactions.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              unit: u_buyer (lifetime across brand)
+              Lifetime privacy unit per buyer across brand
             </div>
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Limits how much any single customer can influence an answer.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>2. Cell &amp; spend clamping</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              2. Bounded customer influence
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Each buyer contributes to at most 4 cells per query, and individual spend is strictly capped at 1,000 to bound sensitivity.
+              Limits how much any single customer can affect an answer: each buyer contributes to at most 4 cells per query, and individual spend is strictly capped to bound sensitivity.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
               k ≤ 4 cells · spend clamped at 1,000/cell
@@ -119,25 +117,23 @@ export default function PrivacyPage() {
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Random variation is added so individual buyers cannot be picked out.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>3. Calibrated Gaussian noise</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              3. Calibrated differential privacy
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Noise is generated via <strong>OpenDP</strong> under Zero-Concentrated Differential Privacy (zCDP). Every released metric carries transparent <strong>±95% confidence intervals</strong>.
+              Random mathematical variation is added so individual buyers cannot be singled out. Every released metric carries transparent confidence intervals.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              OpenDP Gaussian mechanism · zCDP · ±1.96σ
+              OpenDP Gaussian mechanism · zCDP · ±1.96σ confidence
             </div>
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              A fixed privacy limit: asking more questions can&apos;t reveal more about anyone.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>4. Private release (budget spent once)</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              4. Single-spend private release
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Buyer answers come from a one-time private release; answering questions from it spends no further privacy budget (post-processing).
+              Customer answers come from a one-time private release; answering and exploring questions from it spends no further privacy budget (post-processing immunity).
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
               ρ = 0.20 (≈ ε 3.69 at δ = 10⁻⁸) · Post-processing immunity
@@ -145,54 +141,50 @@ export default function PrivacyPage() {
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Repeating the exact question returns the same answer without averaging.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>5. Deterministic query cache</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              5. Deterministic query cache
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Repeating a query returns the cached answer with identical noise, preventing attackers from repeatedly sampling noise to average it out.
+              Repeating the exact query returns the stored answer with identical noise, preventing attackers from repeatedly sampling noise to average it out.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              repeat questions return the stored answer (same noise) · _cache_key (paypal_node/main.py:83)
+              Deterministic cache · Repeat questions return identical noise
             </div>
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Tiny groups of customers are hidden so nobody stands out in a crowd.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>6. Small groups hidden</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              6. Small-group suppression
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Display floor enforcement: cells below a safe threshold are automatically hidden after noise to reduce small-cohort re-identification.
+              Tiny groups of customers are hidden so nobody stands out in a crowd. Result cells below a safe threshold are automatically suppressed.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              display floor = max(10, 2σ)
+              Display floor: count &lt; max(10, 2σ) suppressed
             </div>
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Queries can only ask about broad categories, never personal details.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>7. Allowlisted dimensions only</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              7. High-level categories only
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Strict schema constraints: queries are limited to allowable aggregate dimensions. Payer IDs, precise timestamps, and individual payment amounts are completely disallowed.
+              Queries can only ask about broad aggregate categories (like distributor, store, and week). Personal account IDs, precise timestamps, and individual payment amounts are strictly prohibited.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              dimensions ≤ 2 · cells ≤ 300 · no raw IDs
+              Allowlisted schema: dimensions ≤ 2 · cells ≤ 300 · zero personal IDs
             </div>
           </div>
 
           <div className="card" style={{ margin: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ fontWeight: 700, fontSize: "14px", color: "var(--fg)", marginBottom: "6px" }}>
-              Customer identities are scrambled with a secret key before entering.
-            </div>
-            <h3 style={{ margin: "0 0 6px", fontSize: "13px", color: "var(--accent)" }}>8. Hashed payer IDs on arrival</h3>
+            <h3 style={{ margin: "0 0 6px", fontSize: "15px", color: "var(--fg)", fontWeight: 700 }}>
+              8. Keyed identifier hashing on arrival
+            </h3>
             <p className="muted small" style={{ margin: "0 0 10px", lineHeight: 1.5, flex: 1 }}>
-              Buyer IDs are replaced by a keyed hash on arrival; the secret key never leaves the PayPal-side node. Payer IDs are never stored raw (paypal_node/main.py:424).
+              Buyer identities are irreversibly scrambled with a secret key upon arrival. The secret key never leaves the PayPal boundary, and account IDs are never stored raw.
             </p>
             <div style={{ fontSize: "11px", color: "var(--muted)", fontFamily: "var(--font-mono)", borderTop: "1px dashed var(--line)", paddingTop: "6px" }}>
-              HMAC-SHA256(payer_hash_key, payer_ref)
+              HMAC-SHA256 keyed tokenization at PayPal boundary
             </div>
           </div>
 
@@ -204,7 +196,7 @@ export default function PrivacyPage() {
             <span>Evidence &amp; red-team validation</span>
           </div>
           <p style={{ margin: 0, fontSize: "13.5px", lineHeight: 1.5, color: "var(--fg)" }}>
-            Internal red-team: 11 attack types, none extracted a confident individual-level fact (<code>evals/results/redteam_repeated.md</code>).
+            Internal red-team: 11 attack types, none extracted a confident individual-level fact (<a href="https://github.com/ParthSinha9498/trustledger/blob/main/evals/results/redteam_repeated.md" target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "underline" }}>red-team results</a>).
           </p>
           <details style={{ marginTop: "12px", fontSize: "12px", color: "var(--muted)", borderTop: "1px dashed var(--line)", paddingTop: "10px", cursor: "pointer" }}>
             <summary style={{ fontWeight: 650, color: "var(--fg)" }}>Note on scope &amp; credentials</summary>

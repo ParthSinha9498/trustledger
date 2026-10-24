@@ -22,7 +22,7 @@ const CARDS: CardMeta[] = [
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
   { id: "s4", title: "Scenario 4: Brand insights", desc: "Answers from verified purchases in seconds, buyers stay anonymous." },
-  { id: "guarantee", title: "Formal privacy guarantee", desc: "Buyers stay anonymous, no matter how many questions a brand asks" },
+  { id: "guarantee", title: "Formal privacy guarantee", desc: "Buyers stay anonymous: one fixed privacy limit per brand, for life" },
   { id: "levels", title: "One standard. Three integrations.", desc: "Brand API · PayPal checkout gate · Seller POS SDK via APIMatic" },
   { id: "close", title: "TrustLedger pitch close", desc: "Brands pay for insights; the checkout check is free for shoppers." },
   { id: "code", title: "Checkout Integration Code", desc: "One call to verifyProduct before PayPal payment creation" },

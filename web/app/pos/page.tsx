@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type ScanResult } from "@/lib/api";
 import { money, readableError } from "@/lib/paypal";
@@ -26,10 +26,17 @@ export default function Pos() {
   const [checked, setChecked] = useState<{ storeName: string; serial: string; amount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const verdictRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     api<Store[]>("/stores").then(setStores).catch((e) => setError(`Couldn't load stores: ${readableError(e)}`));
   }, []);
+
+  useEffect(() => {
+    if (result && typeof window !== "undefined" && window.innerWidth <= 860) {
+      verdictRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [result]);
 
   const product = SKUS.find((p) => p.sku === sku)!;
   const storeName = stores.find((st) => st.store_id === storeId)?.name ?? storeId;
@@ -102,16 +109,14 @@ export default function Pos() {
                 {scanning ? "Close camera" : "Scan with camera"}
               </button>
             </div>
-            <p className={`muted ${s.hint}`} style={{ marginTop: 6, marginBottom: 4 }}>
-              Demo: type or paste a serial. In production, the store&apos;s POS sends the scanned serial through the TrustLedger API.
-            </p>
-            <p className={`muted ${s.hint}`}>
-              Demo serials: <code>XA…</code> is Store A stock, <code>XB…</code> is Store B stock. Try one at the
-              other store, or make one up, to see a block.{" "}
-              <button type="button" className={s.linkButton} disabled={busy} onClick={tryGenuine}>
-                Fill an unsold unit from this store
+            <div className={s.hintRow}>
+              <span className={`muted ${s.hint}`}>
+                In production, the store&apos;s POS sends the scanned serial through the TrustLedger API. Demo: Store A: <code>XA…</code>, Store B: <code>XB…</code>, or <code>X123</code> (fresh seed).
+              </span>
+              <button type="button" className={s.chip} disabled={busy} onClick={tryGenuine}>
+                Fill an unsold unit
               </button>
-            </p>
+            </div>
             {scanning && (
               <BarcodeScanner
                 onClose={() => setScanning(false)}
@@ -126,7 +131,7 @@ export default function Pos() {
           {error && <div className={s.error} role="alert">{error}</div>}
         </section>
 
-        <section aria-label="Verification result" aria-live="polite">
+        <section ref={verdictRef} aria-label="Verification result" aria-live="polite">
           {!result && !busy && <IdleVerdict />}
           {busy && checked && <VerifyingVerdict serial={checked.serial} storeName={checked.storeName} />}
 

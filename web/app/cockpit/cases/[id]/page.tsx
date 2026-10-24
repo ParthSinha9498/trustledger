@@ -120,6 +120,8 @@ export default function CaseDetailPage() {
   const storeName = stores[c.store_id] ?? prettyId(c.store_id);
   const product = productName(c.sku);
   const finished = FINISHED.has(c.status);
+  // Deferred before anything ran: no mode to claim (neither live AI nor the offline mock).
+  const waitingNoRun = c.status === "waiting_capacity" && !(c.steps?.length);
   // A scripted stand-in run is never shown as AI. Older rows were stored as "live"; their summary gives them away.
   const isMock = c.agent_mode === "mock" || c.agent_model === "scripted-mock" || /LLM_MODE=mock/.test(c.summary ?? "");
   const isReplay = !isMock && c.agent_mode === "replay";
@@ -131,15 +133,16 @@ export default function CaseDetailPage() {
   const actions = (nextActions ?? "").split("\n").map((l) => l.replace(/^\s*-\s*/, "").trim()).filter(Boolean);
   const oneFinding = findings.length === 1;
 
-  const modeChip = isMock ? (
+  const modeChip = waitingNoRun ? null : isMock ? (
     <span className={`pill ${cs.mock}`} title="LLM_MODE=mock: a fixed offline script ran, no AI model was called">Offline mock run, not AI</span>
   ) : isReplay ? (
-    <span className={`pill ${cs.mock}`}>Replay of a recorded {c.agent_model && c.agent_model !== "scripted" && c.agent_model !== "mock" ? "live " : ""}run</span>
+    <span className={`pill ${cs.mock}`}>Replay of a recorded {c.agent_model && !/mock|scripted/.test(c.agent_model) ? "live " : ""}run</span>
   ) : isInterrupted ? (
     <span className={`pill ${cs.mock}`}>Interrupted live attempt</span>
   ) : null;
 
-  const modeMeta = isMock ? <>Scripted stand-in: same fixed plan every time</>
+  const modeMeta = waitingNoRun ? <>Waiting for AI capacity</>
+    : isMock ? <>Scripted stand-in: same fixed plan every time</>
     : isReplay ? <>Recorded {recorded}{c.agent_model ? <> · <code>{c.agent_model}</code></> : null}</>
     : !finished ? <>Investigation running</>
     : <>Live AI investigation{c.agent_model ? <> · <code>{c.agent_model}</code></> : null}</>;
@@ -187,7 +190,7 @@ export default function CaseDetailPage() {
             {(c.failure_count ?? 1) > 1 && <> · {c.failure_count} failed scans</>}
             {" "}· Opened {new Date(c.created_at).toLocaleString()} · {c.case_id}
           </p>
-          {isMock ? (
+          {isMock && !waitingNoRun ? (
             <div className={`${cs.notice} ${cs.noticeWarn}`}>
               <strong>Offline mock run, not AI.</strong> This case was processed by a fixed offline script (LLM_MODE=mock) so the app works without a model. Its steps are real queries against the nodes, but the plan and wording are scripted.
             </div>

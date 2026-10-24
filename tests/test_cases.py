@@ -114,6 +114,27 @@ def test_live_run_records_real_model(env, monkeypatch):
     assert c["agent_mode"] == "live" and c["agent_model"] == "provider/real-model"
 
 
+class FailingPrimaryLLM:
+    model = "provider/primary-model"
+
+    def next_turn(self, messages, tools):
+        raise RuntimeError("429 Too Many Requests")
+
+
+def test_fallback_run_records_fallback_model(env, monkeypatch):
+    from backend.common.llm import ChainedLLM
+
+    monkeypatch.setenv("LLM_MODE", "live")
+    fallback = NamedLiveLLM()
+    fallback.model = "provider/fallback-model"
+    case, case_id = claimed_case(env)
+    agent.Investigation(case, ChainedLLM(FailingPrimaryLLM(), fallback, is_smaller=True)).run()
+    c = env["api"].get(f"/cases/{case_id}").json()
+    assert c["status"] == "complete"
+    assert c["agent_mode"] == "live" and c["agent_model"] == "provider/fallback-model"
+    assert c["agent_reason"] == "Running on a smaller model due to free-tier limits"
+
+
 def test_capture_unapproved_order_is_clean_409(env, monkeypatch):
     api = env["api"]
     chk = scan(api, "X123", store="store_a")

@@ -23,7 +23,7 @@ const theme = themeQuartz.withParams({
 // Auto-height grids that always have rows: no empty band under a 3-row result.
 const tightTheme = theme.withParams({ autoHeightMinBodyHeight: 0 });
 // Narrow cards: less padding inside each cell, so a value and its ± range fit a phone without sideways scrolling.
-const DENSE = { cellHorizontalPadding: 10 };
+const DENSE = { cellHorizontalPadding: 6 };
 const denseTheme = theme.withParams(DENSE);
 const denseTightTheme = tightTheme.withParams(DENSE);
 

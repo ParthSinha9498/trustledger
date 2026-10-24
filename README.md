@@ -227,6 +227,9 @@ uv run --env-file .env python -m backend.worker.main &
 
 # 4. Start Web Application
 cd web && npm install && npm run dev
+
+# 5. Pre-flight before marking a PR ready, from the repo root (build, wording lint, every page at 1440/390, light/dark)
+uv run --with playwright python e2e/preflight.py --start --build --api http://localhost:8000
 ```
 
 *(Note: The sandbox buyer checkout applies only to hosted deployments or when `PAYPAL_MODE=sandbox`.)*

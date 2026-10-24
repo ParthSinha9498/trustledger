@@ -68,3 +68,68 @@
 
 /* autoHeight: the grid hugs its rows (AG Grid otherwise reserves an empty body for the no-rows overlay). */
 .casesGrid :global(.ag-grid-scrolling-rows) { min-height: 0 !important; }
+
+/* Mobile cases card list */
+.mobileCasesList {
+  display: grid;
+  gap: 10px;
+}
+.caseCard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+.caseCard:hover,
+.caseCard:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  outline: none;
+}
+.caseCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.caseCardHeadLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.caseCardHeadLeft strong {
+  font-size: 14px;
+  color: var(--fg);
+}
+.caseCardPills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.caseCardReason {
+  font-size: 13.5px;
+  color: var(--fg);
+  font-weight: 500;
+}
+.caseCardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+}
+.caseCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+}

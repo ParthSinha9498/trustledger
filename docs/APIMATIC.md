@@ -47,9 +47,10 @@ Four concrete decisions, each checked against the code on this branch and the in
    docstring says PayPal stores keys for 6 hours). We send:
    - create: `create-<verification id>` (`backend/api/paypal_client.py:159-160`). The verification ID is
      what we put in `custom_id`, and the checkout gate passes it in (`backend/api/main.py:93-94`). One brand
-     verification can therefore produce at most one PayPal order, even if the create is resent.
+     verification can therefore produce at most one PayPal order, even if the create is resent within
+     PayPal's 6-hour key window.
    - capture: `capture-<order id>` (`backend/api/paypal_client.py:170-171`). A resent capture of the same
-     order gets PayPal's stored result for that key instead of a second charge.
+     order (within the 6-hour window) gets PayPal's stored result for that key instead of a second capture attempt.
 
    `get_order` sends no key. Tests: `tests/test_paypal_client.py:191` (same key on both rounds of a
    create + capture retry, a different key for a different verification) and `:213` (no key on GET).

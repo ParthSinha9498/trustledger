@@ -154,6 +154,9 @@ def check_page(browser, base: str, path: str, name: str, w: int, h: int, scheme:
         if "hydrat" in text.lower() and msg.type in ("error", "warning"):
             hydration.append(text[:200])
         elif msg.type == "error":
+            # Allowlist AG Studio trial / license errors on /cockpit/studio
+            if "studio" in name and any(k in text.lower() for k in ("license key not found", "trial", "ag-studio", "license")):
+                return
             errors.append(text[:200])
 
     page.on("console", on_console)

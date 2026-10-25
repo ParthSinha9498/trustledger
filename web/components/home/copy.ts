@@ -2,7 +2,7 @@ export const LANDING_COPY = {
   hero: {
     eyebrow: "Authenticity before payment",
     headline: "Verify the product. Then pay.",
-    subhead: "TrustLedger checks a product with its brand before PayPal creates an order. Failed checks open an investigation instead.",
+    subhead: "For registered high-value categories, TrustLedger checks a product with its brand before PayPal creates an order. Failed checks open an investigation instead.",
     primaryCta: "Try the checkout demo",
     secondaryCta: "Explore the brand cockpit",
   },
@@ -17,7 +17,7 @@ export const LANDING_COPY = {
   how: {
     title: "How it works",
     steps: [
-      { title: "Scan the serial", body: "The store's checkout sends the product serial before payment starts." },
+      { title: "Scan the serial", body: "For registered high-value categories, the store's checkout sends the product serial before payment starts." },
       { title: "Ask the brand", body: "The brand's own system decides whether this unit belongs at this store. No AI here." },
       { title: "Pay or investigate", body: "Verified: PayPal creates the order. Blocked: no order exists, and an AI agent investigates." },
     ],

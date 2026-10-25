@@ -58,7 +58,7 @@ export default function Home() {
             >
               {hero.subhead}
             </p>
-            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
+            <div className="hero-ctas" style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center" }}>
               <Link className="button" href="/pos">
                 {hero.primaryCta}
               </Link>

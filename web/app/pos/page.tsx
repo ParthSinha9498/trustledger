@@ -72,8 +72,16 @@ export default function Pos() {
     <main>
       <div className={s.layout}>
         <section className="card" aria-labelledby="pos-title">
-          <h2 id="pos-title" className={s.title}>Store checkout</h2>
-          <p className={`muted ${s.sub}`}>The brand verifies the unit before a PayPal order exists.</p>
+          <div className={s.titleRow}>
+            <div>
+              <h2 id="pos-title" className={s.title}>Store checkout</h2>
+              <p className={`muted ${s.sub}`}>The brand verifies the unit before a PayPal order exists.</p>
+            </div>
+            <aside className={s.apiNote} aria-label="About this demo">
+              <span className={s.apiNoteLabel}>Demo · typed serial</span>
+              In a real store, the POS barcode scanner sends the serial through the TrustLedger API.
+            </aside>
+          </div>
 
           <div className={s.sectionLabel}>Store</div>
           <div className={s.tiles} role="radiogroup" aria-label="Store">
@@ -101,9 +109,6 @@ export default function Pos() {
 
           <div className={s.section}>
             <label htmlFor="serial" className={s.sectionLabel} style={{ display: "block" }}>Serial</label>
-            <div className={s.scannerCallout}>
-              <strong>Demo:</strong> type a serial. In a real store, the POS barcode scanner fills this in and sends it through the TrustLedger API.
-            </div>
             <div className={s.serialRow}>
               <input id="serial" value={serial} autoComplete="off" spellCheck={false} disabled={busy}
                 onChange={(e) => { setSerial(e.target.value); reset(); }}

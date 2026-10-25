@@ -186,3 +186,33 @@ def test_mock_mode_never_touches_the_sdk(env, monkeypatch):
     assert paypal.get_order(chk["paypal_order_id"])["status"] == "CREATED"
     assert api.post(f"/checkout/{chk['checkout_id']}/capture").status_code == 200
     assert paypal._sdk_client is None
+
+
+def test_create_and_capture_send_a_stable_paypal_request_id(monkeypatch, sdk_stub):
+    """A resend with the same inputs carries the same PayPal-Request-Id, so PayPal answers it from the
+    stored result for that key (one order, one capture) instead of creating or charging twice."""
+    routes, catcher = sdk_stub
+    routes[("POST", "/v2/checkout/orders")] = (201, {"id": "ORDER1", "status": "CREATED"})
+    routes[("POST", "/v2/checkout/orders/ORDER1/capture")] = (201, {"id": "ORDER1", "status": "COMPLETED"})
+    client = sandbox_client(monkeypatch)
+
+    for _ in range(2):  # the second round is the retry
+        client.create_order(amount=899, sku="NMB-P8-128", name="Nimbus P8", custom_id="ver_abc123")
+        client.capture_order("ORDER1")
+
+    creates = catcher.sent("/v2/checkout/orders")
+    captures = catcher.sent("/v2/checkout/orders/ORDER1/capture")
+    assert [r.headers["PayPal-Request-Id"] for r in creates] == ["create-ver_abc123"] * 2
+    assert [r.headers["PayPal-Request-Id"] for r in captures] == ["capture-ORDER1"] * 2
+
+    # A different verification gets a different key: it is a new order, not a replay.
+    client.create_order(amount=899, sku="NMB-P8-128", name="Nimbus P8", custom_id="ver_def456")
+    assert catcher.sent("/v2/checkout/orders")[-1].headers["PayPal-Request-Id"] == "create-ver_def456"
+
+
+def test_get_order_sends_no_paypal_request_id(monkeypatch, sdk_stub):
+    routes, catcher = sdk_stub
+    routes[("GET", "/v2/checkout/orders/ORDER1")] = (200, {"id": "ORDER1", "status": "CREATED"})
+    sandbox_client(monkeypatch).get_order("ORDER1")
+    [req] = catcher.sent("/v2/checkout/orders/ORDER1")
+    assert "PayPal-Request-Id" not in req.headers

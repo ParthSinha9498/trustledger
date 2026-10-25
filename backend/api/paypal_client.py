@@ -87,7 +87,7 @@ class PayPalClient:
                     o_auth_token_provider=_fetch_token,
                 ),
                 timeout=TIMEOUT,
-                max_retries=0,  # creating/capturing an order is not idempotent; don't retry under the caller
+                max_retries=0,  # no silent retries of create/capture; a resend reuses its PayPal-Request-Id
             )
         return self._sdk_client
 
@@ -121,7 +121,11 @@ class PayPalClient:
 
     # ---------------------------------------------------------------- orders
     def create_order(self, *, amount: float, sku: str, name: str, custom_id: str, currency: str = "USD") -> dict:
-        """Create an order with the verification ID in custom_id. Called only after VERIFIED."""
+        """Create an order with the verification ID in custom_id. Called only after VERIFIED.
+
+        PayPal-Request-Id is `create-<verification id>`: a resend of the same create (a retry after a
+        timeout) gets PayPal's stored answer for that key (kept 6 hours) instead of a second order.
+        """
         value = f"{amount:.2f}"
         if self.is_mock:
             body = {
@@ -152,15 +156,19 @@ class PayPalClient:
                                    unit_amount=Money(currency_code=currency, value=value))],
             )],
         )
-        return self._call(self._sdk().orders.create_order, {"body": order})
+        return self._call(self._sdk().orders.create_order,
+                          {"body": order, "paypal_request_id": f"create-{custom_id}"})
 
     def capture_order(self, order_id: str) -> dict:
+        """Capture an approved order. PayPal-Request-Id is `capture-<order id>`, so a resent capture
+        returns the stored result for that key instead of charging the buyer twice."""
         if self.is_mock:
             order = self._mock_orders.get(order_id, {"id": order_id})
             order["status"] = "COMPLETED"
             return {"id": order_id, "status": "COMPLETED",
                     "payer": {"payer_id": f"MOCKPAYER{uuid.uuid4().hex[:6]}"}}
-        return self._call(self._sdk().orders.capture_order, {"id": order_id})
+        return self._call(self._sdk().orders.capture_order,
+                          {"id": order_id, "paypal_request_id": f"capture-{order_id}"})
 
     def get_order(self, order_id: str) -> dict:
         if self.is_mock:

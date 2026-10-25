@@ -5,13 +5,13 @@ def test_blocked_counts_seeded_clone_attempts(env):
     d = env["api"].get("/cockpit/blocked", params={"weeks": 8}).json()
     assert d["exact"] is True and d["current_week"] == 42
     assert d["weeks"] == list(range(35, 43))
-    # Seed: 40 clone attempts at store_b in weeks 39..42 (ALREADY_SOLD or NOT_IN_CHANNEL).
+    # Seed: 40 clone attempts at store_c in weeks 39..42 (ALREADY_SOLD or NOT_IN_CHANNEL).
     assert d["total"] == 40
     assert sum(r["value"] for r in d["by_store"]) == 40
-    assert {r["store_id"] for r in d["by_store"]} == {"store_b"}
+    assert {r["store_id"] for r in d["by_store"]} == {"store_c"}
     assert {r["reason_code"] for r in d["by_reason"]} == {"ALREADY_SOLD", "NOT_IN_CHANNEL"}
     assert all(39 <= r["week"] <= 42 for r in d["by_reason"])
-    assert d["store_names"]["store_b"] == "Store B"
+    assert d["store_names"]["store_c"] == "Store C"
 
 
 def test_blocked_includes_live_blocks_and_no_serials(env):

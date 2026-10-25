@@ -45,7 +45,7 @@ def test_replay_loader_loads_test_fixture():
 def test_play_case_replay(env):
     api = env["api"]
     # Open a test case
-    scan = api.post("/checkout/scan", json={"store_id": "store_b", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
+    scan = api.post("/checkout/scan", json={"store_id": "store_c", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
     case_id = scan.get("case_id")
     assert case_id is not None
 
@@ -63,7 +63,7 @@ def test_play_case_replay(env):
 
 def test_worker_falls_back_to_replay_when_llm_fails(env, monkeypatch):
     api = env["api"]
-    scan = api.post("/checkout/scan", json={"store_id": "store_b", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
+    scan = api.post("/checkout/scan", json={"store_id": "store_c", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
     case_id = scan.get("case_id")
     assert case_id is not None
 
@@ -88,7 +88,7 @@ def test_worker_falls_back_to_replay_when_llm_fails(env, monkeypatch):
 
 def test_worker_falls_back_to_replay_when_budget_exhausted(env, monkeypatch):
     api = env["api"]
-    scan = api.post("/checkout/scan", json={"store_id": "store_b", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
+    scan = api.post("/checkout/scan", json={"store_id": "store_c", "serial": "X123", "sku": "NMB-P8-128", "amount": 899.0}).json()
     case_id = scan.get("case_id")
     assert case_id is not None
 
@@ -109,7 +109,7 @@ def test_waiting_capacity_sets_retry_after_and_prevents_immediate_reclaim(env, m
     events = []
     monkeypatch.setattr("backend.common.notify.case_event", lambda ev, c, s=None: events.append((ev, c["case_id"], s)))
 
-    scan = api.post("/checkout/scan", json={"store_id": "store_b", "serial": "X999", "sku": "NMB-P8-128", "amount": 899.0}).json()
+    scan = api.post("/checkout/scan", json={"store_id": "store_c", "serial": "X999", "sku": "NMB-P8-128", "amount": 899.0}).json()
     case_id = scan.get("case_id")
     assert case_id is not None
 

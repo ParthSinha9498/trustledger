@@ -8,8 +8,8 @@ def test_demo_serial_verifies_at_store_a(env):
     assert verify(env, "X123", "store_a")["result"] == "VERIFIED"
 
 
-def test_demo_serial_fails_at_store_b(env):
-    v = verify(env, "X123", "store_b")
+def test_demo_serial_fails_at_store_c(env):
+    v = verify(env, "X123", "store_c")
     assert v["result"] == "NOT_VERIFIED" and v["reason_code"] == "NOT_IN_CHANNEL"
 
 

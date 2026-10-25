@@ -15,7 +15,7 @@ Planted scenarios (all recent, relative to WEEKS):
     aggregate is unchanged.
   * Diversion: Distributor 1 stock (from batches 6-12 weeks old) sold at Store C, which Distributor 1 never
     supplied, during the last 6 weeks.
-  * Clone attempts: serials from Distributor 1 batches tried at Store B in the last 4 weeks.
+  * Clone attempts: serials from Distributor 1 batches tried at Store C in the last 4 weeks.
   * A normal demand spike at Store D four weeks ago (should NOT be flagged).
 """
 import argparse
@@ -230,11 +230,11 @@ def build(small: bool = False, seed: int = 42) -> None:
     b.execute("UPDATE serials s SET sold_store_id=t.store_id, sold_week=t.week, sold_order_id=t.order_id "
               "FROM sold_tmp t WHERE s.serial=t.serial")
 
-    # Clone attempts at store_b using dist_1 serials (already-sold or out-of-channel).
+    # Clone attempts at store_c using dist_1 serials (already-sold or out-of-channel).
     clone_rows = []
     for i, (serial, sku) in enumerate(rng.sample(d1_serials, min(40, len(d1_serials)))):
         reason = "ALREADY_SOLD" if i % 3 == 0 else "NOT_IN_CHANNEL"
-        clone_rows.append((f"ver_seed_{i:03d}", serial, sku, "store_b", "NOT_VERIFIED", reason,
+        clone_rows.append((f"ver_seed_{i:03d}", serial, sku, "store_c", "NOT_VERIFIED", reason,
                            rng.randint(weeks - 3, weeks)))
     b.executemany("INSERT INTO verification_log (verification_id, serial, sku, store_id, result, reason_code, week) "
                   "VALUES (%s,%s,%s,%s,%s,%s,%s)", clone_rows)

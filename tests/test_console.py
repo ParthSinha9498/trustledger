@@ -39,7 +39,7 @@ def test_run_brand_and_paypal_with_explanation(env):
     body = r.json()
     brand, paypal = body["results"]
     assert brand["node"] == "brand" and brand["exact"] is True and brand["rows"]
-    assert any(row["store_id"] == "store_b" for row in brand["rows"])
+    assert any(row["store_id"] == "store_c" for row in brand["rows"])
     assert paypal["node"] == "paypal" and "noise" in paypal and "suppressed_cells" in paypal
     assert all("ci95" in row for row in paypal["rows"])
     assert body["budget"]["spent"] > 0 and {"spent", "remaining", "daily"} <= set(body["budget"])

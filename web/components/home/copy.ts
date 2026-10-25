@@ -33,11 +33,15 @@ export const LANDING_COPY = {
     ],
   },
   business: {
-    title: "How it pays for itself",
+    title: "Why brands pay for this",
+    subhead: "The check is free for shoppers. Brands pay for what verified purchases tell them.",
+    reasons: [
+      { title: "Real buyers, not panels", body: "Answers come from verified purchases, not self-reported surveys." },
+      { title: "Seconds, not weeks", body: "Ask a business question in plain English and get an answer in seconds." },
+      { title: "Leaks they can act on", body: "Every blocked sale opens a cited investigation into where units left the route." },
+    ],
     chain: ["Verified purchases", "Privacy-safe insights", "Brand revenue", "Free checks for shoppers"],
     lines: [
-      "Brands spend over USD 150B a year on market insights (ESOMAR, 2024 data).",
-      "Surveys take weeks, and answers are self-reported. In a Pew survey of 11,114 US adults (Nov 2024), 18% of cases were flagged as bogus.",
       "Brands pay for answers from verified purchases, so the authenticity check stays free for shoppers.",
     ],
   },

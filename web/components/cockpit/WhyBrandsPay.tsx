@@ -10,7 +10,7 @@ import styles from "./WhyBrandsPay.module.css";
  * `seconds` is the time the page actually measured for the last answer. When nothing has been
  * measured yet, the panel says "Answered in seconds" and never invents a number.
  */
-export default function WhyBrandsPay({ seconds = null }: { seconds?: number | null }) {
+export default function WhyBrandsPay({ seconds = null, title = "Why brands pay for this" }: { seconds?: number | null; title?: string }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
   const answered = seconds != null && Number.isFinite(seconds)
@@ -20,7 +20,7 @@ export default function WhyBrandsPay({ seconds = null }: { seconds?: number | nu
   return (
     <section className={styles.panel} aria-labelledby={`${bodyId}-title`}>
       <div className={styles.head}>
-        <h2 id={`${bodyId}-title`} className={styles.title}>Why brands pay for this</h2>
+        <h2 id={`${bodyId}-title`} className={styles.title}>{title}</h2>
         <button type="button" className={styles.toggle} aria-expanded={open} aria-controls={bodyId}
                 onClick={() => setOpen((v) => !v)}>
           {open ? "Hide" : "Show"} comparison

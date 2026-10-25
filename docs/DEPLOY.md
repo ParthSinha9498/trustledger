@@ -47,21 +47,21 @@ Inside `trustledger-backend`, process supervision (`docker/all_in_one.sh`) launc
 
 ---
 
-## 2. Step 1: Create 3 Postgres Databases on Neon
+## 2. Step 1: Database Architecture (Render Postgres Paid Basic-256mb)
 
-A free Render Postgres instance expires automatically after 30 days. Because hackathon evaluation and judging runs from Dec 1–15, managed databases should be created outside Render to avoid data loss.
+To survive through judging (Dec 1–15) without the 30-day free expiry or Neon compute suspension, TrustLedger uses **Render Postgres Basic-256mb** (~$6/mo, covered by the $50 hackathon credit). Web and backend services remain on the **Free tier**.
 
-[Neon](https://neon.tech) provides a generous free tier with permanent Postgres databases:
+Because the single managed Postgres instance hosts 3 separate logical databases for process isolation (`platform`, `brand`, `paypal_side`):
 
-1. Sign up for free at [neon.tech](https://neon.tech) and create a project (e.g. `trustledger`).
-2. In the Neon Console, navigate to **Databases** and create 3 logical databases within the same project:
-   - `trustledger_brand` (or `brand`)
-   - `trustledger_paypal_side` (or `paypal_side`)
-   - `trustledger_platform` (or `platform`)
-3. Copy the **direct (non-pooled)** connection strings (e.g. `postgres://user:password@ep-...neon.tech/<dbname>?sslmode=require`) for each database:
-   - `BRAND_DATABASE_URL`
-   - `PAYPAL_DATABASE_URL`
-   - `PLATFORM_DATABASE_URL`
+1. **Create the databases**: In the Render dashboard, open the `trustledger-db` shell (or connect via `psql`) and initialize the brand and paypal-side databases:
+   ```sql
+   CREATE DATABASE brand;
+   CREATE DATABASE paypal_side;
+   ```
+2. **Configure Connection Strings**:
+   - `PLATFORM_DATABASE_URL`: Automatically linked from `trustledger-db` via `render.yaml`.
+   - `BRAND_DATABASE_URL`: The same Postgres URL replacing `/platform` with `/brand`.
+   - `PAYPAL_DATABASE_URL`: The same Postgres URL replacing `/platform` with `/paypal_side`.
 
 > [!IMPORTANT]
 > **Use Direct, Non-Pooled Connection Strings:** Do **not** use Neon's `-pooler` connection strings. TrustLedger uses `psycopg 3`, which automatically switches to server-side prepared statements after 5 executions. PgBouncer transaction pooling does not maintain prepared statements across connections, leading to `prepared statement "..." does not exist` errors. Keep `?sslmode=require`.
@@ -107,14 +107,22 @@ and judges pay with the sandbox buyer login.
 
 ---
 
-## 4. Step 3: Automatic Database Seeding & Demo Reset
+## 4. Step 3: Automatic Database Seeding & Scheduled Reseeding
 
 TrustLedger handles database initialization automatically on container boot:
 - **`SEED_ON_START=auto`** (Default): On boot, `docker/all_in_one.sh` inspects `to_regclass('public.stores')` on `PLATFORM_DATABASE_URL`. If the database is empty, it runs `docker/seed.py`, creating all schemas and populating fictional demonstration data (Nimbus brand catalog, stores, distributors, and initial serials). If already seeded, it skips to preserve active state.
 - **`SEED_ON_START=always`** (One-Off Demo Reset): Wipes and reseeds demo fixtures on boot.
   > [!WARNING]
-  > Because Render Free web services spin down and restart on every cold start (after 15 minutes of inactivity), leaving `SEED_ON_START=always` permanently configured would wipe the database every time the service wakes up—including during evaluation! To reset the demo: change `SEED_ON_START` to `always`, let one deploy finish, and then immediately change it back to `auto`.
-- **`SEED_ON_START=never`**: Bypasses any seed check.
+  > Because Render Free web services spin down and restart on every cold start (after 15 minutes of inactivity), leaving `SEED_ON_START=always` permanently configured would wipe the database every time the service wakes up—including during evaluation!
+
+### Scheduled Reseed Protocol (Nov 12 Submission & Dec 1 Judging)
+To ensure clean state with predictable demonstration serials (`X123` at Store A, out-of-channel scan at Store C):
+1. **Submission Reseed (Nov 12)**: Before final submission, trigger a one-off database reset. In the Render Dashboard under `trustledger-backend` > **Shell**, execute:
+   ```bash
+   SEED_ON_START=always python docker/seed.py
+   ```
+   Or set `SEED_ON_START=always` in environment variables for one deploy, then immediately revert to `auto`.
+2. **Pre-Judging Reseed (Dec 1, 13:00 PT / 1 hour before judging)**: Run the same reset in the Render Shell. This guarantees fresh demo inventory for evaluators while preserving cached pre-run investigation cases.
 
 ---
 
@@ -139,7 +147,7 @@ TrustLedger handles database initialization automatically on container boot:
 ## 6. Cold Starts & Pre-Demo Warming
 
 Render's Free tier spins down web services after 15 minutes of inactivity:
-- **Cold start behavior:** If sleeping, the first incoming request takes approximately 50–70 seconds while the container initializes, checks the database seed, and spins up Uvicorn and Next.js. Subsequent requests respond instantly.
+- **Cold start behavior:** If sleeping, the first visit may take ~1–2 minutes while the container warms up. The web application actively pings `/health` upon page load and displays a non-blocking status banner: **"Waking the demo (~1 min)"** so users and judges are informed while the backend spins up. Subsequent requests respond instantly.
 - **Pre-demo warming:** Before conducting a live demo or presentation, send a ping request to both services to warm them up:
   ```bash
   curl -I https://<trustledger-backend-host>.onrender.com/health

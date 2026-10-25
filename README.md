@@ -21,9 +21,9 @@ When an authorized retailer scans a genuine unit, the brand confirms provenance.
 ---
 
 ### 2. Off-Channel Divergence: Zero Payment Created
-When a store attempts to sell an out-of-channel or cloned serial (e.g. Serial `X123` at Store B), the brand flags `NOT_IN_CHANNEL`. **No PayPal order is ever created.** The transaction is deterministically blocked, and an automated investigation case is opened.
+When a store attempts to sell an out-of-channel or cloned serial (e.g. Serial `X123` at Store C), the brand flags `NOT_IN_CHANNEL`. **No PayPal order is ever created.** The transaction is deterministically blocked, and an automated investigation case is opened.
 
-![Store B Blocked](docs/media/02_pos_blocked.png)
+![Store C Blocked](docs/media/02_pos_blocked.png)
 
 ---
 
@@ -67,7 +67,7 @@ An integrated interactive story deck at `/story` articulates the macro counterfe
 ```mermaid
 flowchart TD
     subgraph POS["Store Checkout & POS"]
-        Store["Retail POS / Web Checkout<br/>(Store A vs Store B)"]
+        Store["Retail POS / Web Checkout<br/>(Store A vs Store C)"]
     end
 
     subgraph Platform["TrustLedger Platform (Port 8000)"]
@@ -136,20 +136,30 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
    - Built with the official APIMatic PayPal Context Plugin.
    - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and storing the brand verification ID in the order's `custom_id`.
    - Comprehensive implementation details in [docs/APIMATIC.md](docs/APIMATIC.md).
-2. **AG Grid Community**:
-   - Powers the high-performance investigations table in the Brand Cockpit (`/cockpit`), featuring responsive column pinning, status badges, and sub-second filtering.
+2. **AG Grid + AG Charts (Community)**:
+   - Power the investigations table and charts in the Brand Cockpit (`/cockpit`), the Insights answers grid and the supply-chain tables. Details: [docs/sponsors/ag-grid.md](docs/sponsors/ag-grid.md).
 3. **Bryntum Scheduler**:
-   - Delivers the interactive multi-tier supply chain visualization (`/cockpit/supply-chain`), displaying brand dispatches, distributor inventory, and store receipts across time.
+   - The supply-chain timeline (`/cockpit/supply-chain`): batches shipped by each distributor to its stores over time, and where their units were sold. Details: [docs/sponsors/bryntum.md](docs/sponsors/bryntum.md).
 4. **OpenDP**:
    - Core mathematical foundation for the differential privacy Gaussian mechanism and private releases on federated demographic analytics.
 5. **Render**:
-   - All-in-one Starter plans container / Render web service connecting the web frontend, platform gateway, brand node, and PayPal node. See [docs/DEPLOY.md](docs/DEPLOY.md).
+   - Deployment target (Render Blueprint, `render.yaml`): a web service plus one backend service running the API, brand node, PayPal node and worker. See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ---
 
 ## Try It & Testing Instructions
 
 > **Hosted demo:** URL added after deployment.
+
+### PayPal sandbox buyer (for the PayPal approval step)
+
+| | |
+|---|---|
+| Email | `sb-ad2fb53492308@personal.example.com` |
+| Password | `*t7)t&9Y` |
+
+Sandbox only (PayPal's test environment, fake money). Needed only when the stack runs with `PAYPAL_MODE=sandbox`; in mock mode
+(the default for a local run) no PayPal account or API key is needed and the payment step is simulated.
 
 ### Prerequisites
 - Python 3.12+ with `uv`
@@ -166,12 +176,12 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 3. Click **Verify and check out**.
 4. The brand verifies unit provenance against Store A's authorized distributor shipments.
 5. Verification succeeds before any payment order exists.
-6. The PayPal checkout flow initiates. Complete the purchase using the **sandbox buyer (provided privately)**.
+6. The PayPal checkout flow initiates. Log in with the **PayPal sandbox buyer** below and approve. It is a sandbox account with test money only; no real payment is made.
 7. The customer receipt confirms the verified transaction, with the brand verification ID stored in the PayPal order's `custom_id`.
 
-#### Step 2: Out-of-channel block at Store B
+#### Step 2: Out-of-channel block at Store C
 1. Return to `/pos`.
-2. Switch store selection to **Store B**.
+2. Switch store selection to **Store C**.
 3. Enter serial `X123` (Store A stock) or an unsold Store A unit (e.g. `XA000001`).
 4. Click **Verify and check out**.
 5. The transaction is deterministically blocked: `NOT_IN_CHANNEL`.
@@ -179,7 +189,7 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 
 #### Step 3: Autonomous Investigation in the Cockpit
 1. Open `/cockpit` (Investigations).
-2. The Store B case appears (new, or added to an open case for the same store).
+2. The Store C case appears (new, or added to an open case for the same store).
 3. Open the case to observe the autonomous investigation agent at work.
 4. The agent sees only aggregates: business-level counts from the brand node and privacy-protected aggregates from PayPal. It never sees a record.
 5. If the AI provider is unavailable, the case shows waiting capacity with the reason and is retried later.
@@ -197,8 +207,8 @@ All test serials originate deterministically from `backend/seed.py`:
 
 | Serial / Pattern | SKU | Origin in `backend/seed.py` | Behavior & Expected Verdict |
 |---|---|---|---|
-| `X123` | `NMB-P8-128` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens until it is sold (reseed to reset).<br/>**Blocked at Store B (`NOT_IN_CHANNEL`):** Store B is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store B, the brand node finds the unit's batch was shipped to Store A, not Store B (`backend/brand_node/main.py:59-62`), halting payment with zero PayPal order created. |
-| `XA000001` .. `XA000491` | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store B (`NOT_IN_CHANNEL`). |
+| `X123` | `NMB-P8-128` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens until it is sold (reseed to reset).<br/>**Blocked at Store C (`NOT_IN_CHANNEL`):** Store C is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store C, the brand node finds the unit's batch was shipped to Store A, not Store C (`backend/brand_node/main.py:59-62`), halting payment with zero PayPal order created. |
+| `XA000001` .. `XA000491` | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store C (`NOT_IN_CHANNEL`). |
 | `XB000001` .. `XB000528` | `NMB-P8-256` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store B. Verified at Store B. *(Note: scanning XB at Store A with the default P8 128GB gives `SKU_MISMATCH`; to get `NOT_IN_CHANNEL`, select Nimbus P8 256GB first).* |
 | Pre-seeded clone attempts | Various | `backend/seed.py:235-238` | 40 historical blocked attempts at Store B (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
 
@@ -235,7 +245,7 @@ uv run --with playwright python e2e/preflight.py --start --build --api http://lo
 *(Note: The sandbox buyer checkout applies only to hosted deployments or when `PAYPAL_MODE=sandbox`.)*
 
 Visit **http://localhost:3000** to explore the application:
-- `/pos`: Test retail verification (Store A = Verified, Store B = Blocked)
+- `/pos`: Test retail verification (Store A = Verified, Store C = Blocked)
 - `/cockpit`: View live investigations and agent findings
 - `/cockpit/console` (alias `/cockpit/insights`): Brand Insights, business questions answered from verified purchases with privacy guarantees
 - `/cockpit/supply-chain`: Explore the Bryntum timeline

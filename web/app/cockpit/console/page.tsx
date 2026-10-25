@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import BudgetMeter from "@/components/cockpit/BudgetMeter";
 import ResultView from "@/components/cockpit/ResultView";
 import SpecEditor from "@/components/cockpit/SpecEditor";
+import WhyBrandsPay from "@/components/cockpit/WhyBrandsPay";
 import { fmtNum, label } from "@/components/cockpit/format";
 import { api, errorText, type Budget, type PlanResponse, type PlannedSpec, type QueryResult, type RunResponse } from "@/lib/api";
 import styles from "./insights.module.css";
@@ -116,6 +117,8 @@ export default function InsightsPage() {
         <div className="head-budget"><BudgetMeter budget={budget} /></div>
       </div>
 
+      <WhyBrandsPay seconds={seconds} />
+
       <section className="card">
         <form className={`ask ${styles.ask}`} onSubmit={(e) => { e.preventDefault(); ask(); }}>
           <input aria-label="Question" value={question} onChange={(e) => setQuestion(e.target.value)}
@@ -162,9 +165,6 @@ export default function InsightsPage() {
                     <div className={styles.heroTiming}>
                       <span className={styles.timingHighlight}>Answered in {seconds.toFixed(seconds < 1 ? 2 : 1)} s</span>
                       <span>{sourceText({ ...r, node, spec })}.</span>
-                    </div>
-                    <div className={styles.vsSurveyHero}>
-                      <span className={styles.surveyTag}>A survey:</span> weeks, self-reported.
                     </div>
                   </div>
                 )}

@@ -92,6 +92,17 @@ A free Render Postgres instance expires automatically after 30 days. Because hac
 | `LLM_API_KEY` | `trustledger-backend` | Groq API Key (free at console.groq.com) or Gemini API Key |
 | `NEXT_PUBLIC_PAYPAL_CLIENT_ID` | `trustledger-web` | PayPal Sandbox Client ID (loaded in browser SDK) |
 
+Optional, for the one-click **Pay with test card (sandbox)** button on the pay page. These are not in `render.yaml`, so add
+them by hand under `trustledger-backend` > **Environment**. Use a PayPal sandbox test card
+(https://developer.paypal.com/tools/sandbox/card-testing/), never a real card. Without the first two the button is hidden
+and judges pay with the sandbox buyer login.
+
+| Variable | Service | Value / Source |
+|---|---|---|
+| `SANDBOX_TEST_CARD_NUMBER` | `trustledger-backend` | Sandbox test card number |
+| `SANDBOX_TEST_CARD_EXPIRY` | `trustledger-backend` | Its expiry, `YYYY-MM` |
+| `SANDBOX_TEST_CARD_CVV` | `trustledger-backend` | Its CVV (optional) |
+
 6. Click **Apply**. Render will build and deploy both services.
 
 ---

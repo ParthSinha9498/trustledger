@@ -92,7 +92,7 @@ export default function Timeline({ data, focusBatches, highlight = null, onFallb
       const mask = el.querySelector(".b-mask, .b-trial-expired, .b-trial-mask, [class*='trial']");
       if (mask) {
         const t = (mask.textContent || "").toLowerCase();
-        if (t.includes("trial expired") || t.includes("expired") || t.includes("license") || mask.classList.contains("b-trial-expired")) {
+        if (t.includes("trial expired") || mask.classList.contains("b-trial-expired")) {
           setTrialExpired(true);
           onFallback?.();
         }

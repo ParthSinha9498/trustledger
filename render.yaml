@@ -91,6 +91,18 @@ services:
         value: https://api.groq.com/openai/v1
       - key: AGENT_MODEL
         value: openai/gpt-oss-120b
+      - key: LLM_FALLBACK_API_KEY
+        sync: false
+      - key: LLM_FALLBACK_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: LLM_FALLBACK_MODEL
+        value: gemini-3.5-flash
+      - key: SANDBOX_TEST_CARD_NUMBER
+        sync: false
+      - key: SANDBOX_TEST_CARD_EXPIRY
+        sync: false
+      - key: SANDBOX_TEST_CARD_CVV
+        sync: false
       - key: NOTIFY_WEBHOOK_URL  # optional Zapier / Slack hook; leave blank to disable alerts
         sync: false
       - key: BRAND_ID

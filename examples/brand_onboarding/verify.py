@@ -1,11 +1,18 @@
-"""TrustLedger brand onboarding: verify a serial before PayPal payment."""
+"""TrustLedger brand onboarding: verify a serialized product before PayPal payment.
+
+Environment variables:
+  TRUSTLEDGER_API_URL: Base URL for verification endpoint (default: http://localhost:8001)
+  BRAND_API_KEY: Pre-shared token (matching NODE_SHARED_TOKEN)
+
+Defaults use fictional unsold seed serial 'XA000001' (Nimbus P8 128GB at store_a).
+"""
 import os
 import sys
 import httpx
 
 
 def verify_product(serial: str, sku: str, store_id: str) -> dict:
-    base_url = os.environ.get("TRUSTLEDGER_API_URL") or os.environ.get("BRAND_NODE_URL", "http://localhost:8001")
+    base_url = os.environ.get("TRUSTLEDGER_API_URL", "http://localhost:8001")
     api_key = os.environ.get("BRAND_API_KEY") or os.environ.get("NODE_SHARED_TOKEN")
     if not api_key:
         sys.exit("Error: BRAND_API_KEY (or NODE_SHARED_TOKEN) environment variable is required.")
@@ -20,8 +27,8 @@ def verify_product(serial: str, sku: str, store_id: str) -> dict:
 
 
 if __name__ == "__main__":
-    # Example using Nimbus P8 128GB at Store A
-    serial = sys.argv[1] if len(sys.argv) > 1 else "X123"
+    # Example using fictional unsold seed serial XA000001 for Nimbus P8 128GB at Store A
+    serial = sys.argv[1] if len(sys.argv) > 1 else "XA000001"
     sku = sys.argv[2] if len(sys.argv) > 2 else "NMB-P8-128"
     store_id = sys.argv[3] if len(sys.argv) > 3 else "store_a"
 

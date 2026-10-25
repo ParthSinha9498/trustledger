@@ -10,18 +10,18 @@ export default function BrandOnboardingPage() {
   const [activeTab, setActiveTab] = useState<"python" | "curl">("python");
   const [copied, setCopied] = useState(false);
 
-  const pythonSnippet = `# Run with uv run examples/brand_onboarding/verify.py
+  const pythonSnippet = `# Run with uv run python examples/brand_onboarding/verify.py
 import os
 import httpx
 
-api_url = os.environ.get("BRAND_NODE_URL", "http://localhost:8001")
+api_url = os.environ.get("TRUSTLEDGER_API_URL", "http://localhost:8001")
 token = os.environ.get("NODE_SHARED_TOKEN", "change-me")
 
 response = httpx.post(
     f"{api_url}/v1/verify",
     headers={"X-Node-Token": token, "Content-Type": "application/json"},
     json={
-        "serial": "X123",
+        "serial": "XA000001",
         "sku": "NMB-P8-128",
         "store_id": "store_a"
     },
@@ -35,7 +35,7 @@ print("Reason:", verdict.get("reason_code"))`;
   -H "X-Node-Token: \${NODE_SHARED_TOKEN:-change-me}" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "serial": "X123",
+    "serial": "XA000001",
     "sku": "NMB-P8-128",
     "store_id": "store_a"
   }'`;

@@ -59,7 +59,7 @@ segments = [
     (0, 86.43, 89.82, 1.0, 4, "Landing Why Brands Pay teaser"),
     # Scene 5: Genuine sale (v5 audio: Store A X123 genuine sale)
     (0, 45.42, 49.92, 1.0, 5, "Store A checkout scan"),
-    (3, 1.00, 5.50, 1.0, 5, "Card payment form in USD ($799.00)"),
+    (3, 1.00, 5.50, 1.0, 5, "Card payment form in USD ($899.00)"),
     (1, 7.91, 21.49, 13.58 / 4.50, 5, "PayPal sandbox popup approval"),
     (0, 72.73, 75.99, 1.0, 5, "Verified customer receipt"),
     # Scene 6: Blocked sale (v5 audio: Store C blocked checkout)

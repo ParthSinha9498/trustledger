@@ -101,6 +101,9 @@ export default function Pos() {
 
           <div className={s.section}>
             <label htmlFor="serial" className={s.sectionLabel} style={{ display: "block" }}>Serial</label>
+            <div className={s.scannerCallout}>
+              <strong>Demo:</strong> type a serial. In a real store, the POS barcode scanner fills this in and sends it through the TrustLedger API.
+            </div>
             <div className={s.serialRow}>
               <input id="serial" value={serial} autoComplete="off" spellCheck={false} disabled={busy}
                 onChange={(e) => { setSerial(e.target.value); reset(); }}
@@ -111,7 +114,7 @@ export default function Pos() {
             </div>
             <div className={s.hintRow}>
               <span className={`muted ${s.hint}`}>
-                In production, the store&apos;s POS sends the scanned serial through the TrustLedger API. Demo: Store A: <code>XA…</code>, Store B: <code>XB…</code>, or <code>X123</code> (fresh seed).
+                In production, the store&apos;s POS sends the scanned serial through the TrustLedger API. Demo: Store A: <code>XA…</code>, Store B: <code>XB…</code>, or <code>X123</code> (fresh seed: verified at Store A, blocked at Store C).
               </span>
               <button type="button" className={s.chip} disabled={busy} onClick={tryGenuine}>
                 Fill an unsold unit

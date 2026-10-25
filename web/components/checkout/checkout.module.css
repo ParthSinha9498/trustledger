@@ -375,3 +375,22 @@
   background: var(--bg);
 }
 
+
+
+/* Callout for POS hardware scanner vs typed demo */
+.scannerCallout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  color: var(--fg);
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.scannerCallout strong {
+  color: var(--accent);
+}

@@ -10,7 +10,7 @@ def test_case_events_post_without_buyer_data(env, monkeypatch):
     monkeypatch.setattr(notify.threading, "Thread",
                         lambda target, args, daemon: type("T", (), {"start": lambda self: target(*args)})())
 
-    b = env["api"].post("/checkout/scan", json={"store_id": "store_b", "serial": "X123",
+    b = env["api"].post("/checkout/scan", json={"store_id": "store_c", "serial": "X123",
                                                 "sku": "NMB-P8-128", "amount": 899}).json()
     from backend.worker.main import process_one
     process_one()

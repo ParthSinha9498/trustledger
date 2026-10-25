@@ -6,7 +6,7 @@ from backend.worker import agent
 from backend.worker.main import process_one
 
 
-def scan(api, serial, store="store_b", sku="NMB-P8-128"):
+def scan(api, serial, store="store_c", sku="NMB-P8-128"):
     return api.post("/checkout/scan", json={"serial": serial, "sku": sku, "amount": 899.0, "store_id": store}).json()
 
 
@@ -19,8 +19,8 @@ def test_failures_join_one_open_case(env):
     case = api.get(f"/cases/{first['case_id']}").json()
     assert case["failure_count"] == 4
     # Another store or reason is another problem.
-    assert scan(api, "FAKE-005", store="store_c")["case_id"] != first["case_id"]
-    assert scan(api, "X123")["case_id"] != first["case_id"]  # NOT_IN_CHANNEL at store_b
+    assert scan(api, "FAKE-005", store="store_b")["case_id"] != first["case_id"]
+    assert scan(api, "X123")["case_id"] != first["case_id"]  # NOT_IN_CHANNEL at store_c
 
 
 def test_rerun_only_on_material_change(env):

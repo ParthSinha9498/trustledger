@@ -238,7 +238,7 @@ export default function Cockpit() {
             <h3>No investigations yet</h3>
             <p className="muted">A blocked checkout opens one. The AI investigator starts within seconds.</p>
             <Link href="/pos" className="button primary">Run a blocked checkout</Link>
-            <p className="muted small">Tip: at the store checkout, try serial X123 at Store B.</p>
+            <p className="muted small">Tip: at the store checkout, try serial X123 at Store C.</p>
           </div>
         ) : cases === null && !err ? (
           <div className={`skeleton ${styles.gridSkeleton}`} />

@@ -34,7 +34,7 @@ def test_receipt_only_brand_verified_after_capture(env):
 def test_blocked_checkout_can_never_be_paid(env):
     api = env["api"]
     orders_before = len(paypal._mock_orders)
-    b = api.post("/checkout/scan", json=SCAN | {"store_id": "store_b"}).json()
+    b = api.post("/checkout/scan", json=SCAN | {"store_id": "store_c"}).json()
     assert b["status"] == "NOT_VERIFIED"
     r = api.post(f"/checkout/{b['checkout_id']}/capture")
     assert 400 <= r.status_code < 500
@@ -113,7 +113,7 @@ def test_agent_never_sends_buyer_fields_to_llm(env, monkeypatch):
 
     monkeypatch.setattr(worker, "get_llm", SpyLLM)
     _ingest(env)  # a real payer id exists in the PayPal node
-    b = env["api"].post("/checkout/scan", json=SCAN | {"store_id": "store_b"}).json()
+    b = env["api"].post("/checkout/scan", json=SCAN | {"store_id": "store_c"}).json()
     assert worker.process_one() is True
     assert env["api"].get(f"/cases/{b['case_id']}").json()["status"] == "complete"
     prompts = "\n".join(sent)

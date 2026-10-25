@@ -143,7 +143,7 @@ TrustLedger defaults to Groq's OpenAI-compatible endpoint (`openai/gpt-oss-120b`
 - **Free Tier Quota:** Groq allows approximately 200,000 tokens per day (sufficient for ~4 full multi-turn agent investigations).
 - **Zero Cost for Case Browsing:** Completed investigations are stored with all citations and step timelines in the PostgreSQL database. Browsing cases, reviewing findings, and running console queries on cached cells consumes zero LLM tokens.
 - **Deduplication:** Subsequent scans of known failed serials join existing cases without re-triggering the investigation agent.
-- **Tip for Judging:** Trigger a Store B scan once prior to judging so that at least one complete investigation case is pre-seeded and immediately viewable.
+- **Tip for Judging:** Trigger a Store C scan once prior to judging so that at least one complete investigation case is pre-seeded and immediately viewable.
 
 ---
 
@@ -155,8 +155,8 @@ TrustLedger defaults to Groq's OpenAI-compatible endpoint (`openai/gpt-oss-120b`
    - Visit `https://<trustledger-web-host>.onrender.com/pos`.
    - Scan Store A with serial `X123`. Verify: brand verified badge, PayPal checkout button active.
    - To complete payment, sign in with a **PayPal sandbox buyer account** (create one at `developer.paypal.com` → Sandbox → Accounts).
-3. **Store B Rejection & Case Creation:**
-   - Scan Store B with serial `X123`. Verify: checkout blocked with `NOT_IN_CHANNEL`, PayPal order prevented, investigation opened.
+3. **Store C Rejection & Case Creation:**
+   - Scan Store C with serial `X123`. Verify: checkout blocked with `NOT_IN_CHANNEL`, PayPal order prevented, investigation opened.
 4. **Brand Cockpit & Bryntum Timeline:**
    - Visit `/cockpit`: open case displayed in AG Grid with status and confidence score.
    - Click case detail: multi-turn agent tool executions, findings, and Bryntum supply timeline.

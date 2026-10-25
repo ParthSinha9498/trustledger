@@ -21,5 +21,7 @@ notes/
 .gemini/
 .agent/
 .agents/
-.antigravity/
 evals/results/live*/
+scripts/tts/models/
+videos/
+

@@ -150,6 +150,8 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 ## Try It & Testing Instructions
 
 > **Hosted demo:** URL added after deployment.
+> 
+> *Note on cold starts:* The hosted backend runs on Render free tier with persistent paid Postgres (Basic-256mb). If visiting after ~15 minutes of inactivity, the first visit may take ~1–2 minutes while the container warms up. The web app automatically calls `/health` and displays **"Waking the demo (~1 min)"** so judges know the demo is spinning up.
 
 ### Paying in sandbox: one click with a test card
 With `PAYPAL_MODE=sandbox`, the pay page shows **Pay with test card (sandbox)** first. One click pays a real PayPal

@@ -1,21 +1,30 @@
-# Render Blueprint for TrustLedger, free plan. Spec: https://render.com/docs/blueprint-spec
+# Render Blueprint for TrustLedger (Paid Postgres Basic-256mb + Free Web & Backend)
+# Spec: https://render.com/docs/blueprint-spec
 # Setup steps (what to click, what to paste): docs/DEPLOY.md
 #
-# The free plan only offers web services (plus one Postgres that expires after 30 days), so:
-#   trustledger-web       web (free)  Next.js (docker/web.Dockerfile), public
-#   trustledger-backend   web (free)  one container, four processes (docker/all_in_one.sh):
-#                                       api          public on $PORT    platform DB only
-#                                       brand-node   127.0.0.1:8001     brand DB only
-#                                       paypal-node  127.0.0.1:8002     PayPal-side DB only
-#                                       worker       investigation agent, no DB at all
-#                                     The data nodes are never reachable from the internet. It seeds
-#                                     the databases on first start (SEED_ON_START=auto: only when empty).
+# Hosting Architecture:
+#   trustledger-web       web (free)      Next.js (docker/web.Dockerfile), public
+#   trustledger-backend   web (free)      one container, four processes (docker/all_in_one.sh):
+#                                           api          public on $PORT    platform DB only
+#                                           brand-node   127.0.0.1:8001     brand DB only
+#                                           paypal-node  127.0.0.1:8002     PayPal-side DB only
+#                                           worker       investigation agent, no DB at all
+#                                         The data nodes are never reachable from the internet. It seeds
+#                                         the databases on first start (SEED_ON_START=auto: only when empty).
+#   trustledger-db        postgres (paid) Render Postgres Basic-256mb ($6/mo). Permanent storage through
+#                                         hackathon judging (Dec 1–15). 3 logical databases (platform,
+#                                         brand, paypal_side) initialized on the single paid instance.
 #
-# Databases: three Postgres databases (brand, paypal_side, platform), created outside this file and
-# pasted in as URLs, because a free Render Postgres expires 30 days after creation (judging is
-# Dec 1-15). See docs/DEPLOY.md for the options.
-#
-# Free web services sleep after 15 minutes without traffic; the first request then takes ~1 minute.
+# Free web services sleep after 15 minutes without traffic; on page load the web app calls /health
+# immediately and displays "Waking the demo (~1 min)" while the backend warms up. No pinger is used.
+
+databases:
+  - name: trustledger-db
+    databaseName: platform
+    user: trustledger
+    plan: basic-256mb
+    region: oregon
+    ipAllowList: []
 
 services:
   # ------------------------------------------------------------------ web (Next.js)
@@ -30,8 +39,6 @@ services:
     buildFilter:
       paths: [web/**, docker/web.Dockerfile]
     envVars:
-      # Render passes service env vars to the Docker build as build args. web.Dockerfile turns
-      # API_PUBLIC_HOST into NEXT_PUBLIC_API_URL=https://<host> (public values only).
       - key: API_PUBLIC_HOST
         fromService: { type: web, name: trustledger-backend, envVarKey: RENDER_EXTERNAL_HOSTNAME }
       - key: NEXT_PUBLIC_PAYPAL_CLIENT_ID
@@ -51,12 +58,14 @@ services:
       paths: [backend/**, docker/backend.Dockerfile, docker/start.sh, docker/all_in_one.sh, docker/seed.py,
               pyproject.toml, uv.lock]
     envVars:
-      # One URL per logical database; all_in_one.sh hands each process only its own.
+      # Connection strings for the 3 logical databases on trustledger-db
+      - key: PLATFORM_DATABASE_URL
+        fromDatabase:
+          name: trustledger-db
+          property: connectionString
       - key: BRAND_DATABASE_URL
         sync: false
       - key: PAYPAL_DATABASE_URL
-        sync: false
-      - key: PLATFORM_DATABASE_URL
         sync: false
       - key: SEED_ON_START       # auto (seed only when empty) | always (reset the demo) | never
         value: auto

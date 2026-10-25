@@ -88,8 +88,8 @@ def main() -> None:
         process_one()
         return
     backoff = 3
-    idle_sleep = 3.0
-    max_idle = float(os.environ.get("WORKER_MAX_IDLE_S", "300"))
+    idle_sleep = 3.0  # WORKER_MAX_IDLE_S > 3 enables idle backoff (off by default: a judge's case must start within seconds)
+    max_idle = float(os.environ.get("WORKER_MAX_IDLE_S", "3"))
     while True:
         try:
             worked = process_one()

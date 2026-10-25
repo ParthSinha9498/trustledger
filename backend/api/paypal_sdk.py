@@ -60,6 +60,8 @@ def sdk_config():
         "client_id": None if paypal.is_mock else (config.env("PAYPAL_CLIENT_ID", "") or None),
         "currency": config.env("PAYPAL_CURRENCY", "USD"),
         "sdk_url": _sdk_url(),
+        # Whether POST /checkout/{id}/pay-test-card can run (sandbox test card set, or mock). Never true in live.
+        "test_card": paypal.test_card_available,
     }
 
 

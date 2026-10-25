@@ -216,3 +216,39 @@ def test_get_order_sends_no_paypal_request_id(monkeypatch, sdk_stub):
     sandbox_client(monkeypatch).get_order("ORDER1")
     [req] = catcher.sent("/v2/checkout/orders/ORDER1")
     assert "PayPal-Request-Id" not in req.headers
+
+
+def test_pay_with_test_card_confirms_with_the_card_then_captures(monkeypatch, sdk_stub):
+    routes, catcher = sdk_stub
+    routes[("POST", "/v2/checkout/orders/ORDER1/confirm-payment-source")] = (200, {"id": "ORDER1", "status": "APPROVED"})
+    routes[("POST", "/v2/checkout/orders/ORDER1/capture")] = (201, {"id": "ORDER1", "status": "COMPLETED"})
+    monkeypatch.setenv("SANDBOX_TEST_CARD_NUMBER", "4000000000000000")
+    monkeypatch.setenv("SANDBOX_TEST_CARD_EXPIRY", "2030-01")
+    monkeypatch.setenv("SANDBOX_TEST_CARD_CVV", "123")
+
+    assert sandbox_client(monkeypatch).pay_with_test_card("ORDER1")["status"] == "COMPLETED"
+    [confirm] = catcher.sent("/v2/checkout/orders/ORDER1/confirm-payment-source")
+    assert json.loads(confirm.parameters) == {"payment_source": {"card": {
+        "name": "TrustLedger Test", "number": "4000000000000000", "expiry": "2030-01", "security_code": "123"}}}
+    [capture] = catcher.sent("/v2/checkout/orders/ORDER1/capture")
+    assert capture.headers["PayPal-Request-Id"] == "capture-ORDER1"  # the same capture path and key
+
+
+def test_pay_with_test_card_stops_when_the_card_is_not_approved(monkeypatch, sdk_stub):
+    routes, catcher = sdk_stub
+    routes[("POST", "/v2/checkout/orders/ORDER1/confirm-payment-source")] = (
+        200, {"id": "ORDER1", "status": "PAYER_ACTION_REQUIRED"})
+    monkeypatch.setenv("SANDBOX_TEST_CARD_NUMBER", "4000000000000000")
+    monkeypatch.setenv("SANDBOX_TEST_CARD_EXPIRY", "2030-01")
+
+    with pytest.raises(PayPalError) as exc:
+        sandbox_client(monkeypatch).pay_with_test_card("ORDER1")
+    assert exc.value.body["name"] == "TEST_CARD_NOT_APPROVED"
+    assert catcher.sent("/v2/checkout/orders/ORDER1/capture") == []
+
+
+def test_pay_with_test_card_needs_a_configured_card(monkeypatch, sdk_stub):
+    monkeypatch.delenv("SANDBOX_TEST_CARD_NUMBER", raising=False)
+    monkeypatch.delenv("SANDBOX_TEST_CARD_EXPIRY", raising=False)
+    with pytest.raises(paypal_client.CardPaymentUnavailable):
+        sandbox_client(monkeypatch).pay_with_test_card("ORDER1")

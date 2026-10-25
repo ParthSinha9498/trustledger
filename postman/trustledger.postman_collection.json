@@ -120,6 +120,36 @@
           ]
         },
         {
+          "name": "Pay Store A with sandbox test card (alternative to Capture)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{apiBaseUrl}}/checkout/{{checkoutId}}/pay-test-card",
+              "host": [
+                "{{apiBaseUrl}}"
+              ],
+              "path": [
+                "checkout",
+                "{{checkoutId}}",
+                "pay-test-card"
+              ]
+            },
+            "description": "Sandbox: use this INSTEAD of Capture. The server pays the existing order with a PayPal sandbox test card and captures it, no buyer login. Run after Capture it answers 409 (already paid). Refused (403) in live mode."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('paid now or already paid', () => pm.expect(pm.response.code).to.be.oneOf([200, 409]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Receipt",
           "request": {
             "method": "GET",

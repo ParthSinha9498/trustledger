@@ -249,6 +249,11 @@ PLATFORM_DOCS = {
     ("/checkout/{checkout_id}/capture", "post"): ("captureCheckout", "Capture the payment",
                                                   "Captures the PayPal order, confirms the sale with the brand, "
                                                   "and returns the receipt."),
+    ("/checkout/{checkout_id}/pay-test-card", "post"): (
+        "payCheckoutWithTestCard", "Pay with a PayPal sandbox test card (sandbox only)",
+        "Sandbox demo path, refused in live mode. The server confirms the existing PayPal order (created only "
+        "after VERIFIED) with a PayPal sandbox test card from its environment (Orders v2 "
+        "confirm-payment-source), then runs the normal capture and returns the receipt. No buyer login."),
     ("/receipts/{checkout_id}", "get"): ("getReceipt", "Receipt", "Receipt with verification and PayPal order ids."),
     ("/cases", "get"): ("listCases", "List investigation cases", "Newest first, with a findings count."),
     ("/cases/{case_id}", "get"): ("getCase", "Case detail", "A case and every agent step, in order."),
@@ -334,6 +339,20 @@ def platform_spec() -> dict:
                 }
             },
         }
+    card_op = spec.get("paths", {}).get("/checkout/{checkout_id}/pay-test-card", {}).get("post")
+    if card_op:
+        def err(desc: str, example) -> dict:
+            return {"description": desc, "content": {"application/json": {
+                "schema": {"$ref": "#/components/schemas/Error"}, "example": {"detail": example}}}}
+        card_op["responses"].update({
+            "403": err("Live mode: test-card payments are sandbox only.", "test-card payments are sandbox only"),
+            "404": err("Unknown checkout.", "unknown checkout"),
+            "409": err("Blocked (no PayPal order exists) or already paid.",
+                       "checkout is not awaiting payment (blocked checkouts have no PayPal order)"),
+            "502": err("PayPal upstream error or capture failed.", {"paypal_status": "FAILED"}),
+            "503": err("No sandbox test card configured on the server.",
+                       "SANDBOX_TEST_CARD_NUMBER and SANDBOX_TEST_CARD_EXPIRY are not set"),
+        })
     return spec
 
 

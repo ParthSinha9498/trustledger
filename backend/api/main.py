@@ -8,7 +8,7 @@ from psycopg.types.json import Jsonb
 from pydantic import BaseModel
 
 from backend import config, db
-from backend.api.paypal_client import PayPalError, paypal
+from backend.api.paypal_client import PayPalError, CardPaymentUnavailable, paypal
 from backend.common import http, notify
 from backend.common.auth import require_node_token
 from backend.api import cockpit, console, paypal_sdk, studio, supply_chain
@@ -140,14 +140,24 @@ def record_failure(pc, req: "ScanRequest", v: dict) -> tuple[str, str | None]:
     return case_id, event
 
 
-@app.post("/checkout/{checkout_id}/capture")
-def capture(checkout_id: str):
+PAYABLE = ("AWAITING_PAYMENT", "APPROVED")
+
+
+def _payable_checkout(checkout_id: str) -> dict | None:
+    """The checkout row if it is VERIFIED, has a PayPal order and is still waiting for payment, else None.
+    A BLOCKED checkout never has an order (paypal_order_id is NULL), so it can never be paid."""
     with db.connect("platform") as pc:
         chk = pc.execute("SELECT * FROM checkouts WHERE checkout_id=%s", (checkout_id,)).fetchone()
-    if chk is None or chk["status"] not in ("AWAITING_PAYMENT", "APPROVED"):
-        raise HTTPException(409, "checkout is not awaiting payment")
+    if chk is None or chk["status"] not in PAYABLE or not chk["paypal_order_id"]:
+        return None
+    return chk
+
+
+def _pay_and_record(checkout_id: str, chk: dict, pay) -> dict:
+    """Run `pay(order_id)` (a capture, or the test-card confirm + capture), then record the sale exactly once:
+    confirm the brand's verification, hand the sale to the PayPal-side node, mark CAPTURED, return the receipt."""
     try:
-        result = paypal.capture_order(chk["paypal_order_id"])
+        result = pay(chk["paypal_order_id"])
     except PayPalError as e:
         # e.g. 422 ORDER_NOT_APPROVED when the buyer hasn't approved yet. Pass PayPal's reason through.
         body = e.body
@@ -175,6 +185,33 @@ def capture(checkout_id: str):
     with db.connect("platform") as pc:
         pc.execute("UPDATE checkouts SET status='CAPTURED' WHERE checkout_id=%s", (checkout_id,))
     return receipt(checkout_id)
+
+
+@app.post("/checkout/{checkout_id}/capture")
+def capture(checkout_id: str):
+    chk = _payable_checkout(checkout_id)
+    if chk is None:
+        raise HTTPException(409, "checkout is not awaiting payment")
+    return _pay_and_record(checkout_id, chk, paypal.capture_order)
+
+
+@app.post("/checkout/{checkout_id}/pay-test-card")
+def pay_test_card(checkout_id: str):
+    """One-click sandbox payment: a PayPal sandbox test card pays the order made after VERIFIED, then the
+    normal capture path runs. Refused in live mode. Unknown checkout: 404. Blocked or already paid: 409."""
+    if paypal.mode not in ("sandbox", "mock"):
+        raise HTTPException(403, "test-card payments are sandbox only")
+    with db.connect("platform") as pc:
+        exists = pc.execute("SELECT 1 FROM checkouts WHERE checkout_id=%s", (checkout_id,)).fetchone()
+    if exists is None:
+        raise HTTPException(404, "unknown checkout")
+    chk = _payable_checkout(checkout_id)
+    if chk is None:
+        raise HTTPException(409, "checkout is not awaiting payment (blocked checkouts have no PayPal order)")
+    try:
+        return _pay_and_record(checkout_id, chk, paypal.pay_with_test_card)
+    except CardPaymentUnavailable as e:
+        raise HTTPException(503, str(e))
 
 
 @app.get("/receipts/{checkout_id}")

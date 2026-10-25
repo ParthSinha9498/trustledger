@@ -18,14 +18,14 @@ Numbers are written as they should be spoken.
 | 6 | Blocked sale (13) | Now Store C scans the same serial. This phone was never shipped to Store C, so the checkout stops before any money moves. No PayPal order exists. |
 | 7 | Investigation (15) | The brand gets a case. An AI agent investigates on its own, asking each side questions and never seeing a single record. Its findings show where the evidence diverges. |
 | 8 | Supply chain (11) | The supply chain makes the leak visible: batches one distributor shipped to other stores, sold at Store C, a store it never supplies. |
-| 9 | Business model (13) | Here's how it pays for itself. Brands spend over a hundred and fifty billion dollars a year on market insights. Surveys take weeks, and the answers are self-reported. |
+| 9 | Business model (19) | Here's how it pays for itself. Brands already spend over a hundred and fifty billion dollars a year on market insights, and surveys take weeks. TrustLedger answers from verified purchases in seconds. Part of that budget funds the check, so it stays free for shoppers. |
 | 10 | Brand insights (16) | With TrustLedger, a brand asks who buys its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. The privacy budget is spent once; asking again costs nothing more. |
 | 11 | AI analyst (8) | An AI analyst builds the charts, answering questions about buyers without ever seeing a buyer. |
 | 12 | Privacy (13) | How is privacy ensured? Brand and PayPal data never leave their own systems, and every answer about buyers is protected with differential privacy, using OpenDP. No one is identifiable. |
 | 13 | Onboarding (17) | Brands run one verification API, PayPal runs the gate, and a store adds one API call. AI shopping agents can call the same check. And for registered categories, PayPal can make it network policy, so a counterfeit seller can't opt out. |
 | 14 | Close (10) | Brands pay for the insights, and the check is free for shoppers. Trust for buyers. Intelligence for brands. A stronger PayPal network. |
 
-Planned total: 168 s + 1 s of silence before scene 1 = 2:49. Each scene in the cut = its audio + ≤ 1 s; waits sped up.
+Planned total: 174 s + 1 s of silence before scene 1 = 2:55. Each scene in the cut = its audio + ≤ 1 s; waits sped up.
 
 ## Scene status
 

@@ -73,6 +73,11 @@ def process_one() -> bool:
     return True
 
 
+def next_idle_sleep(current: float, max_idle: float = 300.0) -> float:
+    """Exponential backoff when idle: doubles sleep time up to max_idle."""
+    return min(current * 2.0, max_idle)
+
+
 def main() -> None:
     if config.env("LLM_MODE", "live") != "mock" and not config.env("AGENT_MODEL"):
         raise RuntimeError("AGENT_MODEL environment variable must be set when LLM_MODE is not 'mock'")
@@ -83,6 +88,8 @@ def main() -> None:
         process_one()
         return
     backoff = 3
+    idle_sleep = 3.0  # WORKER_MAX_IDLE_S > 3 enables idle backoff (off by default: a judge's case must start within seconds)
+    max_idle = float(os.environ.get("WORKER_MAX_IDLE_S", "3"))
     while True:
         try:
             worked = process_one()
@@ -92,8 +99,11 @@ def main() -> None:
             worked, backoff = False, min(backoff * 2, 60)
             time.sleep(backoff)
             continue
-        if not worked:
-            time.sleep(3)
+        if worked:
+            idle_sleep = 3.0
+        else:
+            time.sleep(idle_sleep)
+            idle_sleep = next_idle_sleep(idle_sleep, max_idle)
 
 
 if __name__ == "__main__":

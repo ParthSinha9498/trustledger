@@ -174,6 +174,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /console/release/cells:
+    get:
+      tags:
+      - studio
+      summary: Release Cells
+      description: 'The private release as cells for AG Studio. Read-only: spends no privacy budget.
+
+
+        Marginal rows: dims + value, ci95 (95% half-width), var = (ci95/1.96)^2, suppressed (values null when
+
+        suppressed). M4 and M6 also carry spend, spend_ci95, spend_var. Brand counts are exact business counts.'
+      operationId: release_cells_console_release_cells_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /ai/turn:
+    post:
+      tags:
+      - studio
+      summary: Ai Turn
+      description: 'One AG Studio agent turn: an OpenAI Chat Completions request, answered as an SSE stream.
+
+
+        The model is chosen here (AGENT_MODEL, then LLM_FALLBACK_MODEL on 429/5xx), the key is injected here,
+
+        max_tokens is capped, and a request naming any buyer-level field is refused with 400.'
+      operationId: ai_turn_ai_turn_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /ai/log:
+    get:
+      tags:
+      - studio
+      summary: Ai Log
+      description: 'Redacted metadata of recent /ai/turn requests: sizes, hashes, tool names, status. No bodies,
+        no keys.'
+      operationId: ai_log_ai_log_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /health:
     get:
       summary: Health check

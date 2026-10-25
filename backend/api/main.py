@@ -11,7 +11,7 @@ from backend import config, db
 from backend.api.paypal_client import PayPalError, paypal
 from backend.common import http, notify
 from backend.common.auth import require_node_token
-from backend.api import cockpit, console, paypal_sdk, supply_chain
+from backend.api import cockpit, console, paypal_sdk, studio, supply_chain
 
 app = FastAPI(title="TrustLedger API")
 app.add_middleware(
@@ -24,6 +24,7 @@ app.include_router(console.router)
 app.include_router(paypal_sdk.router)
 app.include_router(supply_chain.router)
 app.include_router(cockpit.router)
+app.include_router(studio.router)
 
 REASON_TEXT = {
     "NOT_IN_CHANNEL": "This product is not in this store's supply chain.",

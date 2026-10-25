@@ -166,9 +166,6 @@ export default function InsightsPage() {
                       <span className={styles.timingHighlight}>Answered in {seconds.toFixed(seconds < 1 ? 2 : 1)} s</span>
                       <span>{sourceText({ ...r, node, spec })}.</span>
                     </div>
-                    <div className={styles.vsSurveyHero}>
-                      <span className={styles.surveyTag}>A survey:</span> weeks, self-reported.
-                    </div>
                   </div>
                 )}
                 <div className={styles.chartHeroContainer}>

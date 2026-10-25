@@ -154,12 +154,20 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 > *Note on cold starts:* The hosted backend runs on Render free tier with persistent paid Postgres (Basic-256mb). If visiting after ~15 minutes of inactivity, the first visit may take ~1–2 minutes while the container warms up. The web app automatically calls `/health` and displays **"Waking the demo (~1 min)"** so judges know the demo is spinning up.
 
 ### Paying in sandbox: one click with a test card
-With `PAYPAL_MODE=sandbox`, the pay page shows **Pay with test card (sandbox)** first. One click pays a real PayPal
-sandbox order with a PayPal sandbox test card: no PayPal login, no real money. The order is still created only after
-the brand verified the unit. The button appears only when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY`
-(`YYYY-MM`; `SANDBOX_TEST_CARD_CVV` optional) are set in `.env` (see `.env.example`). Test card numbers:
-https://developer.paypal.com/tools/sandbox/card-testing/. The PayPal button below it is the alternative, with the
-sandbox buyer login.
+With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/PayClient.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.
+
+### Standalone Brand Onboarding Verification
+Brands implement pre-payment verification against `openapi/brand-verification.yaml` (implemented by `backend/brand_node/main.py:46`). The standalone verification client `examples/brand_onboarding/verify.py` tests this contract offline or against the local brand node:
+
+```bash
+# Verify genuine unsold seed unit XA000001 at Store A (answers VERIFIED)
+NODE_SHARED_TOKEN=change-me uv run python examples/brand_onboarding/verify.py XA000001 NMB-P8-128 store_a
+
+# Test diverted inventory at Store B (answers NOT_VERIFIED: NOT_IN_CHANNEL)
+NODE_SHARED_TOKEN=change-me uv run python examples/brand_onboarding/verify.py XA000001 NMB-P8-128 store_b
+```
+
+The interactive 5-step onboarding walkthrough is available at `/brands/onboard` (`web/app/brands/onboard/page.tsx`).
 
 ### PayPal sandbox buyer (alternative: the PayPal approval step)
 

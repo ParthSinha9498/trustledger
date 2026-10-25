@@ -2,7 +2,8 @@
 
 PAYPAL_MODE=mock runs offline and never touches the network or the SDK. sandbox (default for anything
 that isn't mock) and live call PayPal through the APIMatic-generated PayPal Server SDK
-(`paypal-server-sdk`, import package `paypalserversdk`) for Orders v2: create, get, capture.
+(`paypal-server-sdk`, import package `paypalserversdk`) for Orders v2: create, get, capture, and
+confirm-payment-source (the sandbox-only test-card payment).
 
 The SDK covers Orders, Payments, Vault, Subscriptions, Transaction Search and the OAuth token endpoint.
 It has no webhook-signature verification, so `verify_webhook` stays on httpx with its own token.
@@ -17,10 +18,13 @@ from paypalserversdk.exceptions.api_exception import ApiException
 from paypalserversdk.http.auth.o_auth_2 import ClientCredentialsAuthCredentials
 from paypalserversdk.models.amount_breakdown import AmountBreakdown
 from paypalserversdk.models.amount_with_breakdown import AmountWithBreakdown
+from paypalserversdk.models.card_request import CardRequest
 from paypalserversdk.models.checkout_payment_intent import CheckoutPaymentIntent
+from paypalserversdk.models.confirm_order_request import ConfirmOrderRequest
 from paypalserversdk.models.item_request import ItemRequest
 from paypalserversdk.models.money import Money
 from paypalserversdk.models.order_request import OrderRequest
+from paypalserversdk.models.payment_source import PaymentSource
 from paypalserversdk.models.purchase_unit_request import PurchaseUnitRequest
 from paypalserversdk.paypal_serversdk_client import PaypalServersdkClient
 
@@ -49,6 +53,10 @@ class PayPalError(Exception):
             body = {}
         # Not str(e): the SDK's typed ErrorException.__str__ reads unboxed fields that may be unset.
         return cls(e.response_code, body, body.get("message") or f"PayPal {e.response_code}: {e.reason}")
+
+
+class CardPaymentUnavailable(Exception):
+    """The one-click test-card payment can't run here: live mode, or no sandbox test card configured."""
 
 
 def _fetch_token(last_token, auth_manager):
@@ -169,6 +177,38 @@ class PayPalClient:
                     "payer": {"payer_id": f"MOCKPAYER{uuid.uuid4().hex[:6]}"}}
         return self._call(self._sdk().orders.capture_order,
                           {"id": order_id, "paypal_request_id": f"capture-{order_id}"})
+
+    def pay_with_test_card(self, order_id: str) -> dict:
+        """Pay an EXISTING order with a PayPal sandbox test card, then capture it. Sandbox and mock only.
+
+        The order was created only after the brand said VERIFIED, so this adds no new way to make an order.
+        Orders v2 confirm-payment-source attaches the card (number and expiry from SANDBOX_TEST_CARD_NUMBER /
+        SANDBOX_TEST_CARD_EXPIRY (YYYY-MM), optional SANDBOX_TEST_CARD_CVV; never in the repo), then the
+        normal capture runs with the same `capture-<order id>` PayPal-Request-Id.
+        """
+        if self.mode not in ("sandbox", "mock"):
+            raise CardPaymentUnavailable(f"test-card payments are refused in PAYPAL_MODE={self.mode}")
+        if self.is_mock:
+            order = self._mock_orders.get(order_id, {"id": order_id})
+            order["status"] = "APPROVED"
+            return self.capture_order(order_id)
+
+        number = config.env("SANDBOX_TEST_CARD_NUMBER", "")
+        expiry = config.env("SANDBOX_TEST_CARD_EXPIRY", "")
+        if not number or not expiry:
+            raise CardPaymentUnavailable("SANDBOX_TEST_CARD_NUMBER and SANDBOX_TEST_CARD_EXPIRY are not set")
+        cvv = config.env("SANDBOX_TEST_CARD_CVV", "")
+        card = CardRequest(name="TrustLedger Test", number=number, expiry=expiry)
+        if cvv:
+            card.security_code = cvv
+        # The SDK's confirm_order takes no PayPal-Request-Id; confirming an already-confirmed order is harmless.
+        confirmed = self._call(self._sdk().orders.confirm_order,
+                               {"id": order_id, "body": ConfirmOrderRequest(payment_source=PaymentSource(card=card))})
+        if confirmed.get("status") != "APPROVED":
+            # e.g. PAYER_ACTION_REQUIRED (3-D Secure). Capturing would only fail; say why instead.
+            raise PayPalError(422, {"name": "TEST_CARD_NOT_APPROVED",
+                                    "message": f"confirm-payment-source left the order {confirmed.get('status')}"})
+        return self.capture_order(order_id)
 
     def get_order(self, order_id: str) -> dict:
         if self.is_mock:

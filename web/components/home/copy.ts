@@ -1,118 +1,71 @@
-/**
- * Landing Page Copy Constants.
- * Centralized so that final ChatGPT copy from user can be dropped in with zero layout changes.
- */
-
 export const LANDING_COPY = {
   hero: {
-    badge: "Authenticity as a Condition of Payment",
-    headline: "Authenticity, checked before payment.",
-    explanation: "Before PayPal creates an order, the brand confirms the product is genuine. If it isn't, there is no order, and an AI agent investigates where it came from.",
-    primaryCta: { text: "Try the checkout →", href: "/pos" },
-    secondaryCta: { text: "Explore the brand cockpit", href: "/cockpit" },
-    verdictVerified: {
-      tag: "VERIFIED · Store A",
-      serial: "serial: X123",
-      title: "Authenticity confirmed at Store A",
-      subtitle: "PayPal payment order created",
-    },
-    verdictBlocked: {
-      tag: "BLOCKED · Store C",
-      serial: "serial: X123",
-      title: "Serial not assigned to Store C",
-      subtitle: "No order created · Investigation opened",
-    },
+    eyebrow: "Authenticity before payment",
+    headline: "Verify the product. Then pay.",
+    subhead: "TrustLedger checks a product with its brand before PayPal creates an order. Failed checks open an investigation instead.",
+    primaryCta: "Try the checkout demo",
+    secondaryCta: "Explore the brand cockpit",
   },
-  howItWorks: {
-    title: "How It Works",
+  heroFlow: {
     steps: [
-      {
-        step: "Step 1",
-        title: "Scan at checkout",
-        description: "The store's barcode scanner sends the serial number through the TrustLedger API before payment begins.",
-      },
-      {
-        step: "Step 2",
-        title: "Brand verifies",
-        description: "The brand confirms the unit is genuine and in its authorized channel before any payment transaction exists.",
-      },
-      {
-        step: "Step 3",
-        title: "PayPal pays or AI investigates",
-        description: "If verified, PayPal creates the payment order. If unverified, no order is created and an autonomous agent investigates the divergence.",
-      },
+      { title: "Product serial scanned", body: "Brand verification requested", badge: "Step 1" },
+      { title: "Brand confirms the unit", body: "A deterministic yes or no", badge: "Verified" },
+      { title: "PayPal order created", body: "Verification ID stored with the order", badge: "Paid" },
+    ],
+    blocked: { title: "Blocked at another store", body: "No PayPal order exists. An investigation opens.", badge: "Blocked" },
+  },
+  how: {
+    title: "How it works",
+    steps: [
+      { title: "Scan the serial", body: "The store's checkout sends the product serial before payment starts." },
+      { title: "Ask the brand", body: "The brand's own system decides whether this unit belongs at this store. No AI here." },
+      { title: "Pay or investigate", body: "Verified: PayPal creates the order. Blocked: no order exists, and an AI agent investigates." },
     ],
   },
   features: {
-    title: "Product Features",
+    title: "What you can try",
     cards: [
-      {
-        title: "Point-of-Sale Gate",
-        badge: "Checkout",
-        description: "Verify before paying. Unverified items never create an order, preventing unverified sales before money moves.",
-        href: "/pos",
-      },
-      {
-        title: "Autonomous AI Investigations",
-        badge: "Cockpit",
-        description: "When a scan fails, an AI agent investigates supply chain batches and cites every step of its evidence.",
-        href: "/cockpit",
-      },
-      {
-        title: "Brand Insights",
-        badge: "Console",
-        description: "Ask business questions in plain English and receive answers from verified purchases in seconds with privacy protection.",
-        href: "/cockpit/console",
-      },
-      {
-        title: "Supply Chain Timeline",
-        badge: "Schedule",
-        description: "Track shipments and identify unauthorized stock diversions across distributor channels on an interactive timeline.",
-        href: "/cockpit/supply-chain",
-      },
-      {
-        title: "Privacy Protections",
-        badge: "Architecture",
-        description: "Two separate data nodes answer questions with privacy protection; raw records never move.",
-        href: "/privacy",
-      },
+      { title: "Checkout gate", body: "Verification runs before a PayPal order exists. The verification ID is stored on the order.", href: "/pos", image: "/media/01_pos_verified.png", size: "large" },
+      { title: "AI investigations", body: "An agent questions brand and PayPal data, never sees a record, and cites every step.", href: "/cockpit", image: "/media/04_cockpit_case.png", size: "large" },
+      { title: "Brand Insights", body: "Ask in plain English. Answers come from verified purchases in seconds.", href: "/cockpit/console" },
+      { title: "Supply-chain timeline", body: "See which batches went where, and where units were sold off-route.", href: "/cockpit/supply-chain" },
+      { title: "Privacy", body: "Two separate data nodes. Only group-level answers come back.", href: "/privacy" },
     ],
   },
-  businessModel: {
-    tag: "Business Model",
-    headline: "Self-sustaining: Intelligence pays for the protection.",
-    statNumber: "$150B+",
-    statLabel: "market",
-    body: "Brands pay for privacy-safe insights from verified purchases; the authenticity check is free for shoppers. Brands spend over USD 150B a year on market insights (ESOMAR, 2024 data). Traditional surveys take weeks, and in a Pew survey (Nov 2024, 11,114 US adults), 18% of cases were flagged as bogus. TrustLedger delivers answers from verified purchases in seconds, and that revenue pays for the free check.",
-    sources: "Data sources: ESOMAR Insights Industry report · Pew Research Center",
+  business: {
+    title: "How it pays for itself",
+    chain: ["Verified purchases", "Privacy-safe insights", "Brand revenue", "Free checks for shoppers"],
+    lines: [
+      "Brands spend over USD 150B a year on market insights (ESOMAR, 2024 data).",
+      "Surveys take weeks, and answers are self-reported. In a Pew survey of 11,114 US adults (Nov 2024), 18% of cases were flagged as bogus.",
+      "Brands pay for answers from verified purchases, so the authenticity check stays free for shoppers.",
+    ],
   },
   privacy: {
-    title: "Private by Design",
+    title: "Private by design",
     columns: [
       {
         title: "Data never leaves its owner",
-        summary: "Brand serials and supply logs stay in the brand node. Transactions and buyer accounts stay in the PayPal node.",
         bullets: [
-          "Brand serials and shipment logs stay with the brand.",
-          "Transactions and buyer accounts stay with PayPal.",
-          "Questions travel to the data as structured query specs; raw records never move.",
+          "Brand records stay with the brand.",
+          "PayPal records stay with PayPal.",
+          "Questions travel to the data; only group answers return.",
         ],
       },
       {
         title: "No buyer is identifiable",
-        summary: "The AI analyst only answers about groups with mathematically guaranteed privacy protections.",
         bullets: [
-          "Answers about buyers carry calibrated noise (differential privacy, OpenDP).",
-          "Every buyer answer shows a 95% interval (±); brand counts are exact.",
+          "Answers about buyers carry calibrated noise.",
           "Small groups are hidden.",
+          "Each brand has a fixed lifetime privacy allowance; repeats reveal nothing new.",
         ],
       },
     ],
+    footnote: "Differential privacy (OpenDP). Details on the Privacy page.",
   },
   closing: {
-    headline: "Experience authenticity gating in action",
-    subhead: "Follow the step-by-step interactive walkthrough or test a live transaction at the store checkout.",
-    primaryCta: { text: "Interactive walkthrough →", href: "/story" },
-    secondaryCta: { text: "Store checkout", href: "/pos" },
+    headline: "See what happens before payment.",
+    body: "Run a verified checkout and a blocked one, then follow the investigation.",
+    cta: "Start the guided demo",
   },
 };

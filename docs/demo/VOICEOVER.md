@@ -10,36 +10,34 @@ Numbers are written as they should be spoken.
 
 | # | Scene (seconds) | Narration |
 |---|---|---|
-| 1 | Idea (9) | TrustLedger makes authenticity a condition of payment. If the brand can't verify the product, no PayPal order is ever created. |
-| 2 | Problem (9) | Counterfeits are a four hundred and sixty seven billion dollar trade. In smartphones, one sale in eight is lost to fakes. |
-| 3 | Gap (7) | Verification exists, but it's optional and separate from paying. So most buyers skip it. |
-| 4 | How it works (13) | Two promises make this safe. The brand's data stays with the brand, and PayPal's stays with PayPal: questions travel to the data, and only private aggregates come back. |
-| 5 | Genuine sale (18) | Store A scans serial X123. The brand confirms it, and only then does PayPal create the order, with the verification ID inside. The buyer approves, and the receipt is brand verified. |
+| 1 | Problem (9) | Counterfeits are a four hundred and sixty seven billion dollar trade. In smartphones, one sale in eight is lost to fakes. |
+| 2 | Gap (7) | Checking authenticity is optional and separate from paying, so most buyers skip it. |
+| 3 | Product (17) | TrustLedger makes authenticity a condition of payment. The brand verifies the product before PayPal creates the order. If a check fails, an AI agent investigates where it came from, and brands get privacy-safe insights from verified purchases. |
+| 4 | Teaser (5) | And it pays for itself. More on that later. |
+| 5 | Genuine sale (14) | Store A scans serial X123. The brand confirms it, and only then does PayPal create the order, with the verification ID inside. The buyer approves, and the receipt is brand verified. |
 | 6 | Blocked sale (13) | Now Store C scans the same serial. This phone was never shipped to Store C, so the checkout stops before any money moves. No PayPal order exists. |
-| 7 | Investigation (20) | The brand gets a case. An AI agent investigates on its own, asking each side questions and never seeing a single record. Its findings show where the evidence diverges. |
+| 7 | Investigation (15) | The brand gets a case. An AI agent investigates on its own, asking each side questions and never seeing a single record. Its findings show where the evidence diverges. |
 | 8 | Supply chain (11) | The supply chain makes the leak visible: batches one distributor shipped to other stores, sold at Store C, a store it never supplies. |
 | 9 | Business model (13) | Here's how it pays for itself. Brands spend over a hundred and fifty billion dollars a year on market insights. Surveys take weeks, and the answers are self-reported. |
-| 10 | Brand insights (18) | With TrustLedger, a brand asks who buys its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. The privacy budget is spent once; asking again costs nothing more. |
+| 10 | Brand insights (16) | With TrustLedger, a brand asks who buys its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. The privacy budget is spent once; asking again costs nothing more. |
 | 11 | AI analyst (8) | An AI analyst builds the charts, answering questions about buyers without ever seeing a buyer. |
-| 12 | Guarantee (7) | Every buyer is mathematically protected across all of a brand's questions. No one is identifiable. |
+| 12 | Privacy (13) | How is privacy ensured? Brand and PayPal data never leave their own systems, and every answer about buyers is protected with differential privacy, using OpenDP. No one is identifiable. |
 | 13 | Onboarding (17) | Brands run one verification API, PayPal runs the gate, and a store adds one API call. AI shopping agents can call the same check. And for registered categories, PayPal can make it network policy, so a counterfeit seller can't opt out. |
 | 14 | Close (10) | Brands pay for the insights, and the check is free for shoppers. Trust for buyers. Intelligence for brands. A stronger PayPal network. |
 
-Planned total: 173 s (2:53). Audio-only minimum: 148 s; scenes 5, 7 and 10 run longer than their words for the picture.
+Planned total: 168 s + 1 s of silence before scene 1 = 2:49. Each scene in the cut = its audio + ≤ 1 s; waits sped up.
 
 ## Scene status
 
-- **Scene 11 is TBD** until stream E (AG Studio analyst on `/cockpit/studio`) ships and its claim row exists
-  (no buyer-level fields sent to the LLM, tested). Until then the dry-run cut renders it over a title card, or drops it
-  (saves 8 s). If E doesn't ship, delete the row.
+- **Scene 11** films the AG Studio analyst on `/cockpit/studio` (shipped in #79).
 - **Scene 8** films the Bryntum supply-chain timeline (`/cockpit/supply-chain`) with stream B's "What you're looking at" strip.
 - **Scene 6** needs stream A merged (blocked demo store = Store C). Before that, the screen still shows Store B.
 
 ## Accuracy notes (must stay true to the product)
 
-- Scene 1, "no PayPal order is ever created": `/checkout/scan` creates the order only after VERIFIED
+- Scene 3 (product summary), "before PayPal creates the order": `/checkout/scan` creates the order only after VERIFIED
   (`tests/test_features.py::test_blocked_checkout_can_never_be_paid`).
-- Scene 2: "four hundred and sixty seven billion" = OECD/EUIPO 2025, 2021 data; "one sale in eight" = 12.9% (EUIPO/ITU,
+- Scene 1: "four hundred and sixty seven billion" = OECD/EUIPO 2025, 2021 data; "one sale in eight" = 12.9% (EUIPO/ITU,
   2015 data). Sources and years are on the cards.
 - Scene 6: the brand node checks the channel before the sold state (`backend/brand_node/main.py:62-64`), so X123 at
   Store C is NOT_IN_CHANNEL even after Store A sold it. Store C is supplied only by Distributor 2 (`backend/seed.py:46`).
@@ -51,7 +49,7 @@ Planned total: 173 s (2:53). Audio-only minimum: 148 s; scenes 5, 7 and 10 run l
 - Scene 10: "in seconds" = the measured "Answered in N s" on the page. "Spent once; asking again costs nothing more" =
   the one-time private release (ρ 0.20 spent once; answers from it spend no further budget;
   `tests/test_privacy.py::test_private_release_queries_spend_zero_extra_rho`). "Costs nothing more" means privacy budget, not money.
-- Scene 12: "mathematically protected" = differential privacy (OpenDP); the numbers (lifetime ρ 0.25 ≈ ε 4.16,
+- Scene 12: "protected with differential privacy, using OpenDP" (backend/common/privacy.py, OpenDP zCDP); "never leave their own systems" = separate brand/PayPal nodes; the numbers (lifetime ρ 0.25 ≈ ε 4.16,
   release ρ 0.20 ≈ ε 3.69, δ 1e-8) live on /privacy and in the README, not in the voice or on cards. "No one is identifiable"
   is the design goal the guarantee bounds; the card's footnote gives the red-team evidence.
 - Scene 13: "a store adds one API call" until the APIMatic SDK exists; then "one SDK call, generated by APIMatic".

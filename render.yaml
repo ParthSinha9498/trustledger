@@ -22,7 +22,7 @@ databases:
   - name: trustledger-db
     databaseName: platform
     user: trustledger
-    plan: basic-256mb
+    plan: free
     region: oregon
     ipAllowList: []
 

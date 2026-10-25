@@ -244,6 +244,18 @@ def find_buyer_fields(body) -> list[str]:
     return sorted(hits)
 
 
+def check_no_bare_numbers(text: str) -> None:
+    """Verifies that numeric estimates in an analyst response carry their 95% confidence interval
+
+    (e.g., '1,420 ± 18.2 units') or an '(exact)' annotation, rejecting bare quantities without intervals.
+    """
+    pattern = re.compile(r'\b(\d+(?:,\d+)?)\s*(?:units|buyers|sales)\b', re.I)
+    for m in pattern.finditer(text):
+        snippet = text[max(0, m.start() - 25):min(len(text), m.end() + 25)]
+        if "±" not in snippet and "+/-" not in snippet and "ci95" not in snippet.lower() and "exact" not in snippet.lower():
+            raise ValueError(f"Bare number without confidence interval: '{m.group(0)}' in context '{snippet}'")
+
+
 # Redacted in-memory log. Metadata for every turn; the forwarded body (long strings cut) is kept only for
 # the last few forwarded turns so tests and reviewers can check what left the server. No keys ever.
 TURN_LOG: collections.deque = collections.deque(maxlen=200)
@@ -402,12 +414,34 @@ def _forward(out: dict, models: list[dict], meta: dict):
         _record(meta | {"status": "ok", "model": m["model"], "role": m["role"]})
 
         def relay(resp=resp):
+            accumulated = []
             try:
                 for chunk in resp.iter_bytes():  # decoded (we set our own headers)
+                    accumulated.append(chunk)
                     yield chunk
             finally:
                 resp.close()
                 client.close()
+                raw_sse = b"".join(accumulated).decode(errors="replace")
+                full_content = []
+                for line in raw_sse.splitlines():
+                    if line.startswith("data: ") and line != "data: [DONE]":
+                        try:
+                            d = json.loads(line[6:])
+                            delta = d.get("choices", [{}])[0].get("delta", {})
+                            c = delta.get("content")
+                            if c:
+                                full_content.append(c)
+                        except Exception:
+                            pass
+                if full_content:
+                    combined = "".join(full_content)
+                    try:
+                        check_no_bare_numbers(combined)
+                    except ValueError as e:
+                        log.warning("Analyst reply contained bare numbers: %s", e)
+                        _record(meta | {"status": "bare_numbers_rejected", "warning": str(e)})
+                        raise
 
         return StreamingResponse(relay(), media_type="text/event-stream",
                                  headers={"X-TrustLedger-Model": m["model"], "X-TrustLedger-Model-Role": m["role"],

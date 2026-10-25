@@ -17,6 +17,21 @@
 .sc-timeline .b-grid-row.sc-row-off .b-grid-cell { background: var(--bad-bg); }
 .sc-timeline .b-sch-event { font-size: 13px; padding-inline: 6px; color: #fff !important; }
 .sc-timeline .b-sch-event .b-sch-event-content { margin-inline: 0; color: #fff !important; }
+.sc-timeline .sc-flag { margin-inline-end: 5px; font-size: 14px; color: #fff; }
+
+/* Strip highlight (SupplyChainView): the pointed-at line's bars, lines and rows stay bright, everything else dims. */
+.sc-timeline .b-sch-event, .sc-timeline .b-sch-dependency, .sc-timeline .b-grid-row { transition: opacity 0.15s; }
+.sc-timeline.hl .b-sch-event { opacity: 0.22; }
+.sc-timeline.hl .b-sch-dependency { opacity: 0.12; }
+.sc-timeline.hl-1 .b-sch-event.g1, .sc-timeline.hl-1 .b-sch-dependency.g1,
+.sc-timeline.hl-2 .b-sch-event.g2,
+.sc-timeline.hl-3 .b-sch-event.g3, .sc-timeline.hl-3 .b-sch-dependency.g3 { opacity: 1; }
+.sc-timeline.hl-1 .b-sch-event.g1 { box-shadow: 0 0 0 2px var(--accent, #4f46e5); }
+.sc-timeline.hl-1 .b-sch-dependency.g1 { stroke: var(--accent, #2563eb); stroke-width: 2px; }
+.sc-timeline.hl-3 .b-sch-dependency.g3 { stroke-width: 3px; }
+.sc-timeline.hl-1 .b-grid-subgrid-locked .b-grid-row.g1 .b-grid-cell { box-shadow: inset 3px 0 0 var(--accent, #4f46e5); font-weight: 600; }
+.sc-timeline.hl-2 .b-grid-subgrid-locked .b-grid-row.g2 .b-grid-cell { box-shadow: inset 4px 0 0 var(--bad); }
+.sc-timeline.hl-1 .b-timeline-subgrid .b-grid-row.g1 { background: var(--chip, rgba(79, 70, 229, 0.06)); }
 .sc-timeline .sc-who { display: grid; line-height: 1.25; min-width: 0; }
 .sc-timeline .sc-who span, .sc-timeline .sc-who small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sc-timeline .sc-who small { font-size: 12px; font-weight: 500; opacity: 0.75; }

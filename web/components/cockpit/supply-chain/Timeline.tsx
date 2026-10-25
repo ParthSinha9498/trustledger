@@ -20,8 +20,11 @@ const KIND_COLOR: Record<SupplyEvent["kind"], string> = {
 };
 const KIND_LABEL: Record<SupplyEvent["kind"], string> = {
   dispatch: "Sent out by the brand", distributor: "At the distributor",
-  store: "At the store it was shipped to", off_channel: "Sold at a store it was never shipped to",
+  store: "Shipped to this store", off_channel: "Sold at a store it wasn't shipped to",
 };
+
+/** Line of the "What you're looking at" strip being pointed at: 1 the route, 2 the store it wasn't shipped to, 3 the leak. */
+export type StoryStep = 1 | 2 | 3;
 // Bryntum dependency types: 0 = start-to-start, 2 = end-to-start.
 const DEP_TYPE = { start_to_start: 0, end_to_start: 2 } as const;
 
@@ -59,10 +62,12 @@ function paddedRange(events: SupplyEvent[], currentWeek: number): [number, numbe
   return [from, to];
 }
 
-export default function Timeline({ data, focusBatches }: {
+export default function Timeline({ data, focusBatches, highlight = null }: {
   data: SupplyChain;
   /** When set, show only these batches. Rows without bars are left out; stores with off-channel sales come first. */
   focusBatches: Set<string> | null;
+  /** Strip line to highlight: its rows, bars and lines stay bright, the rest dims. Pure CSS, no re-render. */
+  highlight?: StoryStep | null;
 }) {
   const ref = useRef<BryntumScheduler>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -82,6 +87,13 @@ export default function Timeline({ data, focusBatches }: {
     [data.events, focusBatches]);
   const byId = useMemo(() => new Map(shown.map((e) => [e.id, e])), [shown]);
 
+  // Strip groups. g1: the off-route batches on their planned route (brand, distributor, stores shipped to).
+  // g2: the stores where they sold without being shipped there. g3: the red bars and lines (the leak).
+  const leakBatches = useMemo(() => new Set(data.off_channel.map((o) => o.batch_id)), [data.off_channel]);
+  const routeRows = useMemo(() => new Set(data.off_channel.flatMap((o) => [o.distributor_id, ...o.channel_store_ids])),
+    [data.off_channel]);
+  const offName = (e: SupplyEvent) => names.get(e.resource_id) ?? e.resource_id;
+
   // Rows: brand, then distributors, then stores with off-channel sales (most units first), then the rest.
   const resources = useMemo<ResourceModelConfig[]>(() => {
     const offUnits = new Map<string, number>();
@@ -97,26 +109,27 @@ export default function Timeline({ data, focusBatches }: {
         id: r.id,
         name: r.name,
         tier: offUnits.has(r.id) ? "Store, not on the route" : TIER_LABEL[r.tier],
-        cls: offUnits.has(r.id) ? "sc-row-off" : "",
+        cls: offUnits.has(r.id) ? "sc-row-off g2" : routeRows.has(r.id) ? "g1" : "",
       }) as ResourceModelConfig);
-  }, [data.resources, shown, focusBatches]);
+  }, [data.resources, shown, routeRows]);
 
   const events = useMemo<EventModelConfig[]>(() => shown.map((e) => ({
     id: e.id,
     resourceId: e.resource_id,
-    name: e.kind === "off_channel" ? `${e.batch_id} · ${e.units} sold` : e.batch_id,
+    name: e.kind === "off_channel" ? `${e.batch_id} · first sold at ${offName(e)} · wk of ${weekLabel(e.start_week)}` : e.batch_id,
     startDate: weekToDate(e.start_week),
     endDate: weekToDate(e.end_week),
     eventColor: KIND_COLOR[e.kind],
-    cls: e.highlight ? "leak" : "",
-  })), [shown]);
+    cls: e.kind === "off_channel" ? "leak g2 g3" : leakBatches.has(e.batch_id) ? "g1" : "",
+  })), [shown, leakBatches, names]);
 
   const dependencies = useMemo<DependencyModelConfig[]>(() => data.dependencies
     .filter((d) => byId.has(d.from) && byId.has(d.to))
     .map((d) => ({
       id: d.id, fromEvent: d.from, toEvent: d.to,
-      type: DEP_TYPE[d.type ?? "end_to_start"], cls: d.highlight ? "leak" : "",
-    })), [data.dependencies, byId]);
+      type: DEP_TYPE[d.type ?? "end_to_start"],
+      cls: d.highlight ? "leak g3" : leakBatches.has(byId.get(d.from)?.batch_id ?? "") ? "g1" : "",
+    })), [data.dependencies, byId, leakBatches]);
 
   const [fromWeek, toWeek] = useMemo(() => paddedRange(shown.length ? shown : data.events, data.current_week),
     [shown, data.events, data.current_week]);
@@ -135,7 +148,7 @@ export default function Timeline({ data, focusBatches }: {
   }, [fits, width, toWeek]);
 
   return (
-    <div ref={boxRef} className={`sc-timeline${autoHeight ? " auto" : ""}`}>
+    <div ref={boxRef} className={`sc-timeline${autoHeight ? " auto" : ""}${highlight ? ` hl hl-${highlight}` : ""}`}>
       {width > 0 && (
         <BryntumScheduler
           key={`${fits}:${autoHeight}:${fromWeek}:${toWeek}`}
@@ -152,6 +165,14 @@ export default function Timeline({ data, focusBatches }: {
           barMargin={5}
           readOnly
           eventStyle="filled"
+          eventRenderer={({ eventRecord }: { eventRecord: { id: string | number; name: string } }) => {
+            const enc = StringHelper.encodeHtml;
+            const e = byId.get(String(eventRecord.id));
+            // The first off-route sale gets a flag at the start of its bar.
+            return e?.kind === "off_channel"
+              ? `<span class="sc-flag" aria-hidden="true">⚑</span>${enc(eventRecord.name)}`
+              : enc(eventRecord.name);
+          }}
           eventLayout="stack"
           columns={[{
             text: "Where", field: "name", width: LOCKED_COLS, htmlEncode: false,
@@ -185,6 +206,7 @@ export default function Timeline({ data, focusBatches }: {
                 `${enc(where)} · week of ${weekLabel(e.start_week)} to week of ${weekLabel(e.end_week - 1)}`,
                 e.kind === "off_channel" ? `${e.units} units sold here` : `${e.units} units in the batch`,
               ];
+              if (e.kind === "off_channel") lines.push(`First sold here in the week of ${weekLabel(e.start_week)}`);
               if (e.sold != null) lines.push(`${e.sold} sold at this store`);
               return lines.join("<br>");
             },

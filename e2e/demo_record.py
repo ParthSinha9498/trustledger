@@ -74,12 +74,13 @@ FALLBACK = {
     "idea": ["Make authenticity a condition of payment.", "Scan → brand verifies → PayPal payment. Not verified → no payment."],
     "how": ["Data never moves.", "Questions travel to the brand and PayPal nodes; only private aggregates come back."],
     "s1": ["Scenario 1", "A genuine phone at an authorized store"],
-    "s2": ["Scenario 2", "The same serial at a store outside the supply chain"],
+    "s2": ["Scenario 2", "The same serial at Store C outside the supply chain"],
     "s3": ["Scenario 3", "The brand investigates"],
     "business": ["How does this pay for itself?",
                  "USD 150B+ a year on market insights (ESOMAR, 2024 data). Survey results take weeks.",
                  "In a 2024 Pew survey, 18% of responses were flagged as bogus."],
     "s4": ["Scenario 4", "Brand insights from verified purchases"],
+    "analyst": ["AI Analyst", "Natural language queries answered without exposing raw buyer records"],
     "guarantee": ["Buyers stay anonymous: one fixed privacy limit per brand, for life",
                   "Differential privacy (OpenDP) · internal red-team: 11 attack types, none pinned down a single buyer"],
     "levels": ["One API. Every checkout.",
@@ -155,9 +156,12 @@ def api_post(api: str, path: str) -> dict:
         return json.load(r)
 
 
-def scan(rec: Recorder, store_index: int) -> dict:
+def scan(rec: Recorder, store: int | str = 0) -> dict:
     page = rec.page
-    rec.click(page.get_by_role("radiogroup", name="Store").get_by_role("radio").nth(store_index))
+    if isinstance(store, str):
+        rec.click(page.get_by_role("radiogroup", name="Store").get_by_text(store, exact=False).first)
+    else:
+        rec.click(page.get_by_role("radiogroup", name="Store").get_by_role("radio").nth(store))
     rec.click(page.get_by_role("radiogroup", name="Product").get_by_role("radio").filter(has_text=SKU_TEXT).first)
     page.locator("#serial").fill(SERIAL)
     rec.wait(0.6)
@@ -183,15 +187,24 @@ def compare_frame(rec: Recorder, a_png: bytes, b_png: bytes, hold: float) -> Non
         "<body style='margin:0;height:100vh;background:#0b1220;display:flex;gap:36px;align-items:center;"
         "justify-content:center;padding:0 48px;box-sizing:border-box'>"
         + tile(a_png, "Store A · X123 · PayPal order created", "#4ad19a")
-        + tile(b_png, "Store B · same X123 · no PayPal order", "#ff8a80") + "</body>")
+        + tile(b_png, "Store C · same X123 · no PayPal order", "#ff8a80") + "</body>")
     rec.wait(hold)
 
 
 def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
-    """Buyer approves in PayPal's own window; the page captures and moves to the receipt."""
+    """Buyer approves in PayPal's own window or uses one-click test card; moves to receipt."""
     page = rec.page
     rec.go(f"/pay/{checkout_id}")
-    page.wait_for_selector("paypal-button", state="visible", timeout=30000)
+    page.wait_for_selector("button:has-text('Pay with test card'), paypal-button", state="visible", timeout=30000)
+    test_card = page.locator("button:has-text('Pay with test card')")
+    if test_card.count() and test_card.first.is_visible():
+        rec.caption("One-click sandbox payment: verified order confirmed", 2.0)
+        rec.ring(test_card.first)
+        rec.wait(2.0)
+        rec.unring()
+        rec.click(test_card.first)
+        page.wait_for_url(re.compile(r"/receipt/"), timeout=30000)
+        return
     rec.caption("The buyer approves in PayPal (sandbox)", 2.5)  # also lets the PayPal SDK finish initialising
     with page.context.expect_page(timeout=30000) as pop_info:
         rec.click(page.locator("paypal-button").first)
@@ -255,11 +268,10 @@ def main() -> None:
         rec = Recorder(page, args.web)
 
         # ---- Context (storyboard v3: notes/FLOW.md, docs/demo/VOICEOVER.md)
-        rec.card("hook", 4)
-        rec.card("problem", 7)
-        rec.card("gap", 6)
-        rec.card("idea", 6)
-        rec.card("how", 10)
+        rec.card("idea", 8)
+        rec.card("problem", 7.5)
+        rec.card("gap", 5.5)
+        rec.card("how", 10.5)
 
         # ---- S1: genuine product, authorized store, real PayPal approval
         rec.card("s1", 2.5)
@@ -283,8 +295,8 @@ def main() -> None:
         # ---- S2: same serial, store outside the supply chain
         rec.card("s2", 2.5)
         rec.go("/pos")
-        rec.caption("Store B, same serial: no PayPal order exists", 0.5)
-        b = scan(rec, 1)
+        rec.caption("Store C, same serial: no PayPal order exists", 0.5)
+        b = scan(rec, "Store C")
         b_png = verdict_png(page)
         rec.ring(page.get_by_text("Never created", exact=False).first)
         rec.wait(4.5)
@@ -313,6 +325,23 @@ def main() -> None:
             if replay.count():
                 rec.click(replay.first)  # restart the animation now that it is on screen
             rec.caption("Questions travel to the data. Only aggregates come back.", 7)
+            earlier = page.locator("summary:has-text('Earlier run')")
+            if earlier.count():
+                rec.click(earlier.first)
+                rec.wait(2.0)
+
+        # ---- S8: supply-chain timeline with Bryntum strip
+        rec.mark("scene", "supply-chain")
+        rec.go("/cockpit/supply-chain")
+        rec.caption("Supply-chain timeline: Distributor 1 shipments sold at Store C", 1.5)
+        try:
+            page.wait_for_selector("text=What you're looking at", state="visible", timeout=15000)
+            rec.ring(page.get_by_text("What you're looking at", exact=False).first)
+            rec.wait(4.5)
+            rec.unring()
+        except Exception:
+            pass
+        rec.wait(2.5)
 
         # ---- Business case: the pivot into Brand Insights
         rec.card("business", 11)
@@ -321,23 +350,41 @@ def main() -> None:
         rec.card("s4", 2.5)
         rec.go("/cockpit/console")
         rec.caption("Brand Insights: answers from verified purchases", 1)
-        rec.click(page.get_by_role("button", name=re.compile("Which age bands buy")))
-        page.get_by_text("A survey: weeks", exact=False).first.wait_for(timeout=30000)
-        rec.wait(1)
-        rec.ring(page.get_by_text("Answered in", exact=False).first)
-        rec.wait(4)
-        rec.unring()
+        rec.click(page.get_by_role("button", name=re.compile("Which age bands buy", re.I)))
+        rec.wait(2)
+        try:
+            comp_btn = page.get_by_role("button", name=re.compile("Show comparison", re.I))
+            if comp_btn.count():
+                rec.click(comp_btn.first)
+                rec.wait(1.5)
+                rec.ring(page.get_by_text("Why brands pay for this", exact=False).first)
+                rec.wait(3)
+                rec.unring()
+        except Exception:
+            pass
+
+        try:
+            rec.ring(page.get_by_text("Answered in", exact=False).first)
+            rec.wait(3)
+            rec.unring()
+        except Exception:
+            pass
+
         page.mouse.wheel(0, 500)
         rec.wait(1)
-        rec.ring(page.get_by_text("PayPal-side · differentially private", exact=False).first)
-        rec.wait(4)
-        rec.unring()
-        rec.wait(3)
+        try:
+            rec.ring(page.get_by_text("PayPal-side · differentially private", exact=False).first)
+            rec.wait(3)
+            rec.unring()
+        except Exception:
+            pass
+        rec.wait(2)
 
-        # ---- Guarantee, onboarding by level, close
-        rec.card("guarantee", 8)
-        rec.card("levels", 15)
-        rec.card("close", 7)
+        # ---- Scene 11: AI analyst, Scene 12: Guarantee, Scene 13: Onboarding, Scene 14: Close
+        rec.card("analyst", 6)
+        rec.card("guarantee", 6.5)
+        rec.card("levels", 16)
+        rec.card("close", 8)
 
         video = page.video.path() if page.video else None
         ctx.close()

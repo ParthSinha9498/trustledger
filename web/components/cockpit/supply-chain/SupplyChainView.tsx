@@ -58,7 +58,8 @@ export function leakStory(data: SupplyChain): [string, string, string] | null {
 
 /** Stats, the off-channel table and the Bryntum timeline for one supply-chain response.
  *  Used by the supply chain page and, filtered to the case's store and product, by the case page. */
-export default function SupplyChainView({ data, narrow, nested = false, mobileNote }: {
+export default function SupplyChainView({ data, narrow, nested = false, mobileNote, forceFallback = false }: {
+  forceFallback?: boolean;
   data: SupplyChain;
   narrow: boolean;
   /** Inside another card section (case page): smaller headings. */
@@ -74,6 +75,7 @@ export default function SupplyChainView({ data, narrow, nested = false, mobileNo
   const story = useMemo(() => leakStory(data), [data]);
   const [hover, setHover] = useState<StoryStep | null>(null);
   const [pinned, setPinned] = useState<StoryStep | null>(null);
+  const [timelineFallback, setTimelineFallback] = useState(forceFallback);
   const active = hover ?? pinned;
 
   return (
@@ -145,14 +147,17 @@ export default function SupplyChainView({ data, narrow, nested = false, mobileNo
           <p className="muted">No batches match this filter.</p>
         ) : (
           <>
-            <div className="sc-legend" aria-label="Legend">
-              {LEGEND.map(([c, t]) => (
-                <span key={t}><span className="sc-swatch" style={{ background: c }} />{t}</span>
-              ))}
-              <span><span className="sc-flag" aria-hidden>⚑</span>First sale at that store</span>
-              <span><span className="sc-now" aria-hidden />This week</span>
-            </div>
-            <Timeline data={data} focusBatches={focus} highlight={story ? active : null} />
+            {!timelineFallback && (
+              <div className="sc-legend" aria-label="Legend">
+                {LEGEND.map(([c, t]) => (
+                  <span key={t}><span className="sc-swatch" style={{ background: c }} />{t}</span>
+                ))}
+                <span><span className="sc-flag" aria-hidden>⚑</span>First sale at that store</span>
+                <span><span className="sc-now" aria-hidden />This week</span>
+              </div>
+            )}
+            <Timeline data={data} focusBatches={focus} highlight={story ? active : null}
+                      forceFallback={forceFallback} onFallback={() => setTimelineFallback(true)} />
             <p className="sc-note muted">
               {focus
                 ? `Showing the ${focus.size} batch${focus.size === 1 ? "" : "es"} in the table, and every place they passed through. Lines follow each batch from the brand to the distributor to the stores.`

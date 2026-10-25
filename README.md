@@ -151,7 +151,15 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 > **Hosted demo:** URL added after deployment.
 
-### PayPal sandbox buyer (for the PayPal approval step)
+### Paying in sandbox: one click with a test card
+With `PAYPAL_MODE=sandbox`, the pay page shows **Pay with test card (sandbox)** first. One click pays a real PayPal
+sandbox order with a PayPal sandbox test card: no PayPal login, no real money. The order is still created only after
+the brand verified the unit. The button appears only when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY`
+(`YYYY-MM`; `SANDBOX_TEST_CARD_CVV` optional) are set in `.env` (see `.env.example`). Test card numbers:
+https://developer.paypal.com/tools/sandbox/card-testing/. The PayPal button below it is the alternative, with the
+sandbox buyer login.
+
+### PayPal sandbox buyer (alternative: the PayPal approval step)
 
 | | |
 |---|---|
@@ -176,7 +184,7 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 3. Click **Verify and check out**.
 4. The brand verifies unit provenance against Store A's authorized distributor shipments.
 5. Verification succeeds before any payment order exists.
-6. The PayPal checkout flow initiates. Log in with the **PayPal sandbox buyer** below and approve. It is a sandbox account with test money only; no real payment is made.
+6. On the pay page, click **Pay with test card (sandbox)** (no login), or use the PayPal button and log in with the **PayPal sandbox buyer** above, then approve. Both are sandbox only, with test money; no real payment is made.
 7. The customer receipt confirms the verified transaction, with the brand verification ID stored in the PayPal order's `custom_id`.
 
 #### Step 2: Out-of-channel block at Store C

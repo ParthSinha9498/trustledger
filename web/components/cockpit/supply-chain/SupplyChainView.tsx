@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, type ReactNode } from "react";
 import type { SupplyChain } from "@/lib/api";
 import { joinNames } from "../format";
-import OffChannelTable, { offChannelSummary } from "./OffChannelTable";
+import OffChannelTable from "./OffChannelTable";
 import type { StoryStep } from "./Timeline";
 
 // Bryntum touches the DOM, so it only renders in the browser.
@@ -88,10 +88,8 @@ export default function SupplyChainView({ data, narrow, nested = false, mobileNo
       <div className="sc-section">
         <H>Units sold where they weren&apos;t shipped</H>
         {off.length ? (
-          <>
-            <p className="sc-summary sc-summary-bad">{offChannelSummary(off, names)}</p>
-            <OffChannelTable rows={off} names={names} narrow={narrow} />
-          </>
+          // No summary line here: the "What you're looking at" strip under the timeline heading explains the rows.
+          <OffChannelTable rows={off} names={names} narrow={narrow} />
         ) : data.totals.batches === 0 ? (
           <p className="sc-summary muted">No batches in this view.</p>
         ) : (

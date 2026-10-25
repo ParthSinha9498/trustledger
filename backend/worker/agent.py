@@ -144,6 +144,9 @@ class Investigation:
                                 return data
                         except Exception:
                             pass
+                    if left > 0:
+                        messages.append({"role": "user", "content": "Please invoke a tool to continue or call finish."})
+                        continue
                     break
                 for call in turn.tool_calls:
                     if call.name == "finish":

@@ -1,5 +1,6 @@
 """AG Studio backend: release cells (read-only, no budget) and the /ai/turn LLM proxy (offline)."""
 import json
+import re
 
 import httpx
 import pytest
@@ -228,3 +229,27 @@ def test_agent_never_sends_buyer_fields_to_llm(env, monkeypatch):
         assert not studio.find_buyer_fields(json.loads(text))
         for f in studio.BUYER_FIELDS:
             assert f not in text.lower()
+
+
+def check_no_bare_numbers(text: str) -> None:
+    """Verifies that numeric estimates in an analyst response carry their 95% confidence interval
+
+    (e.g., '1,420 ± 18.2 units') or an '(exact)' annotation, rejecting bare quantities without intervals.
+    """
+    pattern = re.compile(r'\b(\d+(?:,\d+)?)\s*(?:units|buyers|sales)\b', re.IGNORECASE)
+    for m in pattern.finditer(text):
+        snippet = text[max(0, m.start() - 25):min(len(text), m.end() + 25)]
+        if "±" not in snippet and "+/-" not in snippet and "ci95" not in snippet.lower() and "exact" not in snippet.lower():
+            raise ValueError(f"Bare number without confidence interval: '{m.group(0)}' in context '{snippet}'")
+
+
+def test_analyst_answer_format_requires_confidence_interval():
+    # Valid answer with inline ± intervals passes
+    valid_text = "Store A sells 1,420 ± 18.2 units of P8 128GB, compared with Store C's 310 ± 11.4 units."
+    check_no_bare_numbers(valid_text)
+
+    # Bare answer without ± intervals fails
+    invalid_text = "Store A sells 1,420 units of P8 128GB, compared with Store C's 310 units."
+    with pytest.raises(ValueError, match="Bare number without confidence interval"):
+        check_no_bare_numbers(invalid_text)
+

@@ -157,15 +157,15 @@ export default function Home() {
               <span className="badge badge-dp">Differential privacy · OpenDP</span>
             </div>
             <p className="muted" style={{ fontSize: "14.5px", margin: "0 0 16px", lineHeight: 1.55 }}>
-              The AI only gets answers about groups, with mathematically calibrated noise added via differential privacy, so no buyer&apos;s purchase can be singled out.
-              Each brand has a fixed privacy allowance: repeated queries cannot reveal individual customers.
+              The AI only gets answers about groups, with differential-privacy noise calibrated so any one buyer&apos;s purchase barely changes the answer.
+              Each brand has a fixed lifetime privacy allowance, and asking the same question again reveals nothing new.
             </p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px", marginBottom: "18px", fontSize: "13.5px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--fg)" }}>
-                <span style={{ color: "var(--accent)", fontWeight: "bold" }}>✓</span> Every answer shows 95% margin of error (±)
+                <span style={{ color: "var(--accent)", fontWeight: "bold" }}>✓</span> Every buyer answer shows a 95% interval (±)
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--fg)" }}>
-                <span style={{ color: "var(--accent)", fontWeight: "bold" }}>✓</span> Tiny cells suppressed below safety floor
+                <span style={{ color: "var(--accent)", fontWeight: "bold" }}>✓</span> Small groups hidden
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--fg)" }}>
                 <span style={{ color: "var(--accent)", fontWeight: "bold" }}>✓</span> Questions stop when privacy allowance is exhausted

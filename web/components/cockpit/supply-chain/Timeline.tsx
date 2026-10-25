@@ -62,16 +62,51 @@ function paddedRange(events: SupplyEvent[], currentWeek: number): [number, numbe
   return [from, to];
 }
 
-export default function Timeline({ data, focusBatches, highlight = null }: {
+export function TimelineFallback() {
+  return (
+    <div className="card muted small" style={{ padding: "18px 22px", textAlign: "center", border: "1px dashed var(--line)", borderRadius: "var(--radius-md)", margin: "16px 0", background: "var(--card)" }}>
+      Interactive timeline preview paused (Bryntum trial verification). The off-channel units table and supply leak analysis above reflect the complete records.
+    </div>
+  );
+}
+
+export default function Timeline({ data, focusBatches, highlight = null, onFallback, forceFallback = false }: {
   data: SupplyChain;
   /** When set, show only these batches. Rows without bars are left out; stores with off-channel sales come first. */
   focusBatches: Set<string> | null;
   /** Strip line to highlight: its rows, bars and lines stay bright, the rest dims. Pure CSS, no re-render. */
   highlight?: StoryStep | null;
+  onFallback?: () => void;
+  forceFallback?: boolean;
 }) {
   const ref = useRef<BryntumScheduler>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
+  const [trialExpired, setTrialExpired] = useState(forceFallback);
+
+  useEffect(() => {
+    if (forceFallback) return;
+    const el = boxRef.current;
+    if (!el) return;
+    const checkMask = () => {
+      const mask = el.querySelector(".b-mask, .b-trial-expired, .b-trial-mask, [class*='trial']");
+      if (mask) {
+        const t = (mask.textContent || "").toLowerCase();
+        if (t.includes("trial expired") || mask.classList.contains("b-trial-expired")) {
+          setTrialExpired(true);
+          onFallback?.();
+        }
+      }
+    };
+    checkMask();
+    const obs = new MutationObserver(checkMask);
+    obs.observe(el, { childList: true, subtree: true, attributes: true });
+    return () => obs.disconnect();
+  }, [onFallback, forceFallback]);
+
+  if (trialExpired) {
+    return <TimelineFallback />;
+  }
 
   useEffect(() => {
     const el = boxRef.current;

@@ -19,6 +19,7 @@ app.add_middleware(
     allow_origins=(config.env("CORS_ORIGINS", "http://localhost:3000")).split(","),
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-TrustLedger-LLM", "X-TrustLedger-Model", "Retry-After"],
 )
 app.include_router(console.router)
 app.include_router(paypal_sdk.router)

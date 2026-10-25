@@ -305,8 +305,8 @@ def _sse(obj: dict) -> bytes:
     return f"data: {json.dumps(obj)}\n\n".encode()
 
 
-MOCK_TEXT = ("Mock mode (LLM_MODE=mock): no model was called. This is a scripted placeholder answer, "
-             "not a recorded run. Set LLM_MODE=live with AGENT_MODEL to ask the Insights analyst.")
+MOCK_TEXT = ("Mock mode (`LLM_MODE=mock`): no model was called. This is a scripted placeholder answer, "
+             "not a recorded run. Set `LLM_MODE=live` with `AGENT_MODEL` to ask the Insights analyst.")
 
 
 def _mock_stream():

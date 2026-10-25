@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import BudgetMeter from "@/components/cockpit/BudgetMeter";
 import ResultView from "@/components/cockpit/ResultView";
 import SpecEditor from "@/components/cockpit/SpecEditor";
+import WhyBrandsPay from "@/components/cockpit/WhyBrandsPay";
 import { fmtNum, label } from "@/components/cockpit/format";
 import { api, errorText, type Budget, type PlanResponse, type PlannedSpec, type QueryResult, type RunResponse } from "@/lib/api";
 import styles from "./insights.module.css";
@@ -115,6 +116,8 @@ export default function InsightsPage() {
         </div>
         <div className="head-budget"><BudgetMeter budget={budget} /></div>
       </div>
+
+      <WhyBrandsPay seconds={seconds} />
 
       <section className="card">
         <form className={`ask ${styles.ask}`} onSubmit={(e) => { e.preventDefault(); ask(); }}>

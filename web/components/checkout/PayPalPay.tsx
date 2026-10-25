@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { ApiError } from "@/lib/api";
 import {
-  capture, getPayPalInstance, getSdkConfig, readableError,
+  capture, getPayPalInstance, payWithTestCard, getSdkConfig, readableError,
   type OnApproveData, type PayPalSdkError, type Receipt, type SdkConfig,
 } from "@/lib/paypal";
 import s from "./checkout.module.css";
@@ -13,6 +14,8 @@ type Phase = "loading" | "ready" | "paying" | "capturing" | "done" | "unavailabl
  *
  * Sandbox/live: PayPal JS SDK v6 one-time payment session, started from a `<paypal-button>` click with
  * `Promise.resolve({ orderId })`. https://developer.paypal.com/sdk/js/set-up/
+ * Sandbox with a test card configured: a primary "Pay with test card (sandbox)" button; the server confirms the
+ * same order with a PayPal sandbox test card and captures it (no login). The PayPal button stays as the second option.
  * Mock: a plainly labelled mock button that captures directly.
  */
 export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
@@ -39,6 +42,28 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
       setPhase("ready");
     }
   }
+  const [cardOff, setCardOff] = useState(false);
+  const [cardPaying, setCardPaying] = useState(false);
+  const cardBusy = useRef(false);
+
+  async function doTestCard() {
+    if (cardBusy.current) return; // no double submit
+    cardBusy.current = true;
+    setCardPaying(true);
+    setPhase("capturing"); setError(null); setInfo(null);
+    try {
+      const receipt = await payWithTestCard(checkoutId);
+      setPhase("done");
+      paidRef.current(receipt);
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 503 || e.status === 403)) setCardOff(true);
+      setError(`Test card payment failed: ${readableError(e)}`);
+      setPhase("ready");
+      setCardPaying(false);
+      cardBusy.current = false;
+    }
+  }
+
   const captureRef = useRef(doCapture);
   captureRef.current = doCapture;
 
@@ -113,6 +138,7 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
 
   const busy = phase === "paying" || phase === "capturing" || phase === "done";
   const isMock = cfg?.mode === "mock";
+  const showCard = cfg?.mode === "sandbox" && cfg.test_card === true && !cardOff;
 
   return (
     <div>
@@ -125,10 +151,20 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
         </>
       ) : (
         <>
+          {showCard && (
+            <div className={s.testCard}>
+              <button type="button" className={`${s.primary} ${s.testCardBtn}`} onClick={doTestCard}
+                disabled={busy || phase === "loading"} aria-busy={cardPaying}>
+                {cardPaying ? "Paying with test card…" : "Pay with test card (sandbox)"}
+              </button>
+              <p className={s.note}>Sandbox test card, no login, no real money.</p>
+              <p className={s.orDivider}><span>or pay with a PayPal sandbox account</span></p>
+            </div>
+          )}
           <div ref={slotRef} className={s.paypalSlot} aria-busy={phase === "loading"} />
           {phase === "loading" && <p className={s.note}>Loading PayPal…</p>}
           {phase === "paying" && <p className={s.note}>Waiting for the buyer to approve in PayPal…</p>}
-          {phase === "capturing" && <p className={s.note}>Approved. Capturing payment…</p>}
+          {phase === "capturing" && !cardPaying && <p className={s.note}>Approved. Capturing payment…</p>}
           {cfg && <p className={s.note}>PayPal {cfg.mode}. Order {paypalOrderId} was created by the server after brand verification.</p>}
         </>
       )}

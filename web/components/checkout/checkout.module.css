@@ -246,6 +246,10 @@
 .payBox { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 .payAmount { font-size: 26px; font-weight: 800; margin: 0 0 10px; }
 .paypalSlot { min-height: 48px; }
+.testCard { margin-bottom: 14px; }
+.testCardBtn { margin-top: 0; border-radius: 999px; font-weight: 700; }
+.orDivider { display: flex; align-items: center; gap: 10px; margin: 16px 0 10px; font-size: 13px; color: var(--muted); }
+.orDivider::before, .orDivider::after { content: ""; flex: 1; border-top: 1px solid var(--line); }
 .paypalSlot paypal-button { display: block; width: 100%; }
 .mockPay {
   width: 100%; padding: 14px 16px; font-size: 16px; border-radius: 999px;

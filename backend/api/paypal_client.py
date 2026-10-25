@@ -178,6 +178,14 @@ class PayPalClient:
         return self._call(self._sdk().orders.capture_order,
                           {"id": order_id, "paypal_request_id": f"capture-{order_id}"})
 
+    @property
+    def test_card_available(self) -> bool:
+        """True when /pay-test-card can run: mock, or sandbox with a test card configured. Never in live."""
+        if self.is_mock:
+            return True
+        return self.mode == "sandbox" and bool(config.env("SANDBOX_TEST_CARD_NUMBER", "")) \
+            and bool(config.env("SANDBOX_TEST_CARD_EXPIRY", ""))
+
     def pay_with_test_card(self, order_id: str) -> dict:
         """Pay an EXISTING order with a PayPal sandbox test card, then capture it. Sandbox and mock only.
 

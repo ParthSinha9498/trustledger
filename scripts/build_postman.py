@@ -68,6 +68,13 @@ demo = {
                 tests=[
                     "pm.test('200', () => pm.response.to.have.status(200));",
                     "pm.test('brand verified receipt', () => pm.expect(pm.response.json().brand_verified).to.eql(true));"]),
+        request("Pay Store A with sandbox test card (alternative to Capture)", "POST", "apiBaseUrl",
+                "/checkout/{{checkoutId}}/pay-test-card",
+                description="Sandbox: use this INSTEAD of Capture. The server pays the existing order with a "
+                            "PayPal sandbox test card and captures it, no buyer login. Run after Capture it answers "
+                            "409 (already paid). Refused (403) in live mode.",
+                tests=[
+                    "pm.test('paid now or already paid', () => pm.expect(pm.response.code).to.be.oneOf([200, 409]));"]),
         request("Receipt", "GET", "apiBaseUrl", "/receipts/{{checkoutId}}", tests=[
             "const r = pm.response.json();",
             "pm.test('ids match', () => {",

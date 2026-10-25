@@ -55,3 +55,15 @@ def test_pays_a_verified_checkout_and_receipt_shows_the_verification_id(env):
 
     # Paid once: a second click is refused rather than paying again.
     assert api.post(f"/checkout/{a['checkout_id']}/pay-test-card").status_code == 409
+
+
+def test_sdk_config_says_when_the_card_path_is_available(env, monkeypatch):
+    api = env["api"]
+    monkeypatch.setattr(paypal, "mode", "sandbox")
+    monkeypatch.delenv("SANDBOX_TEST_CARD_NUMBER", raising=False)
+    assert api.get("/paypal/sdk/config").json()["test_card"] is False
+    monkeypatch.setenv("SANDBOX_TEST_CARD_NUMBER", "4000000000000000")
+    monkeypatch.setenv("SANDBOX_TEST_CARD_EXPIRY", "2030-01")
+    assert api.get("/paypal/sdk/config").json()["test_card"] is True
+    monkeypatch.setattr(paypal, "mode", "live")  # a card in env never turns it on in live
+    assert api.get("/paypal/sdk/config").json()["test_card"] is False

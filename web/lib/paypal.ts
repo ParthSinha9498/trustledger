@@ -25,6 +25,8 @@ export type SdkConfig = {
   client_id: string | null;
   currency: string;
   sdk_url: string | null;
+  /** True when POST /checkout/{id}/pay-test-card can run (sandbox with a test card set, or mock). Never in live. */
+  test_card?: boolean;
 };
 
 export type ClientTokenResponse = { mode: PayPalMode; client_token: string; expires_in: number };
@@ -100,6 +102,9 @@ export const getClientToken = () => api<ClientTokenResponse>("/paypal/sdk/client
 export const getReceipt = (checkoutId: string) => api<Receipt>(`/receipts/${checkoutId}`);
 export const capture = (checkoutId: string) =>
   api<Receipt>(`/checkout/${checkoutId}/capture`, { method: "POST" });
+/** Sandbox only: the server pays the existing order with a PayPal sandbox test card, then captures it. */
+export const payWithTestCard = (checkoutId: string) =>
+  api<Receipt>(`/checkout/${checkoutId}/pay-test-card`, { method: "POST" });
 
 // ---------------------------------------------------------------- loader
 

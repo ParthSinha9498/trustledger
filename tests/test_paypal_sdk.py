@@ -7,7 +7,7 @@ from backend.api.paypal_client import paypal
 
 def test_config_mock(env):
     body = env["api"].get("/paypal/sdk/config").json()
-    assert body == {"mode": "mock", "client_id": None, "currency": "USD", "sdk_url": None}
+    assert body == {"mode": "mock", "client_id": None, "currency": "USD", "sdk_url": None, "test_card": True}
 
 
 def test_client_token_mock(env):

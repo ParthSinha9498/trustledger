@@ -350,6 +350,73 @@ paths:
                 detail:
                   paypal_status: FAILED
       description: Captures the PayPal order, confirms the sale with the brand, and returns the receipt.
+  /checkout/{checkout_id}/pay-test-card:
+    post:
+      summary: Pay with a PayPal sandbox test card (sandbox only)
+      description: Sandbox demo path, refused in live mode. The server confirms the existing PayPal order (created
+        only after VERIFIED) with a PayPal sandbox test card from its environment (Orders v2 confirm-payment-source),
+        then runs the normal capture and returns the receipt. No buyer login.
+      operationId: payCheckoutWithTestCard
+      parameters:
+      - name: checkout_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Checkout Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '403':
+          description: 'Live mode: test-card payments are sandbox only.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: test-card payments are sandbox only
+        '404':
+          description: Unknown checkout.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: unknown checkout
+        '409':
+          description: Blocked (no PayPal order exists) or already paid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: checkout is not awaiting payment (blocked checkouts have no PayPal order)
+        '502':
+          description: PayPal upstream error or capture failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail:
+                  paypal_status: FAILED
+        '503':
+          description: No sandbox test card configured on the server.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                detail: SANDBOX_TEST_CARD_NUMBER and SANDBOX_TEST_CARD_EXPIRY are not set
   /receipts/{checkout_id}:
     get:
       summary: Receipt

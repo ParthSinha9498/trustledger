@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LANDING_COPY } from "@/components/home/copy";
+import WhyBrandsPay from "@/components/cockpit/WhyBrandsPay";
 
 export default function Home() {
   const { hero, heroFlow, how, features, business, privacy, closing } = LANDING_COPY;
@@ -334,6 +335,22 @@ export default function Home() {
         <h2 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 24px", letterSpacing: "-0.02em" }}>
           {business.title}
         </h2>
+        <p style={{ fontSize: "15px", color: "var(--muted)", margin: "-12px 0 24px", lineHeight: 1.6 }}>{business.subhead}</p>
+
+        {/* 3 reasons brands pay */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "16px", marginBottom: "24px" }}>
+          {business.reasons.map((r) => (
+            <div key={r.title} style={{ padding: "16px", borderRadius: "var(--radius-md)", border: "1px solid var(--line)", background: "var(--card)" }}>
+              <h3 style={{ fontSize: "15.5px", fontWeight: 700, margin: "0 0 6px" }}>{r.title}</h3>
+              <p style={{ fontSize: "14px", color: "var(--muted)", margin: 0, lineHeight: 1.55 }}>{r.body}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Survey vs TrustLedger (same panel as Insights; cites ESOMAR + Pew) */}
+        <div style={{ marginBottom: "24px" }}>
+          <WhyBrandsPay title="A survey vs TrustLedger" />
+        </div>
 
         {/* 4-step arrow chain */}
         <div

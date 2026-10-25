@@ -210,7 +210,7 @@ All test serials originate deterministically from `backend/seed.py`:
 | `X123` | `NMB-P8-128` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens until it is sold (reseed to reset).<br/>**Blocked at Store C (`NOT_IN_CHANNEL`):** Store C is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store C, the brand node finds the unit's batch was shipped to Store A, not Store C (`backend/brand_node/main.py:59-62`), halting payment with zero PayPal order created. |
 | `XA000001` .. `XA000491` | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store C (`NOT_IN_CHANNEL`). |
 | `XB000001` .. `XB000528` | `NMB-P8-256` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store B. Verified at Store B. *(Note: scanning XB at Store A with the default P8 128GB gives `SKU_MISMATCH`; to get `NOT_IN_CHANNEL`, select Nimbus P8 256GB first).* |
-| Pre-seeded clone attempts | Various | `backend/seed.py:235-238` | 40 historical blocked attempts at Store B (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
+| Pre-seeded clone attempts | Various | `backend/seed.py:234-240` | 40 historical blocked attempts at Store C (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
 
 ---
 

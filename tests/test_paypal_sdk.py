@@ -34,7 +34,8 @@ def test_client_token_sandbox_requests_browser_safe_token(env, monkeypatch):
 
     cfg = api.get("/paypal/sdk/config").json()
     assert cfg["mode"] == "sandbox" and cfg["client_id"] == "pub-id"
-    assert cfg["sdk_url"] == "https://www.sandbox.paypal.com/web-sdk/v6/core"
+    assert cfg["sdk_url"].startswith("https://www.sandbox.paypal.com/web-sdk/v6/core")
+    assert "currency=USD" in cfg["sdk_url"]
     assert "s3cret" not in str(cfg)
 
     body = api.get("/paypal/sdk/client-token").json()

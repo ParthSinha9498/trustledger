@@ -136,6 +136,17 @@ class Investigation:
                 if turn.content:
                     self.log("thought", {"text": turn.content})
                 if not turn.tool_calls:
+                    if turn.content:
+                        try:
+                            data = json.loads(turn.content.strip())
+                            if isinstance(data, dict) and "summary" in data:
+                                self._finish("complete", data)
+                                return data
+                        except Exception:
+                            pass
+                    if left > 0:
+                        messages.append({"role": "user", "content": "Please invoke a tool to continue or call finish."})
+                        continue
                     break
                 for call in turn.tool_calls:
                     if call.name == "finish":

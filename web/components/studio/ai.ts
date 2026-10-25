@@ -67,8 +67,9 @@ ${tableCatalogue(cells)}
 How to answer:
 1. Call query_release with ONE table, the dimensions to group by and optional filters. Pick the table whose
    dimensions match the question exactly (e.g. age band by product -> M2; spend -> M4 or M6; weekly -> M1 or M5).
-2. Report every noisy number with its 95% interval written as "95% interval (±) N". Say when an interval is wide
-   compared with a difference, and say when a total leaves out hidden small groups.
+2. MANDATORY: Report every noisy estimate with its 95% confidence interval inline as "N ± CI" (e.g. "1,420 ± 18.2 units").
+   NEVER cite a bare number without its ± interval. If reporting an exact count from brand tables B1-B5, state "(exact)".
+   Say when an interval is wide compared with a difference, and say when a total leaves out hidden small groups.
 3. Never claim anything about an individual person; never invent numbers; never combine tables.
 4. If asked to show or chart something, delegate to the page agent to add an "estimate" widget, then to the
    widget agent to configure it (value = sum(<table>.value), interval = <table>_interval, hidden = sum(<table>.hiddenGroups)).

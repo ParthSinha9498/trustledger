@@ -1,5 +1,6 @@
 """AG Studio backend: release cells (read-only, no budget) and the /ai/turn LLM proxy (offline)."""
 import json
+import re
 
 import httpx
 import pytest
@@ -228,3 +229,18 @@ def test_agent_never_sends_buyer_fields_to_llm(env, monkeypatch):
         assert not studio.find_buyer_fields(json.loads(text))
         for f in studio.BUYER_FIELDS:
             assert f not in text.lower()
+
+
+def test_analyst_answer_format_requires_confidence_interval():
+    from backend.api.studio import check_no_bare_numbers
+
+    # Valid answer with inline ± intervals passes
+    valid_text = "Store A sells 1,420 ± 18.2 units of P8 128GB, compared with Store C's 310 ± 11.4 units."
+    check_no_bare_numbers(valid_text)
+
+    # Bare answer without ± intervals fails
+    invalid_text = "Store A sells 1,420 units of P8 128GB, compared with Store C's 310 units."
+    with pytest.raises(ValueError, match="Bare number without confidence interval"):
+        check_no_bare_numbers(invalid_text)
+
+

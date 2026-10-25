@@ -59,11 +59,25 @@ export const initialReport = (narrow: boolean) => ({
           },
           format: { title: title('Buyers and spend by store and product (M6)') },
         },
+        'budget-meter': {
+          type: 'budget_meter',
+          format: { title: title('Differential Privacy Budget (zCDP)') },
+        },
+        'refused-notice': {
+          type: 'refused_state',
+          format: {
+            title: title('Detailed Buyer Cross-Tabulation'),
+            reason: 'Small groups are hidden: cells with fewer than 10 buyers are suppressed to prevent re-identification.',
+            suggestion: 'View higher-level aggregates in M1 or M2.',
+          },
+        },
       },
       widgetLayout: {
         'p8-age': narrow ? at(0, 0, 24, 21) : at(0, 0, 12, 16),
         'spend-store': narrow ? at(0, 21, 24, 21) : at(12, 0, 12, 16),
-        'm6-grid': narrow ? at(0, 42, 24, 22) : at(0, 16, 24, 22),
+        'budget-meter': narrow ? at(0, 42, 24, 12) : at(0, 16, 12, 14),
+        'refused-notice': narrow ? at(0, 54, 24, 12) : at(12, 16, 12, 14),
+        'm6-grid': narrow ? at(0, 66, 24, 22) : at(0, 30, 24, 22),
       },
       filter: {
         widget: {

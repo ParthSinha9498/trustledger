@@ -1,0 +1,75 @@
+[
+  {
+    "turn": 1,
+    "sha256": "8bf1f67840222e76",
+    "request": {
+      "messages": [
+        {"role": "system", "content": "You are the Insights analyst. You have access to release cells via query_release."},
+        {"role": "user", "content": "Which store sells the most P8 128GB?"}
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "query_release",
+            "description": "Read privacy-safe release cells for a table",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "table_id": {"type": "string", "enum": ["M1", "M2", "M3", "M4", "M5", "M6", "B1", "B2", "B3", "B4"]}
+              },
+              "required": ["table_id"]
+            }
+          }
+        }
+      ],
+      "stream": true
+    },
+    "response_tool_call": {
+      "name": "query_release",
+      "arguments": "{\"table_id\":\"M1\"}"
+    },
+    "tokens": {
+      "prompt_tokens": 200,
+      "completion_tokens": 110,
+      "total_tokens": 310
+    },
+    "buyer_fields_found": []
+  },
+  {
+    "turn": 2,
+    "sha256": "75933e488c17a384",
+    "request": {
+      "messages": [
+        {"role": "system", "content": "You are the Insights analyst. You have access to release cells via query_release."},
+        {"role": "user", "content": "Which store sells the most P8 128GB?"},
+        {"role": "assistant", "content": null, "tool_calls": [{"id": "fc_d15d106e-eca5-4680-9c1b-f2d27bd6a29e", "type": "function", "function": {"name": "query_release", "arguments": "{\"table_id\":\"M1\"}"}}]},
+        {"role": "tool", "tool_call_id": "fc_d15d106e-eca5-4680-9c1b-f2d27bd6a29e", "content": "{\"table_id\":\"M1\",\"rows\":[{\"store_id\":\"store_a\",\"sku\":\"NMB-P8-128\",\"value\":1420,\"ci95\":18.2},{\"store_id\":\"store_c\",\"sku\":\"NMB-P8-128\",\"value\":310,\"ci95\":11.4}]}"}
+      ],
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "query_release",
+            "description": "Read privacy-safe release cells for a table",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "table_id": {"type": "string", "enum": ["M1", "M2", "M3", "M4", "M5", "M6", "B1", "B2", "B3", "B4"]}
+              },
+              "required": ["table_id"]
+            }
+          }
+        }
+      ],
+      "stream": true
+    },
+    "response_text": "Store A sells the largest number of the P8 128GB model (1,420 units), compared with Store C's 310 units.",
+    "tokens": {
+      "prompt_tokens": 290,
+      "completion_tokens": 84,
+      "total_tokens": 374
+    },
+    "buyer_fields_found": []
+  }
+]

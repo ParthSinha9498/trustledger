@@ -1,5 +1,7 @@
 """Case design: one case per open problem (brand, store, reason), agent re-runs only on material change."""
 
+import json
+
 from backend.api.paypal_client import PayPalError, paypal
 from backend.common.llm import ToolCall, Turn
 from backend.worker import agent
@@ -199,3 +201,30 @@ def test_case_rerun_returns_latest_run_and_earlier_runs(env):
     # Query param ?include_earlier_steps=true embeds earlier steps in earlier_runs
     embed_resp = api.get(f"/cases/{case_id}?include_earlier_steps=true").json()
     assert len(embed_resp["earlier_runs"][0]["steps"]) == len(steps_1)
+
+
+class PlainTextThenSummaryLLM:
+    def __init__(self):
+        self.turns = 0
+
+    def next_turn(self, messages, tools):
+        self.turns += 1
+        if self.turns == 1:
+            # Plain text turn without tool calls: MUST NOT end the run
+            return Turn("I am reviewing the case data.", [])
+        if self.turns == 2:
+            return Turn("", [ToolCall("q1", "query_paypal_node", {"metric": "buyers", "group_by": ["store_id"]})])
+        # Turn 3: JSON summary in content without tool calls: MUST finish the run
+        return Turn(json.dumps({"summary": "Root cause identified.", "confidence": "high"}), [])
+
+
+def test_plain_text_turn_continues_and_json_summary_finishes(env):
+    case, case_id = claimed_case(env)
+    llm = PlainTextThenSummaryLLM()
+    res = agent.Investigation(case, llm).run()
+    assert res["summary"] == "Root cause identified."
+    assert llm.turns == 3
+    c = env["api"].get(f"/cases/{case_id}").json()
+    assert c["status"] == "complete"
+    assert c["summary"] == "Root cause identified."
+

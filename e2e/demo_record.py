@@ -261,8 +261,16 @@ def main() -> None:
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
-        ctx = browser.new_context(viewport={"width": 1280, "height": 720},
-                                  record_video_dir=OUT, record_video_size={"width": 1280, "height": 720})
+        ctx = browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            record_video_dir=OUT,
+            record_video_size={"width": 1280, "height": 720},
+            locale="en-US",
+            timezone_id="America/New_York",
+            geolocation={"latitude": 40.7128, "longitude": -74.0060},
+            permissions=["geolocation"],
+            extra_http_headers={"Accept-Language": "en-US,en;q=0.9"},
+        )
         ctx.add_init_script(CURSOR_JS)
         page = ctx.new_page()
         rec = Recorder(page, args.web)

@@ -29,8 +29,8 @@ from backend.api.paypal_client import paypal
 router = APIRouter(prefix="/paypal/sdk", tags=["paypal-sdk"])
 
 SDK_URLS = {
-    "sandbox": "https://www.sandbox.paypal.com/web-sdk/v6/core",
-    "live": "https://www.paypal.com/web-sdk/v6/core",
+    "sandbox": "https://www.sandbox.paypal.com/web-sdk/v6/core?currency=USD&buyer-country=US&locale=en_US",
+    "live": "https://www.paypal.com/web-sdk/v6/core?currency=USD&buyer-country=US&locale=en_US",
 }
 MOCK_CLIENT_TOKEN = "MOCK-CLIENT-TOKEN-not-a-real-paypal-token"
 

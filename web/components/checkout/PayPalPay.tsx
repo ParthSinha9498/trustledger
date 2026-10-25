@@ -85,7 +85,7 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
     (async () => {
       try {
         const sdk = await getPayPalInstance(cfg);
-        const methods = await sdk.findEligibleMethods({ currencyCode: cfg.currency });
+        const methods = await sdk.findEligibleMethods({ currencyCode: cfg.currency || "USD", countryCode: "US" });
         if (cancelled) return;
         if (!methods.isEligible("paypal")) {
           setError("PayPal isn't available for this buyer or currency.");
@@ -112,6 +112,9 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
         });
         button = document.createElement("paypal-button");
         button.setAttribute("type", "pay");
+        button.setAttribute("currency", cfg.currency || "USD");
+        button.setAttribute("buyer-country", "US");
+        button.setAttribute("locale", "en_US");
         button.className = "paypal-gold";
         onClick = () => {
           setError(null); setInfo(null); setPhase("paying");

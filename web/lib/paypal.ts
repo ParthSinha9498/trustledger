@@ -83,6 +83,8 @@ export interface PayPalNamespace {
     components: string[];
     pageType?: string;
     locale?: string;
+    currency?: string;
+    buyerCountry?: string;
   }): Promise<PayPalSdkInstance>;
 }
 
@@ -140,7 +142,14 @@ export function getPayPalInstance(cfg: SdkConfig): Promise<PayPalSdkInstance> {
     const auth = cfg.client_id
       ? { clientId: cfg.client_id }
       : { clientToken: (await getClientToken()).client_token };
-    return paypal.createInstance({ ...auth, components: ["paypal-payments"], pageType: "checkout" });
+    return paypal.createInstance({
+      ...auth,
+      components: ["paypal-payments"],
+      pageType: "checkout",
+      locale: "en_US",
+      currency: cfg.currency || "USD",
+      buyerCountry: "US",
+    });
   })().catch((e) => {
     instancePromise = null;
     throw e;

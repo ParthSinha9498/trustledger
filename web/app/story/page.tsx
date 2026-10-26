@@ -418,7 +418,7 @@ function CardView({ cardId }: { cardId: string }) {
             <div className={s.statHuge}>USD 150B+</div>
             <div className={s.statLabel}>a year spent on market insights (ESOMAR, 2024 data)</div>
             <p className={s.calloutText} style={{ marginTop: 18, marginBottom: 8 }}>
-              Survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus.
+              Survey results take weeks, and in a Pew survey fielded Nov 2024 (11,114 US adults), 18% of cases were flagged (Pew Research Center, 27 Aug 2026).
             </p>
             <p className={s.calloutSub} style={{ color: "#38bdf8", fontSize: 20, fontWeight: 700 }}>
               TrustLedger answers from verified purchases in seconds, and no buyer is ever exposed.

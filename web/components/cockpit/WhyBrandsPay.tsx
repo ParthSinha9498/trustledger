@@ -38,8 +38,8 @@ export default function WhyBrandsPay({ seconds = null, title = "Why brands pay f
               <li><strong>Weeks to field</strong></li>
               <li><strong>Self-reported</strong></li>
               <li>
-                In a Pew survey (Nov 2024 survey of 11,114 US adults), 18% of cases were flagged as bogus.
-                <span className={styles.src}>Pew Research Center, 2026</span>
+                In a Pew survey fielded Nov 2024 (11,114 US adults), 18% of cases were flagged.
+                <span className={styles.src}>Pew Research Center, 27 Aug 2026</span>
               </li>
             </ul>
           </div>

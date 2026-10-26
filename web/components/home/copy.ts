@@ -114,7 +114,7 @@ export const LANDING_COPY = {
       },
     ],
     marketStat: "The market-insights industry represents USD 150B+ annually (ESOMAR, 2024 data).",
-    pewEvidence: "In a Pew Research Center survey of 11,114 US adults (Nov 2024 survey, published 2026), 18% of survey cases were flagged as bogus.",
+    pewEvidence: "In a Pew survey fielded Nov 2024 (11,114 US adults), 18% of cases were flagged (Pew Research Center, 27 Aug 2026).",
     chain: ["Verified purchases", "Privacy-safe insights", "Brand intelligence", "Free checks for shoppers"],
   },
   privacy: {

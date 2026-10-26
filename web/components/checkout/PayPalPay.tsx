@@ -114,7 +114,7 @@ export default function PayPalPay({ checkoutId, paypalOrderId, onPaid }: {
         button.setAttribute("type", "pay");
         button.setAttribute("currency", cfg.currency || "USD");
         button.setAttribute("buyer-country", "US");
-        button.setAttribute("locale", "en_US");
+        button.setAttribute("locale", "en-US");
         button.className = "paypal-gold";
         onClick = () => {
           setError(null); setInfo(null); setPhase("paying");

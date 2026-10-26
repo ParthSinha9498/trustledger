@@ -65,6 +65,10 @@ RING_JS = """([x, y, w, h]) => {
 }"""
 
 # Plain fallback cards until the web app's /story route exists.
+# Card ids defined in web/app/story/page.tsx.
+STORY_CARDS = {"hook", "problem", "gap", "idea", "how", "s1", "s2", "s3", "business", "s4",
+              "guarantee", "levels", "close", "code"}
+
 FALLBACK = {
     "hook": ["One phone. One serial number. Two stores.", "Only one of them is selling the real thing."],
     "problem": ["USD 467 billion in counterfeit goods traded in a year",
@@ -107,10 +111,12 @@ class Recorder:
     def card(self, cid: str, hold: float = 5.0) -> None:
         self.mark("scene", cid)
         t0 = time.monotonic()
-        r = self.page.goto(f"{self.web}/story?card={cid}")
-        if r is not None and r.ok and self._wait_ready():  # animation finished; it counts toward the hold
-            self.wait(max(0.5, hold - (time.monotonic() - t0)))
-            return
+        # /story answers 200 with its index for unknown ids, so only ids the story page defines are trusted.
+        if cid in STORY_CARDS:
+            r = self.page.goto(f"{self.web}/story?card={cid}")
+            if r is not None and r.ok and self._wait_ready():  # animation finished; it counts toward the hold
+                self.wait(max(0.5, hold - (time.monotonic() - t0)))
+                return
         lines = FALLBACK[cid]
         html = "".join(f"<p style='margin:.4em 0;font-size:{44 if i == 0 else 26}px;opacity:{1 if i < 2 else .6}'>{l}</p>"
                        for i, l in enumerate(lines))
@@ -212,15 +218,28 @@ def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
     pop.set_viewport_size({"width": 1280, "height": 720})  # PayPal opens a narrow window; film it full size
     rec.mark("popup_open", "paypal")
     pop.wait_for_load_state("domcontentloaded", timeout=60000)
-    pop.locator("#email").wait_for(state="visible", timeout=60000)
+    # PayPal's sandbox login is two steps: email, then Next, then the password field appears.
+    # Labels, not the old #email/#btnNext ids. Enter submits the password step (clicking the button can miss).
+    email = pop.get_by_label(re.compile(r"Email or mobile", re.I)).first
+    email.wait_for(state="visible", timeout=60000)
     rec.mark("popup_cut_start", "sandbox login (keeps account details off screen)")
-    pop.locator("#email").fill(os.environ["SANDBOX_BUYER_EMAIL"])
+    email.fill(os.environ["SANDBOX_BUYER_EMAIL"])
     pop.wait_for_timeout(600)
-    pop.click("#btnNext")
-    pop.locator("#password").wait_for(state="visible", timeout=30000)
-    pop.locator("#password").fill(os.environ["SANDBOX_BUYER_PASSWORD"])
+    password = pop.locator("input[type=password]").first
+    if not password.is_visible():
+        pop.get_by_role("button", name=re.compile(r"^\s*Next\s*$", re.I)).first.click()
+    password.wait_for(state="visible", timeout=30000)
+    password.fill(os.environ["SANDBOX_BUYER_PASSWORD"])
     pop.wait_for_timeout(600)
-    pop.click("#btnLogin")
+    # Enter does not always submit PayPal's form; a JS click on "Log In" does. Retry until the page moves on.
+    login = pop.get_by_role("button", name=re.compile(r"^\s*Log In\s*$", re.I)).first
+    for _ in range(4):
+        login.evaluate("e => e.click()")
+        try:
+            pop.wait_for_url(lambda u: "checkoutnow" not in u, timeout=15000)
+            break
+        except Exception:
+            pass
     try:
         pop.locator("button:has-text('Complete Purchase'), #payment-submit-btn").first.wait_for(timeout=30000)
     except Exception:

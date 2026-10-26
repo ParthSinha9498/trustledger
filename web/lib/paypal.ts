@@ -146,7 +146,7 @@ export function getPayPalInstance(cfg: SdkConfig): Promise<PayPalSdkInstance> {
       ...auth,
       components: ["paypal-payments"],
       pageType: "checkout",
-      locale: "en_US",
+      locale: "en-US",
       currency: cfg.currency || "USD",
       buyerCountry: "US",
     });

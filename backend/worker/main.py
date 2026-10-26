@@ -4,6 +4,7 @@
     python -m backend.worker.main --once   # process at most one case
 """
 import argparse
+import os
 import time
 import traceback
 

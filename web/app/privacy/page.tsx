@@ -20,7 +20,7 @@ export default function PrivacyPage() {
           How TrustLedger protects people
         </h1>
         <p className="muted" style={{ fontSize: "16px", maxWidth: "840px", lineHeight: 1.5, margin: 0 }}>
-          TrustLedger is built from the ground up on two architectural moats:
+          TrustLedger is built from the ground up on two architectural design commitments:
           <strong> data never moves</strong>, and <strong>no person is identifiable</strong>.
         </p>
       </div>

@@ -186,6 +186,33 @@ body:has(.storyCardRoot) .topnav {
 }
 .navsep { width: 1px; height: 18px; background: var(--line); margin: 0 8px; }
 
+.navlinks a.navCta {
+  background: var(--accent);
+  color: #ffffff !important;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+.navlinks a.navCta:hover {
+  background: var(--accent-hover);
+  color: #ffffff !important;
+}
+.navlinks a.navCta.active {
+  background: var(--accent-hover);
+  border: 1px solid var(--accent);
+  color: #ffffff !important;
+}
+
+.mobileNavLink.mobileCta {
+  background: var(--accent);
+  color: #ffffff !important;
+  font-weight: 600;
+  text-align: center;
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+}
+
 /* Mobile nav toggle & sheet */
 .navToggle {
   display: none;

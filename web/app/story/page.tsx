@@ -11,7 +11,7 @@ interface CardMeta {
 }
 
 const CARDS: CardMeta[] = [
-  { id: "hook", title: "One phone. One serial number. Two stores.", desc: "Only one of them is selling the real thing." },
+  { id: "hook", title: "One phone. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
   { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
   { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
@@ -247,7 +247,7 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "hook" && (
           <>
             <h1 className={s.titleHero}>One phone. One serial number. Two stores.</h1>
-            <p className={s.subHero}>Only one of them is selling the real thing.</p>
+            <p className={s.subHero}>The brand checks the serial before payment—discrepancies trigger an investigation.</p>
           </>
         )}
 
@@ -418,7 +418,7 @@ function CardView({ cardId }: { cardId: string }) {
             <div className={s.statHuge}>USD 150B+</div>
             <div className={s.statLabel}>a year spent on market insights (ESOMAR, 2024 data)</div>
             <p className={s.calloutText} style={{ marginTop: 18, marginBottom: 8 }}>
-              Survey results take weeks, and in a 2024 Pew survey 18% of responses were flagged as bogus.
+              Survey results take weeks, and in a Pew survey fielded Nov 2024 (11,114 US adults), 18% of cases were flagged (Pew Research Center, 27 Aug 2026).
             </p>
             <p className={s.calloutSub} style={{ color: "#38bdf8", fontSize: 20, fontWeight: 700 }}>
               TrustLedger answers from verified purchases in seconds, and no buyer is ever exposed.

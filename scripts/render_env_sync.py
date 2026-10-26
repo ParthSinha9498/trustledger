@@ -112,7 +112,8 @@ def main():
         "SEED_ON_START": "auto",
         "WEB_PUBLIC_HOST": service_urls.get("trustledger-web", "trustledger-web.onrender.com"),
         "NODE_SHARED_TOKEN": local_env.get("NODE_SHARED_TOKEN") or secrets.token_hex(16),
-        "PAYER_HASH_KEY": secrets.token_hex(32),
+        # Reuse the local key so a re-run does not rotate it (rotation breaks payer-hash continuity).
+        "PAYER_HASH_KEY": local_env.get("PAYER_HASH_KEY") or secrets.token_hex(32),
         "PAYPAL_MODE": "sandbox",
         "PAYPAL_CLIENT_ID": local_env.get("PAYPAL_CLIENT_ID", ""),
         "PAYPAL_CLIENT_SECRET": local_env.get("PAYPAL_CLIENT_SECRET", ""),
@@ -137,6 +138,8 @@ def main():
     web_vars = {
         "API_PUBLIC_HOST": service_urls.get("trustledger-backend", "trustledger-backend-0abs.onrender.com"),
         "NEXT_PUBLIC_PAYPAL_CLIENT_ID": local_env.get("PAYPAL_CLIENT_ID", ""),
+        # Build-time value (web.Dockerfile ARG): the web service must rebuild after this changes.
+        "NEXT_PUBLIC_AG_GRID_LICENSE": local_env.get("NEXT_PUBLIC_AG_GRID_LICENSE", ""),
     }
 
     # 5. Push backend env vars

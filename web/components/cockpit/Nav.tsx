@@ -53,7 +53,16 @@ export default function Nav() {
           {LINKS.map((l, i) => (
             <span key={l.href} className="navgroup">
               {(i === 1 || i === 5) && <span className="navsep" aria-hidden />}
-              <Link href={l.href} className={active(l.href, l.exact, l.alias) ? "active" : undefined}>
+              <Link
+                href={l.href}
+                className={
+                  l.href === "/pos"
+                    ? `navCta ${active(l.href, l.exact, l.alias) ? "active" : ""}`
+                    : active(l.href, l.exact, l.alias)
+                    ? "active"
+                    : undefined
+                }
+              >
                 {l.label}
               </Link>
             </span>
@@ -91,7 +100,7 @@ export default function Nav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`mobileNavLink ${active(l.href, l.exact, l.alias) ? "active" : ""}`}
+                className={`mobileNavLink ${l.href === "/pos" ? "mobileCta" : ""} ${active(l.href, l.exact, l.alias) ? "active" : ""}`}
                 onClick={() => { setOpen(false); toggleRef.current?.focus(); }}
               >
                 {l.label}

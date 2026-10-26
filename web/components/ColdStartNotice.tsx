@@ -60,6 +60,7 @@ export default function ColdStartNotice() {
         left: 0,
         right: 0,
         zIndex: 9999,
+        pointerEvents: "none",
         background: ready
           ? "rgba(16, 185, 129, 0.95)"
           : "rgba(15, 23, 42, 0.92)",

@@ -11,7 +11,7 @@ interface CardMeta {
 }
 
 const CARDS: CardMeta[] = [
-  { id: "hook", title: "One phone. One serial number. Two stores.", desc: "Only one of them is selling the real thing." },
+  { id: "hook", title: "One phone. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
   { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
   { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
@@ -247,7 +247,7 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "hook" && (
           <>
             <h1 className={s.titleHero}>One phone. One serial number. Two stores.</h1>
-            <p className={s.subHero}>Only one of them is selling the real thing.</p>
+            <p className={s.subHero}>The brand checks the serial before payment—discrepancies trigger an investigation.</p>
           </>
         )}
 

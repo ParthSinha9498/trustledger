@@ -38,12 +38,8 @@ export default function WhyBrandsPay({ seconds = null, title = "Why brands pay f
               <li><strong>Weeks to field</strong></li>
               <li><strong>Self-reported</strong></li>
               <li>
-                In a Pew survey (Nov 2024, 11,114 US adults), 18% of cases were flagged as bogus.
+                In a Pew survey (Nov 2024 survey of 11,114 US adults), 18% of cases were flagged as bogus.
                 <span className={styles.src}>Pew Research Center, 2026</span>
-              </li>
-              <li>
-                Opt-in samples: about half as accurate as probability panels (error 5.8 vs 2.6 points).
-                <span className={styles.src}>Pew Research Center, 2023</span>
               </li>
             </ul>
           </div>
@@ -52,7 +48,7 @@ export default function WhyBrandsPay({ seconds = null, title = "Why brands pay f
             <ul className={styles.list}>
               <li><strong>{answered}</strong></li>
               <li><strong>From verified purchases</strong></li>
-              <li>Privacy-protected, with a 95% interval (±) on every value</li>
+              <li>Privacy-protected, with 95% intervals (±) on buyer estimates (brand-side counts are exact)</li>
             </ul>
           </div>
         </div>

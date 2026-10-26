@@ -3,7 +3,7 @@
 // release cells + exact brand counts from GET /console/release/cells; nothing else is loaded.
 
 import { useEffect, useMemo, useState } from 'react';
-import { AgStudioAiModule, type AgStudioMode } from 'ag-studio';
+import { AgStudioAiModule, AgStudioLicenseManager, type AgStudioMode } from 'ag-studio';
 import { AgStudio, AgStudioProvider, createWidgets } from 'ag-studio-react';
 import { API } from '@/lib/api';
 import { buildAi } from './ai';
@@ -12,6 +12,15 @@ import { STUDIO_WIDGETS } from './widgets';
 import { initialReport } from './initialReport';
 import { trustLedgerStudioTheme } from './theme';
 import './studio.css';
+
+const licenseKey = process.env.NEXT_PUBLIC_AG_GRID_LICENSE;
+if (typeof window !== 'undefined' && licenseKey) {
+  try {
+    AgStudioLicenseManager.setLicenseKey(licenseKey);
+  } catch {
+    /* ignore invalid or dry-run keys */
+  }
+}
 
 type LlmMode = 'unknown' | 'mock' | 'model';
 

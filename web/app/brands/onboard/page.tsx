@@ -188,7 +188,7 @@ NODE_SHARED_TOKEN=change-me</pre>
             <span style={{ fontWeight: 600 }}>SDK generated with APIMatic: coming</span>
             <p style={{ margin: "4px 0 0", fontSize: "12.5px" }}>
               Standard OpenAPI specifications are available in <code>openapi/brand-verification.yaml</code>.
-              Pre-built language SDKs will be generated via APIMatic.
+              Pre-built language SDKs: coming (generated with APIMatic).
             </p>
           </div>
         </section>

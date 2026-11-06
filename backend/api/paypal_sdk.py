@@ -28,10 +28,13 @@ from backend.api.paypal_client import paypal
 
 router = APIRouter(prefix="/paypal/sdk", tags=["paypal-sdk"])
 
-SDK_URLS = {
-    "sandbox": "https://www.sandbox.paypal.com/web-sdk/v6/core?currency=USD&buyer-country=US&locale=en-US",
-    "live": "https://www.paypal.com/web-sdk/v6/core?currency=USD",
-}
+def _sdk_urls() -> dict[str, str]:
+    # The script's currency must match the currency the order is created in (PAYPAL_CURRENCY).
+    cur = config.env("PAYPAL_CURRENCY", "USD")
+    return {
+        "sandbox": f"https://www.sandbox.paypal.com/web-sdk/v6/core?currency={cur}&buyer-country=US&locale=en-US",
+        "live": f"https://www.paypal.com/web-sdk/v6/core?currency={cur}",
+    }
 MOCK_CLIENT_TOKEN = "MOCK-CLIENT-TOKEN-not-a-real-paypal-token"
 
 _cache: dict[str, float | str] = {}
@@ -44,7 +47,8 @@ def _mode() -> str:
 def _sdk_url() -> str | None:
     if paypal.is_mock:
         return None
-    return SDK_URLS["live"] if paypal.mode == "live" else SDK_URLS["sandbox"]
+    urls = _sdk_urls()
+    return urls["live"] if paypal.mode == "live" else urls["sandbox"]
 
 
 def _domains() -> str:

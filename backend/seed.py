@@ -106,7 +106,7 @@ DROP TABLE IF EXISTS stores, checkouts, cases, case_steps, case_failures;
 CREATE TABLE stores (store_id TEXT PRIMARY KEY, name TEXT, region TEXT, city TEXT, brand_id TEXT);
 CREATE TABLE checkouts (checkout_id TEXT PRIMARY KEY, store_id TEXT, serial TEXT, sku TEXT,
     amount DOUBLE PRECISION, verification_id TEXT, paypal_order_id TEXT, status TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(), claimed_at TIMESTAMPTZ);
 CREATE TABLE cases (case_id TEXT PRIMARY KEY, brand_id TEXT, verification_id TEXT, store_id TEXT,
     sku TEXT, serial TEXT, reason_code TEXT, status TEXT, summary TEXT, confidence TEXT,
     failure_count INT NOT NULL DEFAULT 1, skus TEXT[] NOT NULL DEFAULT '{}',

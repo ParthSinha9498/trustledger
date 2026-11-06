@@ -138,6 +138,10 @@ Stated plainly, so nobody has to find them:
 - **The store channel comes from the request.** The demo POS sends its store ID, and the API does not yet authenticate store devices. Anyone who can call `/checkout/scan` can present a unit at another store.
 - **Verification reveals channel and sale status.** `/checkout/scan` answers `NOT_IN_CHANNEL` or `ALREADY_SOLD` to any caller, so the reason codes can be probed without logging in.
 - **Demo endpoints are open.** The cockpit, `/cases`, `/console` and `/ai/turn` need no login in the demo. `/ai/turn` spends the operator's LLM key, and it is rate-limited but not capped. Brand login is on the post-judging roadmap.
+- **Anyone can hold a unit.** `POST /checkout/scan` has no login. Each call on an unsold unit creates a real PayPal order and holds the unit for 30 minutes, and the reply tells the caller that another checkout is live. Repeated calls keep a unit held.
+- **Checkout IDs are bearer tokens.** `/receipts/{id}`, `/checkout/{id}/capture` and `/pay-test-card` need no login. In sandbox with a test card configured, anyone holding a checkout ID can complete that buyer's pending order (with test money).
+- **A unit flagged REVIEW needs a person.** When the brand refuses a sale after PayPal has captured, the checkout is marked REVIEW. There is no refund or staff workflow in this demo, so PayPal holds that money until someone handles it by hand.
+- **Capture recovery is unproven live.** A capture whose outcome is unknown is settled by asking PayPal after 2 minutes. This relies on PayPal deduplicating `capture-<order id>`, and it has not been tested against a sandbox proxy that drops the response.
 - **Insights are a snapshot.** Live purchases reach Insights after a reseed, not immediately, because the private release is built at seed time.
 - **Reseeding starts a new dataset and a new privacy budget.** The per-brand budget is per dataset. Reseeding resets it by design.
 - **Demographics are simulated** (see What's Real vs. Simulated).

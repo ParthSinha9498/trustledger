@@ -99,11 +99,14 @@ def confirm(verification_id: str, req: ConfirmRequest):
         v = c.execute("SELECT * FROM verification_log WHERE verification_id=%s", (verification_id,)).fetchone()
         if v is None or v["result"] != "VERIFIED":
             raise HTTPException(404, "no verified check with that id")
-        c.execute(
+        updated = c.execute(
             "UPDATE serials SET sold_store_id=%s, sold_week=%s, sold_order_id=%s "
-            "WHERE serial=%s AND sold_store_id IS NULL",
-            (v["store_id"], config.current_week(), req.paypal_order_id, v["serial"]),
-        )
+            "WHERE serial=%s AND (sold_store_id IS NULL OR sold_order_id=%s)",
+            (v["store_id"], config.current_week(), req.paypal_order_id, v["serial"], req.paypal_order_id),
+        ).rowcount
+    # Idempotent for the same order (a retry); a second order for an already-sold serial is refused.
+    if updated == 0:
+        raise HTTPException(409, "serial already sold to another order")
     return {"ok": True}
 
 

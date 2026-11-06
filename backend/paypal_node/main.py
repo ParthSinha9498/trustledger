@@ -17,7 +17,7 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
 from psycopg.types.json import Jsonb
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend import config, db
 from backend.common import privacy
@@ -420,7 +420,7 @@ class IngestRequest(BaseModel):
     brand_id: str
     store_id: str
     sku: str
-    amount: float
+    amount: float = Field(gt=0, le=1000)  # the privacy clamp; a negative or huge amount is refused
     payer_ref: str          # PayPal payer id; hashed here, never stored raw
     age_band: str           # simulated
     gender: str             # simulated
@@ -437,11 +437,13 @@ def ingest(req: IngestRequest):
     key = hmac.new(config.payer_hash_key(), f"payer:{req.payer_ref}".encode(), hashlib.sha256).hexdigest()[:16]
     with db.connect("paypal_side") as c, c.transaction():
         store = c.execute("SELECT region, city FROM catalog_stores WHERE store_id=%s", (req.store_id,)).fetchone()
-        c.execute(
-            "INSERT INTO transactions VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+        # One sale per PayPal order: a replayed ingest (a retried capture or webhook) inserts nothing.
+        inserted = c.execute(
+            "INSERT INTO transactions VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (order_id) DO NOTHING",
             (f"T{uuid.uuid4().hex[:10]}", req.order_id, req.brand_id, req.store_id, req.sku, req.amount,
              store["region"] if store else None, store["city"] if store else None, config.current_week(),
              key, req.age_band, req.gender, "sandbox"),
-        )
-        c.execute("UPDATE meta SET value = (value::int + 1)::text WHERE key='data_version'")
-    return {"ok": True}
+        ).rowcount
+        if inserted:
+            c.execute("UPDATE meta SET value = (value::int + 1)::text WHERE key='data_version'")
+    return {"ok": True, "inserted": bool(inserted)}

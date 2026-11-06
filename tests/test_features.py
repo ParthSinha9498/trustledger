@@ -67,6 +67,7 @@ def test_capture_completed_webhook_marks_paid(env):
     a = api.post("/checkout/scan", json=SCAN | {"store_id": "store_a"}).json()
     hook = {"event_type": "PAYMENT.CAPTURE.COMPLETED",
             "resource": {"id": "CAP-1", "supplementary_data": {"related_ids": {"order_id": a["paypal_order_id"]}}}}
+    paypal._mock_orders[a["paypal_order_id"]]["status"] = "COMPLETED"  # the webhook trusts PayPal's order, not its payload
     assert api.post("/paypal/webhooks", json=hook).json()["updated"] == 1
     assert api.get(f"/receipts/{a['checkout_id']}").json()["brand_verified"] is True
 
@@ -81,7 +82,7 @@ def test_ingest_invalidates_cache_and_hashes_payer(env):
     q = {"brand_id": "nimbus", "spec": {"metric": "buyers", "group_by": ["store_id"]}}
     first = env["paypal"].post("/v1/query", json=q).json()
     assert env["paypal"].post("/v1/query", json=q).json()["cached"] is True
-    assert _ingest(env).json() == {"ok": True}
+    assert _ingest(env).json()["ok"] is True
     again = env["paypal"].post("/v1/query", json=q).json()
     assert again["cached"] is False  # new data version: cache invalidated
     assert again["budget"]["spent"] == first["budget"]["spent"]  # private release spends 0 extra rho

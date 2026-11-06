@@ -25,12 +25,13 @@ import psycopg
 
 from backend import config, db
 from backend.common import privacy
+from backend.common.catalog import PRICES
 
 BRAND = "nimbus"
 PRODUCTS = [
-    ("NMB-P8-128", "Nimbus P8 128GB", "phone", 899.0),
-    ("NMB-P8-256", "Nimbus P8 256GB", "phone", 999.0),
-    ("NMB-A5-64", "Nimbus A5 64GB", "phone", 399.0),
+    ("NMB-P8-128", "Nimbus P8 128GB", "phone", PRICES["NMB-P8-128"]),
+    ("NMB-P8-256", "Nimbus P8 256GB", "phone", PRICES["NMB-P8-256"]),
+    ("NMB-A5-64", "Nimbus A5 64GB", "phone", PRICES["NMB-A5-64"]),
 ]
 PARTNERS = [
     ("dist_1", "distributor", "Northline Distribution", "West", "Riverton"),
@@ -78,6 +79,7 @@ CREATE TABLE transactions (txn_id TEXT PRIMARY KEY, order_id TEXT, brand_id TEXT
     sku TEXT, amount DOUBLE PRECISION, region TEXT, city TEXT, week INT, payer_key TEXT,
     age_band TEXT, gender TEXT, source TEXT);
 CREATE INDEX ON transactions (brand_id, week);
+CREATE UNIQUE INDEX transactions_order_id ON transactions (order_id);
 DROP TABLE IF EXISTS privacy_ledger, query_cache, meta, private_release_marginals, private_releases;
 -- Budget per brand for this dataset. Reseeding is a labelled "dataset reset"; nothing resets it by date.
 CREATE TABLE privacy_ledger (brand_id TEXT PRIMARY KEY, rho_spent DOUBLE PRECISION NOT NULL DEFAULT 0);

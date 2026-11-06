@@ -7,7 +7,7 @@
 
 **Make product authenticity a condition of payment.**
 
-TrustLedger bridges physical brand serialization and digital checkout. Before any PayPal order is created, the brand verifies the serialized unit against its verified supply chain. If genuine, PayPal creates the payment with the verification ID stored in the order's `custom_id`. If counterfeit or diverted, payment is blocked before money moves, and an autonomous AI agent investigates the failure using differential privacy aggregates.
+TrustLedger bridges physical brand serialization and digital checkout. Before any PayPal order is created, the brand checks the serial against its own records (registered, unsold, and in this store's channel). If it passes, PayPal creates the payment with the verification ID stored in the order's `custom_id`. If counterfeit or diverted, payment is blocked before money moves, and an autonomous AI agent investigates the failure using differential privacy aggregates.
 
 ---
 
@@ -115,7 +115,7 @@ flowchart TD
 | **MCP Server** | **Real (Protocol)** | Model Context Protocol server generated with `openapi-mcp-generator` exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
 | **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. |
 | **Brand Serialization** | **Simulated Node** | In production, brands maintain private ERP/serialization databases. Here, an isolated microservice (`backend/brand_node/`, port 8001) simulates the brand's private verification API. |
-| **Buyer Demographics** | **Simulated Data** | PayPal APIs do not expose customer demographic attributes. Synthetic demographic attributes demonstrate federated differential privacy across commerce nodes. |
+| **Buyer Demographics** | **Simulated Data** | PayPal APIs do not expose customer demographic attributes. Each sale gets a random age band and gender (`backend/api/main.py`, seeded by the payer ID), so the Insights demographic mix is a demo artefact, not a finding. |
 | **Catalog & Seed Data** | **Simulated Dataset** | All product SKUs, serial numbers, distributor shipments, retail transactions (7,600 rows), and planted supply chain leaks are generated fictional data. |
 
 ---
@@ -123,12 +123,26 @@ flowchart TD
 ## Evidence & Evaluation
 
 ### Differential Privacy Red-Teaming
-TrustLedger underwent rigorous differential privacy red-teaming evaluating resistance against privacy extraction attacks:
+TrustLedger ran a **scripted** differential privacy red-team battery against a scripted agent (not a live model run). It tests the privacy layer's resistance to extraction attacks:
 - **Result:** Across 11 distinct attack types (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion), none extracted a confident individual-level fact (no attack exceeded the confidence threshold needed for linkage).
-- **Best guesses:** when the attacks fell back to unconfident guesses about a buyer's age band or gender, they were right **23%** of the time (25 of 107), in line with chance (20% for age band, 33% for gender). Details: [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
+- **Best guesses:** when the attacks fell back to unconfident guesses about a buyer's age band or gender, they were right **23%** of the time (25 of 107). This is not a meaningful comparison with chance, because the demographics are randomly assigned (see Known Limits). Details: [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 - **Report:** Full methodology, audit logs, and parameters documented in [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
 
 ---
+
+## Known Limits
+
+Stated plainly, so nobody has to find them:
+
+- **"Genuine" means registered, not physically authenticated.** The brand checks the serial against its own records. It does not inspect the physical unit. A cloned label carrying an unsold, registered serial, scanned at its authorised store, passes.
+- **The store channel comes from the request.** The demo POS sends its store ID, and the API does not yet authenticate store devices. Anyone who can call `/checkout/scan` can present a unit at another store.
+- **Verification reveals channel and sale status.** `/checkout/scan` answers `NOT_IN_CHANNEL` or `ALREADY_SOLD` to any caller, so the reason codes can be probed without logging in.
+- **Demo endpoints are open.** The cockpit, `/cases`, `/console` and `/ai/turn` need no login in the demo. `/ai/turn` spends the operator's LLM key, and it is rate-limited but not capped. Brand login is on the post-judging roadmap.
+- **Insights are a snapshot.** Live purchases reach Insights after a reseed, not immediately, because the private release is built at seed time.
+- **Reseeding starts a new dataset and a new privacy budget.** The per-brand budget is per dataset. Reseeding resets it by design.
+- **Demographics are simulated** (see What's Real vs. Simulated).
+- **The live AI investigator** runs only when `LLM_MODE=live` with a configured key, and the free tier has a daily quota. Without that, the scripted agent runs.
+- **Noise on the ci95 intervals:** the noise block uses a different rho than the one the counts were measured at, which understates the interval by roughly 1.5×. Row-level intervals are correct. This is queued for a fix after judging, and it will change the displayed numbers when fixed.
 
 ## Sponsor Technology Highlights
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from backend import config, db
 from backend.api.paypal_client import PayPalError, CardPaymentUnavailable, paypal
 from backend.common import http, notify
+from backend.common.catalog import price_for
 from backend.common.auth import require_node_token
 from backend.api import cockpit, console, paypal_sdk, studio, supply_chain
 
@@ -32,6 +33,7 @@ REASON_TEXT = {
     "ALREADY_SOLD": "This product's serial has already been sold.",
     "UNKNOWN_SERIAL": "The brand doesn't recognize this serial.",
     "SKU_MISMATCH": "This serial belongs to a different product.",
+    "IN_PROGRESS": "Another checkout for this unit is already in progress.",
 }
 INSERT_CHECKOUT = (
     "INSERT INTO checkouts (checkout_id, store_id, serial, sku, amount, verification_id, paypal_order_id, status) "
@@ -68,21 +70,28 @@ class ScanRequest(BaseModel):
     store_id: str
     serial: str
     sku: str
-    amount: float
 
 
 @app.post("/checkout/scan")
 def scan(req: ScanRequest):
-    """Verify with the brand first. Only a VERIFIED product gets a PayPal order."""
+    """Verify with the brand first. Only a VERIFIED product gets a PayPal order.
+    The price comes from the server's catalog; any amount the client sends is ignored."""
+    price = price_for(req.sku)
+    if price is None:
+        raise HTTPException(422, "unknown product")
     with http.client(config.brand_node_url()) as c:
         r = c.post("/v1/verify", json={"serial": req.serial, "sku": req.sku, "store_id": req.store_id})
         r.raise_for_status()
         v = r.json()
 
     checkout_id = f"chk_{uuid.uuid4().hex[:12]}"
+    if v["result"] == "VERIFIED" and _unit_in_progress(req.serial):
+        # Refused before any order exists, so one unit can never have two PayPal orders at once.
+        return {"status": "NOT_VERIFIED", "checkout_id": checkout_id, "reason_code": "IN_PROGRESS",
+                "reason": REASON_TEXT["IN_PROGRESS"], "paypal_order_id": None, "case_id": None}
     if v["result"] != "VERIFIED":
         with db.connect("platform") as pc, pc.transaction():
-            pc.execute(INSERT_CHECKOUT, (checkout_id, req.store_id, req.serial, req.sku, req.amount,
+            pc.execute(INSERT_CHECKOUT, (checkout_id, req.store_id, req.serial, req.sku, price,
                                          v["verification_id"], None, "BLOCKED"))
             case_id, event = record_failure(pc, req, v)
         if event:
@@ -92,10 +101,10 @@ def scan(req: ScanRequest):
                 "reason": REASON_TEXT.get(v["reason_code"], "Not verified by the brand."),
                 "paypal_order_id": None, "case_id": case_id}
 
-    order = paypal.create_order(amount=req.amount, sku=req.sku, name=PRODUCT_NAMES.get(req.sku, req.sku),
-                                custom_id=v["verification_id"])
+    order = paypal.create_order(amount=price, sku=req.sku, name=PRODUCT_NAMES.get(req.sku, req.sku),
+                                custom_id=v["verification_id"], currency=config.env("PAYPAL_CURRENCY", "USD"))
     with db.connect("platform") as pc:
-        pc.execute(INSERT_CHECKOUT, (checkout_id, req.store_id, req.serial, req.sku, req.amount,
+        pc.execute(INSERT_CHECKOUT, (checkout_id, req.store_id, req.serial, req.sku, price,
                                      v["verification_id"], order["id"], "AWAITING_PAYMENT"))
     return {"status": "VERIFIED", "checkout_id": checkout_id, "verification_id": v["verification_id"],
             "paypal_order_id": order["id"], "paypal_mode": paypal.mode}
@@ -142,6 +151,18 @@ def record_failure(pc, req: "ScanRequest", v: dict) -> tuple[str, str | None]:
 
 
 PAYABLE = ("AWAITING_PAYMENT", "APPROVED")
+# A unit with a checkout in one of these states is spoken for; a second scan is refused for HOLD_MINUTES.
+HELD = ("AWAITING_PAYMENT", "APPROVED", "CAPTURING", "PAID_UNRECORDED", "REVIEW")
+HOLD_MINUTES = 30
+
+
+def _unit_in_progress(serial: str) -> bool:
+    with db.connect("platform") as pc:
+        return pc.execute(
+            "SELECT 1 FROM checkouts WHERE serial=%s AND status = ANY(%s) "
+            "AND created_at > now() - make_interval(mins => %s) LIMIT 1",
+            (serial, list(HELD), HOLD_MINUTES),
+        ).fetchone() is not None
 
 
 def _payable_checkout(checkout_id: str) -> dict | None:
@@ -154,26 +175,29 @@ def _payable_checkout(checkout_id: str) -> dict | None:
     return chk
 
 
-def _pay_and_record(checkout_id: str, chk: dict, pay) -> dict:
-    """Run `pay(order_id)` (a capture, or the test-card confirm + capture), then record the sale exactly once:
-    confirm the brand's verification, hand the sale to the PayPal-side node, mark CAPTURED, return the receipt."""
-    try:
-        result = pay(chk["paypal_order_id"])
-    except PayPalError as e:
-        # e.g. 422 ORDER_NOT_APPROVED when the buyer hasn't approved yet. Pass PayPal's reason through.
-        body = e.body
-        issue = ((body.get("details") or [{}])[0]).get("issue") or body.get("name") or "PAYPAL_ERROR"
-        code = 409 if e.status_code == 422 else 502
-        raise HTTPException(code, {"paypal_issue": issue, "message": body.get("message", str(e))})
-    if result.get("status") != "COMPLETED":
-        raise HTTPException(502, {"paypal_status": result.get("status")})
+def _set_status(checkout_id: str, status: str, *, from_status: str | None = None) -> bool:
+    """Set a checkout's status. With from_status, only if it still has that status (a compare-and-set)."""
+    with db.connect("platform") as pc:
+        if from_status is None:
+            return pc.execute("UPDATE checkouts SET status=%s WHERE checkout_id=%s",
+                              (status, checkout_id)).rowcount == 1
+        return pc.execute("UPDATE checkouts SET status=%s WHERE checkout_id=%s AND status=%s",
+                          (status, checkout_id, from_status)).rowcount == 1
 
+
+def _record_sale(checkout_id: str, chk: dict, payer_ref: str) -> dict:
+    """Second half of a payment, after PayPal has captured: confirm the sale with the brand, hand it to the
+    PayPal-side node, mark CAPTURED. Each step is safe to repeat, so a failed record is retried, not re-captured."""
     with http.client(config.brand_node_url()) as c:
-        c.post(f"/v1/verify/{chk['verification_id']}/confirm",
-               json={"paypal_order_id": chk["paypal_order_id"]}).raise_for_status()
+        r = c.post(f"/v1/verify/{chk['verification_id']}/confirm",
+                   json={"paypal_order_id": chk["paypal_order_id"]})
+    if r.status_code == 409:
+        # PayPal has taken the money, but the brand's records say this unit sold to another order.
+        _set_status(checkout_id, "REVIEW")
+        raise HTTPException(409, "paid, but the brand's records show this unit sold to another order; flagged for review")
+    r.raise_for_status()
 
-    # Hand the sale to the PayPal-side node. Demographics are simulated (not in PayPal's public API).
-    payer_ref = (result.get("payer") or {}).get("payer_id", chk["paypal_order_id"])
+    # Demographics are simulated (not in PayPal's public API). Seeded from the payer, so a retry gives the same row.
     rng = random.Random(payer_ref)
     with http.client(config.paypal_node_url()) as c:
         c.post("/v1/ingest", json={
@@ -183,17 +207,61 @@ def _pay_and_record(checkout_id: str, chk: dict, pay) -> dict:
             "gender": rng.choice(["female", "male", "other"]),
         }).raise_for_status()
 
-    with db.connect("platform") as pc:
-        pc.execute("UPDATE checkouts SET status='CAPTURED' WHERE checkout_id=%s", (checkout_id,))
+    _set_status(checkout_id, "CAPTURED")
     return receipt(checkout_id)
+
+
+def _payer_ref(order: dict) -> str:
+    return (order.get("payer") or {}).get("payer_id", order.get("id", ""))
+
+
+def _pay(checkout_id: str, chk: dict, pay) -> dict:
+    """Run `pay(order_id)` (a capture, or the test-card confirm + capture) under a claim, so two requests
+    can't pay one order. A PayPal refusal releases the claim. A transport error releases it too: PayPal keys
+    the capture by `capture-<order id>`, so a retry returns the stored result instead of charging twice."""
+    prior = chk["status"]
+    if not _set_status(checkout_id, "CAPTURING", from_status=prior):
+        raise HTTPException(409, "this checkout is already being paid")
+    try:
+        result = pay(chk["paypal_order_id"])
+    except PayPalError as e:
+        # e.g. 422 ORDER_NOT_APPROVED when the buyer hasn't approved yet. Pass PayPal's reason through.
+        _set_status(checkout_id, prior, from_status="CAPTURING")
+        body = e.body
+        issue = ((body.get("details") or [{}])[0]).get("issue") or body.get("name") or "PAYPAL_ERROR"
+        code = 409 if e.status_code == 422 else 502
+        raise HTTPException(code, {"paypal_issue": issue, "message": body.get("message", str(e))})
+    except Exception:
+        _set_status(checkout_id, prior, from_status="CAPTURING")
+        raise HTTPException(502, "payment status unknown; retrying is safe and will not charge twice")
+    if result.get("status") != "COMPLETED":
+        _set_status(checkout_id, prior, from_status="CAPTURING")
+        raise HTTPException(502, {"paypal_status": result.get("status")})
+
+    # PayPal has the money. Mark it paid-but-unrecorded, so a failure below is retried by recording, not capturing.
+    _set_status(checkout_id, "PAID_UNRECORDED", from_status="CAPTURING")
+    try:
+        return _record_sale(checkout_id, chk, _payer_ref(result))
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(502, "paid with PayPal; recording the sale failed. Retry the capture to finish.")
 
 
 @app.post("/checkout/{checkout_id}/capture")
 def capture(checkout_id: str):
     chk = _payable_checkout(checkout_id)
-    if chk is None:
-        raise HTTPException(409, "checkout is not awaiting payment")
-    return _pay_and_record(checkout_id, chk, paypal.capture_order)
+    if chk is not None:
+        return _pay(checkout_id, chk, paypal.capture_order)
+    with db.connect("platform") as pc:
+        chk = pc.execute("SELECT * FROM checkouts WHERE checkout_id=%s", (checkout_id,)).fetchone()
+    if chk is not None and chk["status"] == "PAID_UNRECORDED":
+        # PayPal already has the money; finish recording it. Nothing is captured twice.
+        order = paypal.get_order(chk["paypal_order_id"])
+        if order.get("status") != "COMPLETED":
+            raise HTTPException(409, "PayPal does not show this order as captured")
+        return _record_sale(checkout_id, chk, _payer_ref(order))
+    raise HTTPException(409, "checkout is not awaiting payment")
 
 
 @app.post("/checkout/{checkout_id}/pay-test-card")
@@ -210,7 +278,7 @@ def pay_test_card(checkout_id: str):
     if chk is None:
         raise HTTPException(409, "checkout is not awaiting payment (blocked checkouts have no PayPal order)")
     try:
-        return _pay_and_record(checkout_id, chk, paypal.pay_with_test_card)
+        return _pay(checkout_id, chk, paypal.pay_with_test_card)
     except CardPaymentUnavailable as e:
         raise HTTPException(503, str(e))
 
@@ -226,6 +294,23 @@ def receipt(checkout_id: str):
         raise HTTPException(404)
     return {**r, "product": PRODUCT_NAMES.get(r["sku"], r["sku"]),
             "brand_verified": r["status"] == "CAPTURED"}
+
+
+def _settle_from_webhook(order_id: str) -> int:
+    """Record a capture that finished outside /capture, through the same path as /capture, after PayPal's own
+    order status says COMPLETED. A capture still in flight in /capture is left to that request."""
+    with db.connect("platform") as pc:
+        chk = pc.execute("SELECT * FROM checkouts WHERE paypal_order_id=%s", (order_id,)).fetchone()
+    if chk is None or chk["status"] not in ("AWAITING_PAYMENT", "APPROVED", "PAID_UNRECORDED"):
+        return 0
+    order = paypal.get_order(order_id)
+    if order.get("status") != "COMPLETED":
+        return 0
+    if chk["status"] != "PAID_UNRECORDED" and not _set_status(
+            chk["checkout_id"], "PAID_UNRECORDED", from_status=chk["status"]):
+        return 0
+    _record_sale(chk["checkout_id"], chk, _payer_ref(order))  # raises on failure, so PayPal redelivers
+    return 1
 
 
 @app.post("/paypal/webhooks")
@@ -245,10 +330,8 @@ async def webhooks(request: Request):
             updated = pc.execute("UPDATE checkouts SET status='APPROVED' WHERE paypal_order_id=%s "
                                  "AND status='AWAITING_PAYMENT'", (order_id,)).rowcount
     elif kind == "PAYMENT.CAPTURE.COMPLETED" and order_id:
-        # Normally /capture already set CAPTURED; this covers a capture finished outside our endpoint.
-        with db.connect("platform") as pc:
-            updated = pc.execute("UPDATE checkouts SET status='CAPTURED' WHERE paypal_order_id=%s "
-                                 "AND status IN ('AWAITING_PAYMENT','APPROVED')", (order_id,)).rowcount
+        # Normally /capture records the sale; this covers a capture finished outside our endpoint.
+        updated = _settle_from_webhook(order_id)
     # Future extension: CUSTOMER.DISPUTE.CREATED -> look up custom_id -> provide evidence via Disputes API.
     return {"received": kind, "order_id": order_id, "updated": updated}
 

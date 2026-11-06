@@ -182,3 +182,15 @@ def test_a_stale_capture_is_settled_before_a_rescan_is_judged(env):
     # The released order was created moments ago, so it still holds the unit: refused, not double-held.
     assert b["status"] == "NOT_VERIFIED" and b["reason_code"] == "IN_PROGRESS"
     assert api.get(f"/receipts/{a['checkout_id']}").json()["status"] == "AWAITING_PAYMENT"
+
+
+def test_a_recorded_but_unfinished_sale_is_finished_by_the_test_card_retry(env):
+    api = env["api"]
+    a = api.post("/checkout/scan", json=SCAN).json()
+    from backend import db
+    # PayPal captured, but the brand confirm failed afterwards: the sale is recorded as PAID_UNRECORDED.
+    with db.connect("platform") as pc:
+        pc.execute("UPDATE checkouts SET status='PAID_UNRECORDED' WHERE checkout_id=%s", (a["checkout_id"],))
+    paypal._mock_orders[a["paypal_order_id"]]["status"] = "COMPLETED"
+    assert api.post(f"/checkout/{a['checkout_id']}/pay-test-card").status_code == 200
+    assert api.get(f"/receipts/{a['checkout_id']}").json()["status"] == "CAPTURED"

@@ -6,5 +6,7 @@ from backend import config
 
 
 def require_node_token(x_node_token: str = Header(default="")) -> None:
-    if not hmac.compare_digest(x_node_token.encode(), config.node_token().encode()):
+    expected = config.node_token()
+    # An empty configured token must never match an empty header.
+    if not expected or not hmac.compare_digest(x_node_token.encode(), expected.encode()):
         raise HTTPException(status_code=401, detail="bad node token")

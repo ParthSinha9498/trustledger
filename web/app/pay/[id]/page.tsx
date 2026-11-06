@@ -27,7 +27,7 @@ export default function PayPage() {
     <main>
       <div className={s.receiptWrap}>
         <div className={s.receipt}>
-          {r.status === "AWAITING_PAYMENT" && r.paypal_order_id ? (
+          {(r.status === "AWAITING_PAYMENT" || r.status === "APPROVED") && r.paypal_order_id ? (
             <>
               <div className={s.receiptHead}>
                 <div className={`${s.badge} ${s.badgeOk}`} aria-hidden>✓</div>
@@ -54,6 +54,18 @@ export default function PayPage() {
                     <dt>PayPal order</dt><dd>{r.paypal_order_id}</dd>
                   </dl>
                 </details>
+              </div>
+            </>
+          ) : ["CAPTURING", "PAID_UNRECORDED", "REVIEW"].includes(r.status) ? (
+            <>
+              <div className={s.receiptHead}>
+                <div className={`${s.badge} ${s.badgeOk}`} aria-hidden>✓</div>
+                <div>
+                  <h1>{r.status === "REVIEW" ? "Payment received, under review" : "Payment received"}</h1>
+                  <p>{r.status === "REVIEW"
+                    ? "The brand's records need a check before this sale is final. Our team will follow up."
+                    : "We're finishing your order. Refresh this page in a moment."}</p>
+                </div>
               </div>
             </>
           ) : (

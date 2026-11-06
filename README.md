@@ -142,6 +142,9 @@ Stated plainly, so nobody has to find them:
 - **Checkout IDs are bearer tokens.** `/receipts/{id}`, `/checkout/{id}/capture` and `/pay-test-card` need no login. In sandbox with a test card configured, anyone holding a checkout ID can complete that buyer's pending order (with test money).
 - **A unit flagged REVIEW needs a person.** When the brand refuses a sale after PayPal has captured, the checkout is marked REVIEW. There is no refund or staff workflow in this demo, so PayPal holds that money until someone handles it by hand.
 - **Capture recovery is unproven live.** A capture whose outcome is unknown is settled by asking PayPal after 2 minutes. This relies on PayPal deduplicating `capture-<order id>`, and it has not been tested against a sandbox proxy that drops the response.
+- **"Fill an unsold unit" works only at Store A and Store B.** Store C has no unsold demo stock in the seed. Scan `X123` there to see the channel block.
+- **Console and release endpoints are open.** `/console/plan`, `/console/run` (with explain) and `/console/release/cells` need no login. `/console/release/cells` returns exact brand counts, not the differentially private release. The LLM-backed console paths are not yet covered by the buyer-field guard and the per-caller rate limit that the agent paths use.
+- **Local compose publishes internal ports.** `docker-compose.yml` publishes the brand node, the PayPal node and Postgres to the host, with the dev tokens as defaults. Render generates the real values; a local run should not be exposed beyond your machine.
 - **Insights are a snapshot.** Live purchases reach Insights after a reseed, not immediately, because the private release is built at seed time.
 - **Reseeding starts a new dataset and a new privacy budget.** The per-brand budget is per dataset. Reseeding resets it by design.
 - **Demographics are simulated** (see What's Real vs. Simulated).

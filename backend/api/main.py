@@ -303,15 +303,25 @@ def capture(checkout_id: str):
     chk = _payable_checkout(checkout_id)
     if chk is not None:
         return _pay(checkout_id, chk, paypal.capture_order)
+    if _is_unrecorded(checkout_id):
+        return _finish_unrecorded(checkout_id)
+    raise HTTPException(409, "checkout is not awaiting payment")
+
+
+def _is_unrecorded(checkout_id: str) -> bool:
+    with db.connect("platform") as pc:
+        return pc.execute("SELECT 1 FROM checkouts WHERE checkout_id=%s AND status='PAID_UNRECORDED'",
+                          (checkout_id,)).fetchone() is not None
+
+
+def _finish_unrecorded(checkout_id: str) -> dict:
+    """PayPal already has the money; finish recording the sale. Nothing is captured twice."""
     with db.connect("platform") as pc:
         chk = pc.execute("SELECT * FROM checkouts WHERE checkout_id=%s", (checkout_id,)).fetchone()
-    if chk is not None and chk["status"] == "PAID_UNRECORDED":
-        # PayPal already has the money; finish recording it. Nothing is captured twice.
-        order = paypal.get_order(chk["paypal_order_id"])
-        if order.get("status") != "COMPLETED":
-            raise HTTPException(409, "PayPal does not show this order as captured")
-        return _record_sale(checkout_id, chk, _payer_ref(order))
-    raise HTTPException(409, "checkout is not awaiting payment")
+    order = paypal.get_order(chk["paypal_order_id"])
+    if order.get("status") != "COMPLETED":
+        raise HTTPException(409, "PayPal does not show this order as captured")
+    return _record_sale(checkout_id, chk, _payer_ref(order))
 
 
 @app.post("/checkout/{checkout_id}/release")
@@ -336,6 +346,8 @@ def pay_test_card(checkout_id: str):
         exists = pc.execute("SELECT 1 FROM checkouts WHERE checkout_id=%s", (checkout_id,)).fetchone()
     if exists is None:
         raise HTTPException(404, "unknown checkout")
+    if _is_unrecorded(checkout_id):
+        return _finish_unrecorded(checkout_id)
     chk = _payable_checkout(checkout_id)
     if chk is None:
         raise HTTPException(409, "checkout is not awaiting payment (blocked checkouts have no PayPal order)")

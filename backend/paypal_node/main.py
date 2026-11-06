@@ -17,7 +17,7 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
 from psycopg.types.json import Jsonb
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from backend import config, db
 from backend.common import privacy
@@ -420,7 +420,7 @@ class IngestRequest(BaseModel):
     brand_id: str
     store_id: str
     sku: str
-    amount: float
+    amount: float = Field(gt=0, le=1000)  # the privacy clamp; a negative or huge amount is refused
     payer_ref: str          # PayPal payer id; hashed here, never stored raw
     age_band: str           # simulated
     gender: str             # simulated

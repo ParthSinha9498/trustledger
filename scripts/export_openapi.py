@@ -5,7 +5,7 @@
 
 Writes
   openapi/brand-verification.yaml   the contract brands implement (POST /v1/verify, POST /v1/verify/{id}/confirm).
-                                    This is the file to import into APIMatic (SDKs, docs portal) and Postman.
+                                    This is the file to import into SDK and docs generators, and into Postman.
   openapi/platform.yaml             the api service (checkout gate, receipts, cases, console, ...)
 
 Schemas and paths come from the running code (FastAPI's app.openapi()); this script only adds the

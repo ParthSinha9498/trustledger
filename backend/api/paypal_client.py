@@ -1,7 +1,7 @@
 """PayPal Orders v2 client.
 
 PAYPAL_MODE=mock runs offline and never touches the network or the SDK. sandbox (default for anything
-that isn't mock) and live call PayPal through the APIMatic-generated PayPal Server SDK
+that isn't mock) and live call PayPal through the PayPal Server SDK
 (`paypal-server-sdk`, import package `paypalserversdk`) for Orders v2: create, get, capture, and
 confirm-payment-source (the sandbox-only test-card payment).
 

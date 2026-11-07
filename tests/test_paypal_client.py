@@ -2,7 +2,7 @@
 
 The real PayPal Server SDK runs (request building, JSON serialization, OAuth token fetch, error mapping),
 but its transport is a requests.Session whose adapter answers from a route table. That's the seam the
-APIMatic python-testing skill recommends: `http_client_instance` for the stub, `http_call_back` to see
+PayPal SDK test pattern recommends: `http_client_instance` for the stub, `http_call_back` to see
 what the SDK actually sent. No network is touched.
 """
 import json

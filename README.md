@@ -1,7 +1,6 @@
 # TrustLedger
 
 [![CI](https://github.com/ParthSinha9498/trustledger/actions/workflows/ci.yml/badge.svg)](https://github.com/ParthSinha9498/trustledger/actions/workflows/ci.yml)
-[![PayPal Server SDK](https://img.shields.io/badge/PayPal-Server%20SDK%20(APIMatic)-003087?logo=paypal&logoColor=white)](docs/APIMATIC.md)
 [![Differential Privacy](https://img.shields.io/badge/OpenDP-zCDP%20Gaussian-0284c7)](evals/results/redteam_repeated.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -14,7 +13,7 @@ TrustLedger bridges physical brand serialization and digital checkout. Before an
 ## 60-Second Tour
 
 ### 1. Store Checkout: Brand Verification Gating Payment
-When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK (generated via APIMatic)** to create an Order with the verification ID stored in `custom_id`. <!-- preflight-allow -->
+When an authorized retailer scans a genuine unit, the brand confirms provenance. The platform calls the **PayPal Server SDK** to create an Order with the verification ID stored in `custom_id`. <!-- preflight-allow -->
 
 ![Store A Verified](docs/media/01_pos_verified.png)
 
@@ -77,7 +76,7 @@ flowchart TD
 
     subgraph External["Brand Infrastructure & Payment Network"]
         BrandNode["Brand Serialization Node (Port 8001)<br/>Isolated DB · Strict ERP Verification"]
-        PayPalSDK["PayPal Server SDK (APIMatic)<br/>Orders v2 (intent: CAPTURE, custom_id)"]
+        PayPalSDK["PayPal Server SDK<br/>Orders v2 (intent: CAPTURE, custom_id)"]
     end
 
     subgraph Intelligence["Privacy-Preserving Intelligence"]
@@ -109,7 +108,7 @@ flowchart TD
 
 | Component | Status | Details |
 |---|---|---|
-| **PayPal Orders v2** | **Real (Sandbox)** | Orders v2 (`intent: CAPTURE`, order retrieval, and capture) implemented with the APIMatic-generated PayPal Server SDK (`paypal-server-sdk`), leveraging APIMatic's PayPal Context Plugin (see [docs/APIMATIC.md](docs/APIMATIC.md)). Webhook signature verification and browser client token exchange call PayPal REST directly via httpx (as the server SDK does not provide endpoints for them). |
+| **PayPal Orders v2** | **Real (Sandbox)** | Orders v2 (`intent: CAPTURE`, order retrieval, and capture) implemented with the PayPal Server SDK (`paypal-server-sdk`). Webhook signature verification and browser client token exchange call PayPal REST directly via httpx (as the server SDK does not provide endpoints for them). |
 | **Differential Privacy** | **Real (OpenDP)** | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), response caching, and 95% confidence intervals. |
 | **Investigation Agent** | **Real (Live LLM)** | Multi-turn autonomous agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and evidence citations. |
 | **MCP Server** | **Real (Protocol)** | Model Context Protocol server generated with `openapi-mcp-generator` exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
@@ -132,10 +131,8 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 ## Sponsor Technology Highlights
 
-1. **PayPal Server SDK (APIMatic)**:
-   - Built with the official APIMatic PayPal Context Plugin.
+1. **PayPal Server SDK**:
    - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and storing the brand verification ID in the order's `custom_id`.
-   - Comprehensive implementation details in [docs/APIMATIC.md](docs/APIMATIC.md).
 2. **AG Grid + AG Charts (Community)**:
    - Power the investigations table and charts in the Brand Cockpit (`/cockpit`), the Insights answers grid and the supply-chain tables. Details: [docs/sponsors/ag-grid.md](docs/sponsors/ag-grid.md).
 3. **Bryntum Scheduler**:

@@ -5,12 +5,12 @@ AG Grid and AG Charts carry every table and chart in the brand's cockpit:
 - **Investigations** (`/cockpit`): KPI tiles with small AG Charts (area sparkline or donut), a stacked weekly column chart
   of failed authenticity checks (switchable by reason or by store), and the case list as an AG Grid with custom cell renderers.
 - **Insights** (`/cockpit/console`): each answer is shown as an AG Grid table plus an AG Charts bar chart. PayPal-side
-  answers are privacy-protected estimates, so every number carries its 95% interval (±).
+  answers are privacy-protected estimates, so every number carries its 95% interval (±). The calibration of these intervals is still being checked.
 - **Supply chain** (`/cockpit/supply-chain` and the case page): the "units sold where they weren't shipped" table is an AG Grid.
 
 ## Edition
-Community only today: [`web/package.json:13-16`](../../web/package.json) (`ag-charts-community`, `ag-charts-react`,
-`ag-grid-community`, `ag-grid-react`). Modules registered with `AllCommunityModule` in
+AG Grid Community and AG Charts Community are used in the cockpit: [`web/package.json:13-16`](../../web/package.json) (`ag-charts-community`, `ag-charts-react`,
+`ag-grid-community`, `ag-grid-react`). AG Studio is integrated (`ag-studio` 3.0.0 and `ag-studio-react` 3.0.0 in `web/package.json:17-18`, page at `/cockpit/studio`) and will be enabled with a licence key. [STUDIO KEY PENDING] Modules registered with `AllCommunityModule` in
 [`web/components/Grid.tsx:5`](../../web/components/Grid.tsx) and [`web/components/cockpit/chartTheme.ts:4`](../../web/components/cockpit/chartTheme.ts).
 
 ## Where
@@ -42,8 +42,8 @@ Community only today: [`web/package.json:13-16`](../../web/package.json) (`ag-ch
 - AG Charts: `chartTheme(dark)` picks `ag-default` / `ag-default-dark` and sets fonts and ink to match `globals.css`
   (`chartTheme.ts:11-31`); `useDarkMode` follows the OS setting ([`useDarkMode.ts`](../../web/components/cockpit/useDarkMode.ts)).
 
-## AG Studio (in progress)
-Being built in a separate PR; this section will be filled in once it merges.
+## AG Studio [STUDIO KEY PENDING]
+Integrated: `web/app/cockpit/studio/page.tsx` loads `web/components/studio/StudioInsights.tsx` (client-only), which sets its licence key from `NEXT_PUBLIC_AG_GRID_LICENSE` when that variable is present.
 
 ## Screenshots
 - [`docs/media/04_cockpit_case.png`](../media/04_cockpit_case.png): investigation case page.

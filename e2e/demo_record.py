@@ -84,7 +84,7 @@ FALLBACK = {
     "guarantee": ["Buyers stay anonymous: one fixed privacy limit per brand, for life",
                   "Differential privacy (OpenDP) · internal red-team: 11 attack types, none pinned down a single buyer"],
     "levels": ["One API. Every checkout.",
-               "Brand: verification API + node · PayPal: checkout gate + private node · Seller: one SDK call (APIMatic)"],
+               "Brand: verification API + node · PayPal: checkout gate + private node · Seller: one API call"],
     "close": ["Brands pay for insights; the checkout check is free for shoppers.",
               "Trust for buyers. Intelligence for brands. A stronger PayPal network."],
 }

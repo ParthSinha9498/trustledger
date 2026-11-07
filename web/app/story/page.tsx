@@ -501,7 +501,7 @@ function CardView({ cardId }: { cardId: string }) {
                 TrustLedger
               </div>
               <div className={s.techStrip}>
-                Built with PayPal Server SDK (APIMatic) · AG Grid · Bryntum · OpenDP
+                Built with PayPal Server SDK · AG Grid · Bryntum · OpenDP
               </div>
               <div className={s.repoLink}>github.com/ParthSinha9498/trustledger</div>
             </div>

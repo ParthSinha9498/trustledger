@@ -4,8 +4,7 @@ An [MCP](https://modelcontextprotocol.io) server for the brand verification API
 (`openapi/brand-verification.yaml`). It lets AI shopping agents, POS assistants or any MCP client ask
 a brand "may this serialized product be sold at this store?" before a PayPal order exists.
 
-Generated with [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) (v4.1.0);
-APIMatic's MCP generator (alpha) is the intended production path once access is granted.
+Generated with [openapi-mcp-generator](https://github.com/harsha-iiiv/openapi-mcp-generator) (v4.1.0).
 
 | Tool | API call | What it does |
 | --- | --- | --- |
@@ -133,8 +132,3 @@ servers. After regenerating, re-apply these small patches (each is marked `Trust
 4. `src/streamable-http.ts`: listen on `HOST` (default `127.0.0.1`) instead of all interfaces.
 5. `src/streamable-http.ts`: fixed the `public/` path so the browser test client loads.
 6. `src/index.ts`: read `PORT` from the environment (the generator hardcodes 3333). `.env.example` defaults updated.
-
-## Production path
-
-APIMatic (hackathon sponsor) generates SDKs, the docs portal and, in alpha, MCP servers from the same spec.
-Once we have access, its MCP output replaces this folder. See `../apimatic/README.md`.

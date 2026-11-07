@@ -151,10 +151,10 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 > **Hosted demo:** URL added after deployment.
 > 
-> *Note on cold starts:* The hosted backend runs on Render free tier with persistent paid Postgres (Basic-256mb). If visiting after ~15 minutes of inactivity, the first visit may take ~1–2 minutes while the container warms up. The web app automatically calls `/health` and displays **"Waking the demo (~1 min)"** so judges know the demo is spinning up.
+> *Planned hosting:* a Render deployment is planned but not live yet. Until a hosted URL is added, run the stack locally with Docker Compose (see below). When hosted, the first visit after a quiet period may take 1–2 minutes while the backend warms up; the web app shows **"Waking the demo (~1 min)"** while it does.
 
 ### Paying in sandbox: one click with a test card
-With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/PayClient.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.
+With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/page.tsx`, with the button in `web/components/checkout/PayPalPay.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.
 
 ### Standalone Brand Onboarding Verification
 Brands implement pre-payment verification against `openapi/brand-verification.yaml` (implemented by `backend/brand_node/main.py:46`). The standalone verification client `examples/brand_onboarding/verify.py` tests this contract offline or against the local brand node:

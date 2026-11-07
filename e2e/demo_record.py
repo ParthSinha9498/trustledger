@@ -317,6 +317,7 @@ def main() -> None:
             rec.go(f"/receipt/{a['checkout_id']}")
         else:
             pay_in_sandbox(rec, a["checkout_id"])
+        rec.mark("scene", "receipt")
         rec.caption("Receipt: Brand Verified", 3)
 
         # ---- S2: same serial, store outside the supply chain

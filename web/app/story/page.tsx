@@ -11,12 +11,12 @@ interface CardMeta {
 }
 
 const CARDS: CardMeta[] = [
-  { id: "hook", title: "One phone. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
-  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Smartphones 12.9% lost (EUR 45.3B)" },
+  { id: "hook", title: "One product. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
+  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Example: smartphones lose 12.9% of sales (EUR 45.3B)" },
   { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
   { id: "how", title: "How it works: Data never moves", desc: "Two locked nodes · Questions in · Private aggregates out" },
-  { id: "s1", title: "Scenario 1: Genuine phone at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
+  { id: "s1", title: "Scenario 1: Genuine product at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
   { id: "s2", title: "Scenario 2: Serial outside supply chain", desc: "No verification, no payment." },
   { id: "s3", title: "Scenario 3: The brand investigates", desc: "An AI agent works only from privacy-protected aggregates." },
   { id: "business", title: "How does this pay for itself?", desc: "USD 150B+ a year on market insights · TrustLedger answers from verified purchases" },
@@ -246,7 +246,7 @@ function CardView({ cardId }: { cardId: string }) {
       <div className={`${s.safeArea} ${s.fadeIn}`} key={actualCardId}>
         {actualCardId === "hook" && (
           <>
-            <h1 className={s.titleHero}>One phone. One serial number. Two stores.</h1>
+            <h1 className={s.titleHero}>One product. One serial number. Two stores.</h1>
             <p className={s.subHero}>The brand checks the serial before payment—discrepancies trigger an investigation.</p>
           </>
         )}
@@ -260,7 +260,7 @@ function CardView({ cardId }: { cardId: string }) {
               <div className={s.statPill}>up to 4.7% of EU imports</div>
             </div>
             <p className={s.calloutText} style={{ marginBottom: 12 }}>
-              Smartphones alone: 12.9% of sales lost, ≈ EUR 45.3 billion (2015 data)
+              Example: smartphones lose 12.9% of legitimate sales to fakes, ≈ EUR 45.3 billion (2015 data)
             </p>
             <p className={s.calloutSub}>
               Hazardous fakes are rising: car parts, medicines, cosmetics, toys.
@@ -390,7 +390,7 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "s1" && (
           <>
             <div className={`${s.badge} ${s.badgeBlue}`}>Scenario 1</div>
-            <h1 className={s.titleHero}>A genuine phone at an authorized store</h1>
+            <h1 className={s.titleHero}>A genuine product at an authorized store</h1>
             <p className={s.subHero}>The brand verifies it, then PayPal creates the payment.</p>
           </>
         )}

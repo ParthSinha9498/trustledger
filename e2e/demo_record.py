@@ -197,6 +197,16 @@ def compare_frame(rec: Recorder, a_png: bytes, b_png: bytes, hold: float) -> Non
     rec.wait(hold)
 
 
+def api_paypal_mode(api: str) -> str:
+    """The PayPal mode the API runs in, read from the API. This process's own PAYPAL_MODE default is "mock";
+    trusting it sent a sandbox order to /capture as if it were a mock, which returned 409 (take 14)."""
+    try:
+        with urllib.request.urlopen(api + "/health", timeout=10) as r:
+            return json.load(r).get("paypal_mode", "unknown")
+    except Exception:
+        return os.environ.get("PAYPAL_MODE", "mock")
+
+
 def pay_in_sandbox(rec: Recorder, checkout_id: str) -> None:
     """Buyer approves in PayPal's own window or uses one-click test card; moves to receipt."""
     page = rec.page
@@ -276,7 +286,7 @@ def main() -> None:
     ap.add_argument("--case-timeout", type=int, default=300, help="seconds to wait for the agent")
     args = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    mock = os.environ.get("PAYPAL_MODE", "mock") == "mock"
+    mock = api_paypal_mode(args.api) == "mock"
 
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -408,8 +418,16 @@ def main() -> None:
             pass
         rec.wait(2)
 
-        # ---- Scene 11: AI analyst, Scene 12: Guarantee, Scene 13: Onboarding, Scene 14: Close
-        rec.card("analyst", 6)
+        # ---- Scene 11: AI analyst on the AG Studio page (live), Scene 12: Guarantee, 13: Onboarding, 14: Close
+        rec.go("/cockpit/studio")
+        try:
+            page.wait_for_selector("body[data-ready='1']", timeout=8000)
+        except Exception:
+            pass
+        rec.wait(4)  # AG Studio widgets mount after the client bundle loads
+        rec.mark("scene", "analyst")
+        rec.caption("AG Studio: an analyst that sees only privacy-protected aggregates", 1)
+        rec.wait(4)
         rec.card("guarantee", 6.5)
         rec.card("levels", 16)
         rec.card("close", 8)

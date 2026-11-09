@@ -35,7 +35,7 @@ REPORT = os.path.join(HERE, "out", "video_report.json")
 VO_DIR = os.environ.get("VO_DIR", "/home/parth.sinha/Downloads/paypal/videos/vo")
 
 PAD = 0.6          # seconds of visual hold after each scene's narration
-ENTRY = 0.5        # story cards and pages fade in ~0.5 s after their mark; start after the fade so the cut is the visible change
+SNAP = 1.0         # seconds: a recorder mark moves to the strongest visible change within this window
 FPS = 30
 TOL = 0.10         # sync tolerance, seconds
 MAX_FREEZE = 2.0   # seconds (reported)
@@ -52,32 +52,30 @@ PLAN = [
     (2, "Gap", [("main", "gap", "how")], "card"),
     (3, "Product", [("main", "idea+0.6", "problem"), ("main", "how", "s1")], "card"),  # +0.6: first frames are a blank page load
     (4, "Teaser", [("main", "business", "business+2.4")], "card"),
-    (5, "Genuine sale", [("main", "s1", "popup_open"), ("popup", "popup_cut_end", "popup_keep_until"),
-                         ("main", "popup_keep_until", "s2")], "live"),
+    (5, "Genuine sale", [("main", "popup_open+-5", "popup_open"), ("popup", "popup_cut_end", "popup_keep_until"),
+                         ("main", "receipt", "s2")], "live"),  # the Brand Verified receipt is narrated in scene 5
     (6, "Blocked sale", [("main", "s2", "s3")], "live"),
     (7, "Investigation", [("main", "s3", "cut_start"), ("main", "cut_end", "supply-chain")], "live"),
     (8, "Supply chain", [("main", "supply-chain", "business")], "live"),
     (9, "Business model", [("main", "business+2.4", "s4")], "card"),
     (10, "Brand insights", [("main", "s4", "analyst")], "live"),
-    (11, "AI analyst", [("main", "analyst", "guarantee")], "card"),
+    (11, "AI analyst", [("main", "analyst", "guarantee")], "live"),  # AG Studio page, recorded live
     (12, "Privacy", [("main", "guarantee", "levels")], "card"),
     (13, "Onboarding", [("main", "levels", "close")], "card"),
     (14, "Close", [("main", "close", "end")], "card"),
 ]
 
 
-def mark_time(marks, key, settle=True):
-    """A mark's time on the main clock. 'name+x' adds x seconds. A start waits ENTRY for the card to settle;
-    an end uses the raw mark, so the previous card stops where the next one begins."""
+def mark_time(marks, key):
+    """A mark's time on its clock. 'name+x' adds x seconds."""
     base, _, plus = key.partition("+")
     off = float(plus) if plus else 0.0
     if base.startswith("popup_"):
         hits = [m for m in marks if m["kind"] == base]
     else:
         hits = [m for m in marks if m["kind"] == "scene" and m["label"] == base]
-        if hits:
-            return hits[0]["t"] + (ENTRY if settle else 0.0) + off
-        hits = [m for m in marks if m["kind"] == base]  # agent wait marks are keyed by kind: cut_start, cut_end
+        if not hits:
+            hits = [m for m in marks if m["kind"] == base]  # agent wait marks are keyed by kind: cut_start, cut_end
     if not hits:
         raise SystemExit(f"mark not found in marks.json: {base}")
     return hits[0]["t"] + off
@@ -97,6 +95,37 @@ def ffmpeg_duration(path):
     return int(m[1]) * 3600 + int(m[2]) * 60 + float(m[3])
 
 
+def visible_changes(path):
+    """(time, mean luma change) for every frame of a video, from the frame-to-frame difference."""
+    diff = subprocess.run([FF, "-i", path, "-vf",
+                           "tblend=all_mode=difference,signalstats,metadata=mode=print:key=lavfi.signalstats.YAVG:file=-",
+                           "-f", "null", "-"], capture_output=True, text=True).stdout
+    luma, t_now = [], None
+    for line in diff.splitlines():
+        m = re.search(r"pts_time:([\d.]+)", line)
+        if m:
+            t_now = float(m.group(1))
+        m = re.search(r"YAVG=([\d.]+)", line)
+        if m and t_now is not None:
+            luma.append((t_now, float(m.group(1))))
+    return luma
+
+
+def cut_change(t, changes, window):
+    """The visible cut nearest to t: the strong frame change (>= CUT_LUMA) closest in time within +/-window.
+    The same rule places each cut (snap) and checks it (gate). Taking the biggest change instead picks the
+    peak of a card's fade-in, which lands up to 0.4 s after the hard cut."""
+    near = [(abs(c - t), c) for c, v in changes if abs(c - t) <= window and v >= CUT_LUMA]
+    return min(near)[1] if near else None
+
+
+def snap(t, changes):
+    """Move a mark to the nearest visible cut within SNAP seconds. A mark with no visible change nearby
+    (a live page that is still) keeps its recorded time."""
+    c = cut_change(t, changes, SNAP)
+    return t if c is None else c
+
+
 def vo_duration(n):
     dur_file = os.path.join(VO_DIR, "durations.json")
     if os.path.exists(dur_file):
@@ -106,15 +135,15 @@ def vo_duration(n):
     return ffmpeg_duration(os.path.join(VO_DIR, f"{n}.wav"))
 
 
-def resolve_parts(parts, marks, main_len):
-    """Plan keys to (input index, start, end) in seconds on each source's clock."""
+def resolve_parts(parts, marks, main_len, changes):
+    """Plan keys to (input index, start, end) in seconds on each source's clock. Main-clock cuts snap to the picture."""
     out = []
     for src, a, b in parts:
         if src == "popup":
-            out.append((1, popup_time(marks, mark_time(marks, a)), popup_time(marks, mark_time(marks, b, settle=False))))
+            out.append((1, popup_time(marks, mark_time(marks, a)), popup_time(marks, mark_time(marks, b))))
         else:
-            start = mark_time(marks, a)
-            end = main_len if b == "end" else mark_time(marks, b, settle=False)
+            start = snap(mark_time(marks, a), changes)
+            end = main_len if b == "end" else snap(mark_time(marks, b), changes)
             out.append((0, start, end))
     return out
 
@@ -144,12 +173,13 @@ def build(out_path):
     main_video = meta["video"]
     popup_video = next((m["label"] for m in marks if m["kind"] == "popup_close" and m["label"]), None)
     main_len = ffmpeg_duration(main_video)
+    changes = visible_changes(main_video)
 
     scenes = []
     for n, name, parts, kind in PLAN:
         vo = vo_duration(n)
         target = math.ceil((vo + PAD) * FPS) / FPS  # whole frames, so video and audio never drift
-        conformed, natural = conform(resolve_parts(parts, marks, main_len), target)
+        conformed, natural = conform(resolve_parts(parts, marks, main_len, changes), target)
         scenes.append({"n": n, "name": name, "kind": kind, "vo": vo, "target": target,
                        "natural": natural, "parts": conformed})
 
@@ -214,24 +244,15 @@ def gate(out_path, scenes):
         t += s["target"]
     # Per boundary: the largest frame-to-frame luma change within +/-WINDOW of the audio cue must sit within TOL of it
     # and reach CUT_LUMA. Animations elsewhere cannot satisfy the check; only the real cut at the boundary can.
-    diff = subprocess.run([FF, "-i", out_path, "-vf",
-                           "tblend=all_mode=difference,signalstats,metadata=mode=print:key=lavfi.signalstats.YAVG:file=-",
-                           "-f", "null", "-"], capture_output=True, text=True).stdout
-    luma, t_now = [], None
-    for line in diff.splitlines():
-        m = re.search(r"pts_time:([\d.]+)", line)
-        if m:
-            t_now = float(m.group(1))
-        m = re.search(r"YAVG=([\d.]+)", line)
-        if m and t_now is not None:
-            luma.append((t_now, float(m.group(1))))
+    luma = visible_changes(out_path)
     misses = []
     for n, b in boundaries[1:]:
-        window = [(t, v) for t, v in luma if abs(t - b) <= WINDOW]
-        peak_t, peak_v = max(window, key=lambda x: x[1]) if window else (None, 0.0)
-        if peak_t is None or abs(peak_t - b) > TOL or peak_v < CUT_LUMA:
+        peak_t = cut_change(b, luma, WINDOW)
+        if peak_t is None or abs(peak_t - b) > TOL:
+            vals = dict(luma)
             misses.append({"scene": n, "boundary_s": round(b, 3),
-                           "peak_s": None if peak_t is None else round(peak_t, 3), "peak_luma": round(peak_v, 2)})
+                           "peak_s": None if peak_t is None else round(peak_t, 3),
+                           "peak_luma": None if peak_t is None else round(vals[peak_t], 2)})
     checks["scene_boundaries"] = {"ok": not misses, "checked": len(boundaries) - 1, "missed": misses}
 
     frozen = subprocess.run([FF, "-i", out_path, "-vf", f"freezedetect=n=0.003:d={MAX_FREEZE}",

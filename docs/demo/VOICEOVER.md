@@ -43,7 +43,7 @@ which the cut removes; both sit outside the narration budget.
 | 8 | supply-chain 316.8 to 327.3 | Supply-chain timeline |
 | 9 | business 327.3 to 338.3 | Business case card |
 | 10 | s4 338.3 to 358.5 | Cockpit console: "Which age bands buy", comparison, "Answered in N s", PayPal-side label |
-| 11 | analyst 358.5 to 364.5 | Analyst card (not a /cockpit/studio screen) |
+| 11 | analyst 358.5 to 364.5 | AG Studio analyst page (`/cockpit/studio`), recorded live in take 14 |
 | 12 | guarantee 364.5 to 371.0 | Privacy card |
 | 13 | levels 371.0 to 387.0 | Levels card |
 | 14 | close 387.0 to 395.0 | Close card |
@@ -57,10 +57,9 @@ Until one is done, the voice and the picture are out of step by about 8 s on sce
 - **Scene 5 and 6** show Store A and Store C (the recorder's current stores). Store C is the blocked store.
 - **Scene 7** is a scripted investigator run. Do not describe it as a live model. The cut hides the wait.
 - **Scene 8** films the Bryntum supply-chain timeline (`/cockpit/supply-chain`) with its "What you're looking at" strip.
-- **Scene 11** is a card in this take. It does not film the AG Studio analyst. [STUDIO KEY PENDING] When the screen is
-  recorded at `/cockpit/studio`, the narration may name "AG Studio widgets". Until then it names no sponsor tool.
+- **Scene 11** films the AG Studio page (`/cockpit/studio`) live. The narration may name "AG Studio".
 - **Sponsor tools on screen:** AG Grid and AG Charts Community run in the cockpit. AG Studio is the prize target
-  (`/cockpit/studio`) and its key is not yet active. [STUDIO KEY PENDING] Check on 9 Nov before any Studio line goes out.
+  (`/cockpit/studio`), running on an evaluation licence valid to 10 Dec 2026.
 - **Hosted demo:** none. Render is not deployed. The video says the prototype runs locally (scene 13).
 
 ## Accuracy notes (must stay true to the product)

@@ -10,7 +10,7 @@ AG Grid and AG Charts carry every table and chart in the brand's cockpit:
 
 ## Edition
 AG Grid Community and AG Charts Community are used in the cockpit: [`web/package.json:13-16`](../../web/package.json) (`ag-charts-community`, `ag-charts-react`,
-`ag-grid-community`, `ag-grid-react`). AG Studio is integrated (`ag-studio` 3.0.0 and `ag-studio-react` 3.0.0 in `web/package.json:17-18`, page at `/cockpit/studio`) and will be enabled with a licence key. [STUDIO KEY PENDING] Modules registered with `AllCommunityModule` in
+`ag-grid-community`, `ag-grid-react`). AG Studio is integrated (`ag-studio` 3.0.0 and `ag-studio-react` 3.0.0 in `web/package.json:17-18`, page at `/cockpit/studio`) and runs on an AG Studio evaluation licence (valid to 10 Dec 2026). Modules registered with `AllCommunityModule` in
 [`web/components/Grid.tsx:5`](../../web/components/Grid.tsx) and [`web/components/cockpit/chartTheme.ts:4`](../../web/components/cockpit/chartTheme.ts).
 
 ## Where
@@ -42,7 +42,7 @@ AG Grid Community and AG Charts Community are used in the cockpit: [`web/package
 - AG Charts: `chartTheme(dark)` picks `ag-default` / `ag-default-dark` and sets fonts and ink to match `globals.css`
   (`chartTheme.ts:11-31`); `useDarkMode` follows the OS setting ([`useDarkMode.ts`](../../web/components/cockpit/useDarkMode.ts)).
 
-## AG Studio [STUDIO KEY PENDING]
+## AG Studio
 Integrated: `web/app/cockpit/studio/page.tsx` loads `web/components/studio/StudioInsights.tsx` (client-only), which sets its licence key from `NEXT_PUBLIC_AG_GRID_LICENSE` when that variable is present.
 
 ## Screenshots

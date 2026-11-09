@@ -112,7 +112,7 @@ flowchart TD
 | **Differential Privacy** | **Real (OpenDP)** | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), response caching, and 95% confidence intervals (calibration of the intervals is still being checked). |
 | **Investigation Agent** | **Real (live LLM when `LLM_MODE=live` and a key is set; scripted mock otherwise)** | Multi-turn autonomous agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and evidence citations. |
 | **MCP Server** | **Real (Protocol)** | Model Context Protocol server generated with `openapi-mcp-generator` exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
-| **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. The AG Studio page (`/cockpit/studio`) is integrated and will be enabled with a licence key [STUDIO KEY PENDING]. |
+| **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. The AG Studio page (`/cockpit/studio`) is integrated and runs on an AG Studio evaluation licence (valid to 10 Dec 2026). |
 | **Brand Serialization** | **Simulated Node** | In production, brands maintain private ERP/serialization databases. Here, an isolated microservice (`backend/brand_node/`, port 8001) simulates the brand's private verification API. |
 | **Buyer Demographics** | **Simulated Data** | PayPal APIs do not expose customer demographic attributes. Synthetic demographic attributes demonstrate federated differential privacy across commerce nodes. |
 | **Catalog & Seed Data** | **Simulated Dataset** | All product SKUs, serial numbers, distributor shipments, simulated retail transactions (created by `backend/seed.py`, which generates them from a fixed random seed), and planted supply chain leaks are generated fictional data. |
@@ -138,7 +138,7 @@ It is a scripted battery, not an adaptive adversary: the attack plans are fixed 
    - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and storing the brand verification ID in the order's `custom_id`.
 2. **AG Grid + AG Charts (Community), AG Studio (integrated)**:
    - AG Grid Community and AG Charts Community power the investigations table and charts in the Brand Cockpit (`/cockpit`), the Insights answers grid and the supply-chain tables.
-   - AG Studio is integrated on `/cockpit/studio` (`ag-studio` 3.0.0 in `web/package.json`) and will be enabled with a licence key. [STUDIO KEY PENDING]
+   - AG Studio is integrated on `/cockpit/studio` (`ag-studio` 3.0.0 in `web/package.json`) and runs on an AG Studio evaluation licence (valid to 10 Dec 2026).
    - Details: [docs/sponsors/ag-grid.md](docs/sponsors/ag-grid.md).
 3. **Bryntum Scheduler**:
    - The supply-chain timeline (`/cockpit/supply-chain`): batches shipped by each distributor to its stores over time, and where their units were sold. Details: [docs/sponsors/bryntum.md](docs/sponsors/bryntum.md).

@@ -12,7 +12,7 @@ interface CardMeta {
 
 const CARDS: CardMeta[] = [
   { id: "hook", title: "One product. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
-  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Example: smartphones lose 12.9% of sales (EUR 45.3B)" },
+  { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Fakes reach medicines, car parts, cosmetics, toys, food and phones" },
   { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
   { id: "how", title: "How it works: Data never moves", desc: "Two locked nodes · Questions in · Private aggregates out" },
@@ -260,7 +260,7 @@ function CardView({ cardId }: { cardId: string }) {
               <div className={s.statPill}>up to 4.7% of EU imports</div>
             </div>
             <p className={s.calloutText} style={{ marginBottom: 12 }}>
-              Example: smartphones lose 12.9% of legitimate sales to fakes, ≈ EUR 45.3 billion (2015 data)
+              Fakes reach our medicines, car parts, cosmetics, toys, food and phones. Smartphones alone lose 12.9% of legitimate sales (EUIPO/ITU, 2015 data)
             </p>
             <p className={s.calloutSub}>
               Hazardous fakes are rising: car parts, medicines, cosmetics, toys.

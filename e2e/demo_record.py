@@ -72,7 +72,7 @@ STORY_CARDS = {"hook", "problem", "gap", "idea", "how", "s1", "s2", "s3", "busin
 FALLBACK = {
     "hook": ["One product. One serial number. Two stores.", "Only one of them is selling the real thing."],
     "problem": ["USD 467 billion in counterfeit goods traded in a year",
-                "up to 2.3% of world trade · example, smartphones: 12.9% of sales (EUR 45.3B, 2015)",
+                "up to 2.3% of world trade · fakes reach medicines, car parts, cosmetics, toys, food and phones",
                 "OECD / EUIPO 2025 (2021 data) · EUIPO / ITU"],
     "gap": ["Verification exists. Nobody uses it.", "Optional · separate from paying · different for every brand"],
     "idea": ["Make authenticity a condition of payment.", "Scan → brand verifies → PayPal payment. Not verified → no payment."],

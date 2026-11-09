@@ -10,7 +10,7 @@ Numbers are written as they should be spoken.
 
 | # | Scene (seconds) | Narration |
 |---|---|---|
-| 1 | Problem (7.5) | Counterfeits: a four hundred and sixty seven billion dollar trade. Smartphones are one example: about one in eight legitimate sales is lost to fakes. |
+| 1 | Problem (7.5) | Counterfeits: a four hundred and sixty seven billion dollar trade. Smartphones: one in eight sales lost to fakes. |
 | 2 | Gap (5.5) | Checking authenticity is optional and separate from paying, so most buyers skip it. |
 | 3 | Product (8) | TrustLedger makes authenticity a condition of payment. The brand verifies the product before PayPal creates the order. |
 | 4 | Teaser (10.5) | And it pays for itself, more on that later. Data never moves: questions go to the brand and PayPal nodes, and only private aggregates come back. |

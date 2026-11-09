@@ -1,27 +1,27 @@
-# Render Blueprint for TrustLedger (all paid: Postgres Basic-256mb, web and backend Starter)
+# Render Blueprint for TrustLedger (all free tier: Postgres free, web and backend free)
 # Spec: https://render.com/docs/blueprint-spec
 # Setup steps (what to click, what to paste): docs/DEPLOY.md
 #
 # Hosting Architecture:
-#   trustledger-web       web (starter)   Next.js (docker/web.Dockerfile), public
-#   trustledger-backend   web (starter)   one container, four processes (docker/all_in_one.sh):
+#   trustledger-web       web (free)       Next.js (docker/web.Dockerfile), public
+#   trustledger-backend   web (free)       one container, four processes (docker/all_in_one.sh):
 #                                           api          public on $PORT    platform DB only
 #                                           brand-node   127.0.0.1:8001     brand DB only
 #                                           paypal-node  127.0.0.1:8002     PayPal-side DB only
 #                                           worker       investigation agent, no DB at all
 #                                         The data nodes are never reachable from the internet. It seeds
 #                                         the databases on first start (SEED_ON_START=auto: only when empty).
-#   trustledger-db        postgres (basic_256mb). Render Postgres Basic-256mb. Permanent storage through
-#                                         hackathon judging (Dec 1–15). 3 logical databases (platform,
+#   trustledger-db        postgres (free). Free Postgres expires after 30 days: recreate it before expiry
+#                                         and reseed. 3 logical databases (platform,
 #                                         brand, paypal_side) initialized on the single instance.
 #
-# Starter services do not sleep. The web app still shows "Waking the demo" if /health is slow after a deploy.
+# Free web services sleep after 15 minutes idle; the web app shows "Waking the demo" on the first load.
 
 databases:
   - name: trustledger-db
     databaseName: platform
     user: trustledger
-    plan: basic_256mb
+    plan: free
     region: oregon
     ipAllowList: []
 
@@ -30,7 +30,7 @@ services:
   - type: web
     name: trustledger-web
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     dockerfilePath: ./docker/web.Dockerfile
     dockerContext: .
@@ -47,7 +47,7 @@ services:
   - type: web
     name: trustledger-backend
     runtime: docker
-    plan: starter
+    plan: free
     region: oregon
     dockerfilePath: ./docker/backend.Dockerfile
     dockerContext: .

@@ -14,6 +14,23 @@ marks = meta["marks"]
 popups = [m["label"] for m in marks if m["kind"] == "popup_close" and m.get("label")]
 popup_video = popups[0] if popups else None
 
+
+def mark_t(label, kind):
+    """Time (s, main-video timeline) of the mark with this kind and label. Fails loudly if the take lacks it."""
+    hits = [float(m["t"]) for m in marks if m["kind"] == kind and m["label"] == label]
+    if not hits:
+        raise SystemExit(f"marks.json has no {kind!r}/{label!r} mark: re-record with e2e/demo_record.py")
+    return hits[0]
+
+
+# Receipt segment is anchored on the marks from the new take, not hard-coded seconds.
+# The recorder marks "receipt" just before the "Receipt: Brand Verified" caption; that is the
+# first frame of the receipt page after the PayPal popup has closed.
+RECEIPT_T = mark_t("receipt", "scene")
+if popups and RECEIPT_T < mark_t(popups[0], "popup_close") - 0.5:
+    raise SystemExit("receipt mark is before the popup closed: the receipt segment would show the pay page")
+RECEIPT_LEN = 3.26  # same length as the take-10 receipt segment (caption hold 3 s + landing frame)
+
 privacy_video = os.path.join(CLIPS_DIR, "page@3344527d9a3b7740084b86675fe527fc.webm")
 card_usd_video = os.path.join(CLIPS_DIR, "page@0c56c495787e13db32d277e031edd5f6.webm")
 
@@ -53,7 +70,7 @@ segments = [
     (0, 45.42, 49.92, 1.0, 5, "Store A checkout scan"),
     (3, 1.00, 5.50, 1.0, 5, "Store A Nimbus P8 128GB card payment form ($899.00)"),
     (1, 7.91, 21.49, 13.58 / 4.50, 5, "PayPal sandbox popup approval"),
-    (0, 72.73, 75.99, 1.0, 5, "Verified customer receipt"),
+    (0, RECEIPT_T, RECEIPT_T + RECEIPT_LEN, 1.0, 5, "Verified customer receipt"),
     # Scene 6: Blocked sale (v5 audio: Store C blocked checkout)
     (0, 75.83, 78.83, 1.0, 6, "Store C receipt transition"),
     (0, 86.43, 93.65, 1.0, 6, "Store C out-of-channel block & compare"),

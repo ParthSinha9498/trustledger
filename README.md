@@ -41,7 +41,7 @@ The brand's AI investigator automatically claims the case. Operating under stric
 ---
 
 ### 5. Privacy Console: Zero-Concentrated Differential Privacy
-Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP $\approx \varepsilon = 4.16$, $\delta = 10^{-8}$) and a one-time private release ($\rho = 0.20 \approx \varepsilon = 3.69$, $\delta = 10^{-8}$), dynamic confidence intervals (±CI), and automated cell suppression.
+Security and privacy teams can plan and execute structured queries across siloed brand and payment nodes. Queries to PayPal buyer data pass through an **OpenDP Gaussian mechanism** with persistent privacy budgeting ($\rho = 0.25$ zCDP $\approx \varepsilon = 4.16$, $\delta = 10^{-8}$) and a one-time private release ($\rho = 0.20 \approx \varepsilon = 3.69$, $\delta = 10^{-8}$), confidence intervals (±CI; calibration still being checked), and automated cell suppression.
 
 ![Privacy Console](docs/media/05_console_aggregate.png)
 
@@ -109,23 +109,26 @@ flowchart TD
 | Component | Status | Details |
 |---|---|---|
 | **PayPal Orders v2** | **Real (Sandbox)** | Orders v2 (`intent: CAPTURE`, order retrieval, and capture) implemented with the PayPal Server SDK (`paypal-server-sdk`). Webhook signature verification and browser client token exchange call PayPal REST directly via httpx (as the server SDK does not provide endpoints for them). |
-| **Differential Privacy** | **Real (OpenDP)** | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), response caching, and 95% confidence intervals. |
-| **Investigation Agent** | **Real (Live LLM)** | Multi-turn autonomous agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and evidence citations. |
+| **Differential Privacy** | **Real (OpenDP)** | Zero-concentrated differential privacy (zCDP) Gaussian mechanism using OpenDP, per-buyer contribution bounding ($k=4$ cells, clamp 1000), persistent database budget ledger ($\rho=0.25$), response caching, and 95% confidence intervals (calibration of the intervals is still being checked). |
+| **Investigation Agent** | **Real (live LLM when `LLM_MODE=live` and a key is set; scripted mock otherwise)** | Multi-turn autonomous agent loop with structured tool calling (`query_brand_node`, `query_paypal_node`, `record_finding`), dynamic step budgeting, and evidence citations. |
 | **MCP Server** | **Real (Protocol)** | Model Context Protocol server generated with `openapi-mcp-generator` exposing `verifyProduct` and `confirmSale` tools for autonomous AI shopping agents. |
-| **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. |
+| **UI Experience** | **Real** | Next.js 16 (Turbopack) & React 19 web suite featuring AG Grid Community tables, AG Charts Community visualizations, and Bryntum Scheduler supply chain timelines. The AG Studio page (`/cockpit/studio`) is integrated and runs on an AG Studio evaluation licence (valid to 10 Dec 2026). |
 | **Brand Serialization** | **Simulated Node** | In production, brands maintain private ERP/serialization databases. Here, an isolated microservice (`backend/brand_node/`, port 8001) simulates the brand's private verification API. |
 | **Buyer Demographics** | **Simulated Data** | PayPal APIs do not expose customer demographic attributes. Synthetic demographic attributes demonstrate federated differential privacy across commerce nodes. |
-| **Catalog & Seed Data** | **Simulated Dataset** | All product SKUs, serial numbers, distributor shipments, retail transactions (7,600 rows), and planted supply chain leaks are generated fictional data. |
+| **Catalog & Seed Data** | **Simulated Dataset** | All product SKUs, serial numbers, distributor shipments, simulated retail transactions (created by `backend/seed.py`, which generates them from a fixed random seed), and planted supply chain leaks are generated fictional data. |
 
 ---
 
 ## Evidence & Evaluation
 
 ### Differential Privacy Red-Teaming
-TrustLedger underwent rigorous differential privacy red-teaming evaluating resistance against privacy extraction attacks:
-- **Result:** Across 11 distinct attack types (differencing, small cells, membership inference, cross-node linkage, averaging, budget exhaustion), none extracted a confident individual-level fact (no attack exceeded the confidence threshold needed for linkage).
-- **Best guesses:** when the attacks fell back to unconfident guesses about a buyer's age band or gender, they were right **23%** of the time (25 of 107), in line with chance (20% for age band, 33% for gender). Details: [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
-- **Report:** Full methodology, audit logs, and parameters documented in [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md).
+The red-team battery in [evals/redteam.py](evals/redteam.py) runs 11 scripted attack types against the query tools:
+membership key filter, small-cell age, small-cell age and gender, small-cell spend, cross-node linkage, difference of weeks,
+tracker by region and store, averaging over 30 repeats, semantic query variants, budget exhaustion, and disallowed dimensions.
+It is a scripted battery, not an adaptive adversary: the attack plans are fixed in code.
+- **Result:** [evals/results/redteam_repeated.md](evals/results/redteam_repeated.md) reports **220 of 220 attempts blocked** over 20 runs of the scripted battery (fresh noise each run). No attack succeeded.
+- **Best guesses:** the unconfident guesses about a buyer's age band or gender were right **25 of 107 (23%)**. Chance is 20% for age band and 33% for gender.
+- **Setup:** each attempt starts from a fresh privacy ledger, so each one gets the full brand budget. That is a stronger adversary than production, where the budget is shared across all of a brand's queries.
 
 ---
 
@@ -133,25 +136,25 @@ TrustLedger underwent rigorous differential privacy red-teaming evaluating resis
 
 1. **PayPal Server SDK**:
    - Powers backend order creation with `intent: CAPTURE`, strict currency handling, and storing the brand verification ID in the order's `custom_id`.
-2. **AG Grid + AG Charts (Community)**:
-   - Power the investigations table and charts in the Brand Cockpit (`/cockpit`), the Insights answers grid and the supply-chain tables. Details: [docs/sponsors/ag-grid.md](docs/sponsors/ag-grid.md).
+2. **AG Grid + AG Charts (Community), AG Studio (integrated)**:
+   - AG Grid Community and AG Charts Community power the investigations table and charts in the Brand Cockpit (`/cockpit`), the Insights answers grid and the supply-chain tables.
+   - AG Studio is integrated on `/cockpit/studio` (`ag-studio` 3.0.0 in `web/package.json`) and runs on an AG Studio evaluation licence (valid to 10 Dec 2026).
+   - Details: [docs/sponsors/ag-grid.md](docs/sponsors/ag-grid.md).
 3. **Bryntum Scheduler**:
    - The supply-chain timeline (`/cockpit/supply-chain`): batches shipped by each distributor to its stores over time, and where their units were sold. Details: [docs/sponsors/bryntum.md](docs/sponsors/bryntum.md).
 4. **OpenDP**:
    - Core mathematical foundation for the differential privacy Gaussian mechanism and private releases on federated demographic analytics.
 5. **Render**:
-   - Deployment target (Render Blueprint, `render.yaml`): a web service plus one backend service running the API, brand node, PayPal node and worker. See [docs/DEPLOY.md](docs/DEPLOY.md).
+   - Deployment target: a Render Blueprint (`render.yaml`) with a web service and one backend service running the API, brand node, PayPal node and worker. Not live yet. See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ---
 
 ## Try It & Testing Instructions
 
-> **Hosted demo:** URL added after deployment.
-> 
-> *Note on cold starts:* The hosted backend runs on Render free tier with persistent paid Postgres (Basic-256mb). If visiting after ~15 minutes of inactivity, the first visit may take ~1–2 minutes while the container warms up. The web app automatically calls `/health` and displays **"Waking the demo (~1 min)"** so judges know the demo is spinning up.
+> **Planned hosting:** a Render deployment is planned, not live. Run the stack locally (see below).
 
 ### Paying in sandbox: one click with a test card
-With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/PayClient.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.
+With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/page.tsx`, with the button in `web/components/checkout/PayPalPay.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.
 
 ### Standalone Brand Onboarding Verification
 Brands implement pre-payment verification against `openapi/brand-verification.yaml` (implemented by `backend/brand_node/main.py:46`). The standalone verification client `examples/brand_onboarding/verify.py` tests this contract offline or against the local brand node:
@@ -212,7 +215,7 @@ Follow these 4 steps to evaluate the end-to-end checkout protection and autonomo
 #### Step 4: Differential Privacy Brand Insights
 1. Open `/cockpit/console` (alias `/cockpit/insights`).
 2. Explore audience questions answered from the private release (customer age bands, product distributions, spend estimates).
-3. Answers about buyers (age bands, spend) come from the one-time private release, with a 95% interval (±) on every value and small groups hidden; asking them spends no further privacy budget. Brand-side counts (units sold) are exact, because they describe businesses, not people.
+3. Answers about buyers (age bands, spend) come from the one-time private release, with a 95% interval (±) on every value (calibration of the intervals is still being checked) and small groups hidden; asking them spends no further privacy budget. Brand-side counts (units sold) are exact, because they describe businesses, not people.
 
 ---
 
@@ -223,8 +226,8 @@ All test serials originate deterministically from `backend/seed.py`:
 | Serial / Pattern | SKU | Origin in `backend/seed.py` | Behavior & Expected Verdict |
 |---|---|---|---|
 | `X123` | `NMB-P8-128` | `DEMO_SERIAL = "X123"` (line 49, lines 173-177) | **Genuine at Store A (`VERIFIED`):** In `seed.py:46`, Store A is supplied by Distributor 1. `X123` is part of Distributor 1's shipment to Store A, so provenance confirms and PayPal checkout opens until it is sold (reseed to reset).<br/>**Blocked at Store C (`NOT_IN_CHANNEL`):** Store C is supplied exclusively by Distributor 2 (`seed.py:46`). When `X123` is presented at Store C, the brand node finds the unit's batch was shipped to Store A, not Store C (`backend/brand_node/main.py:59-62`), halting payment with zero PayPal order created. |
-| `XA000001` .. `XA000491` | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store C (`NOT_IN_CHANNEL`). |
-| `XB000001` .. `XB000528` | `NMB-P8-256` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store B. Verified at Store B. *(Note: scanning XB at Store A with the default P8 128GB gives `SKU_MISMATCH`; to get `NOT_IN_CHANNEL`, select Nimbus P8 256GB first).* |
+| `XA000001`, `XA000002`, … | `NMB-P8-128` | `DEMO_PREFIX = {"store_a": "XA"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store A. Verified at Store A; blocked if scanned at Store C (`NOT_IN_CHANNEL`). |
+| `XB000001`, `XB000002`, … | `NMB-P8-256` | `DEMO_PREFIX = {"store_b": "XB"}` (line 51, lines 244-250; count depends on the seed) | Unsold genuine inventory at Store B. Verified at Store B. *(Note: scanning XB at Store A with the default P8 128GB gives `SKU_MISMATCH`; to get `NOT_IN_CHANNEL`, select Nimbus P8 256GB first).* |
 | Pre-seeded clone attempts | Various | `backend/seed.py:234-240` | 40 historical blocked attempts at Store C (`rng.sample(d1_serials, 40)`), pre-populating the verification audit log with `NOT_IN_CHANNEL` and `ALREADY_SOLD`. |
 
 ---
@@ -257,7 +260,7 @@ cd web && npm install && npm run dev
 uv run --with playwright python e2e/preflight.py --start --build --api http://localhost:8000
 ```
 
-*(Note: The sandbox buyer checkout applies only to hosted deployments or when `PAYPAL_MODE=sandbox`.)*
+*(Note: the sandbox buyer checkout applies only when `PAYPAL_MODE=sandbox`.)*
 
 Visit **http://localhost:3000** to explore the application:
 - `/pos`: Test retail verification (Store A = Verified, Store C = Blocked)

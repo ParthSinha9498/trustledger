@@ -1,0 +1,14 @@
+toc:
+  # 'generate' items are produced by APIMatic from the spec; 'page' items are our own Markdown.
+  - group: Getting Started
+    items:
+      - page: Brand onboarding
+        file: guides/brand-onboarding.md
+      - generate: Quickstart
+        from: getting-started
+  - generate: API Endpoints
+    from: endpoints
+  - generate: Models
+    from: models
+  - generate: SDK Infrastructure
+    from: sdk-infra

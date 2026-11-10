@@ -15,6 +15,9 @@ info:
   license:
     name: MIT
     identifier: MIT
+  contact:
+    name: TrustLedger (fictional demo project)
+    url: https://github.com/parthsinha9498/trustledger
 servers:
 - url: http://localhost:8001
   description: Local mock brand (uvicorn / docker compose)
@@ -23,11 +26,12 @@ servers:
   variables:
     brandHost:
       default: verify.example-brand.com
+      description: Host name of the deployment.
 security:
 - NodeToken: []
 tags:
 - name: Verification
-  description: Pre-payment product verification.
+  description: Operations for Verification.
 paths:
   /v1/verify:
     post:
@@ -54,6 +58,7 @@ paths:
                   sku: NMB-P8-128
                   store_id: store_b
                   requested_at: '2026-10-14T17:09:00Z'
+        description: Request body for Verify a product before payment.
       responses:
         '200':
           description: Verdict for this unit at this store.
@@ -100,6 +105,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: &id001 []
       tags:
       - Verification
       description: 'Called by the checkout platform when a cashier scans a serialized product, **before** any PayPal
@@ -122,7 +129,6 @@ paths:
         required: true
         schema:
           type: string
-          title: Verification Id
         description: The verification_id returned by verifyProduct (must be VERIFIED).
         example: ver_3f9a1c2b7d4e
       requestBody:
@@ -131,9 +137,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ConfirmRequest'
-            example: &id001
+            example: &id002
               paypal_order_id: 5O190127TN364715T
               captured_at: '2026-10-14T17:04:12Z'
+        description: Request body for Confirm the sale after PayPal capture.
       responses:
         '200':
           description: Sale recorded.
@@ -165,6 +172,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       tags:
       - Verification
 components:
@@ -173,13 +182,11 @@ components:
       properties:
         paypal_order_id:
           type: string
-          title: Paypal Order Id
           description: The captured PayPal order.
           example: 5O190127TN364715T
         captured_at:
           type: string
           format: date-time
-          title: Captured At
           description: Optional. When PayPal reported the capture. The reference implementation accepts and ignores
             it.
           example: '2026-10-14T17:04:12Z'
@@ -188,7 +195,7 @@ components:
       - paypal_order_id
       title: ConfirmRequest
       description: Sent after the PayPal capture completes, so the brand can mark the serial sold.
-      example: *id001
+      example: *id002
     ConfirmResponse:
       type: object
       title: ConfirmResponse
@@ -196,76 +203,90 @@ components:
         ok:
           type: boolean
           example: true
+          description: Ok.
       required:
       - ok
       example:
         ok: true
+      description: Confirm Response.
     Error:
       type: object
       properties:
         detail:
           description: Human-readable error.
           type: string
+          example: detail
       required:
       - detail
       example:
         detail: bad node token
+      description: Error.
     HTTPValidationError:
       properties:
         detail:
           items:
             $ref: '#/components/schemas/ValidationError'
           type: array
-          title: Detail
+          description: Detail.
+          example: *id001
       type: object
       title: HTTPValidationError
+      description: HTTPValidation Error.
     ValidationError:
       properties:
         loc:
           items:
             anyOf:
             - type: string
+              description: Loc.
+              example: loc
             - type: integer
+              description: Loc.
+              example: 1
+            description: Loc.
+            example: loc
           type: array
-          title: Location
+          description: Loc.
+          example: []
         msg:
           type: string
-          title: Message
+          description: Msg.
+          example: msg
         type:
           type: string
-          title: Error Type
+          description: Type.
+          example: type
         input:
-          title: Input
+          description: Input.
         ctx:
           type: object
-          title: Context
+          additionalProperties: true
+          description: Extra context for the error; keys vary by error type.
+          example: {}
       type: object
       required:
       - loc
       - msg
       - type
       title: ValidationError
+      description: Validation Error.
     VerifyRequest:
       properties:
         serial:
           type: string
-          title: Serial
           description: Serial number scanned from the product.
           example: X123
         sku:
           type: string
-          title: Sku
           description: The brand's SKU for the product being sold.
           example: NMB-P8-128
         store_id:
           type: string
-          title: Store Id
           description: The selling store, as the brand knows it from its own channel records.
           example: store_a
         requested_at:
           type: string
           format: date-time
-          title: Requested At
           description: Optional. When the cashier scanned the product. The reference implementation accepts and
             ignores it.
           example: '2026-10-14T17:03:00Z'
@@ -285,16 +306,15 @@ components:
       properties:
         verification_id:
           type: string
-          title: Verification Id
           description: Unique id of this check. Quote it when confirming the sale.
           example: ver_3f9a1c2b7d4e
         result:
           type: string
-          title: Result
           enum:
           - VERIFIED
           - NOT_VERIFIED
           description: Whether the brand stands behind this unit at this store.
+          example: VERIFIED
         reason_code:
           anyOf:
           - type: string
@@ -303,8 +323,10 @@ components:
             - ALREADY_SOLD
             - UNKNOWN_SERIAL
             - SKU_MISMATCH
+            description: Reason code.
+            example: NOT_IN_CHANNEL
           - type: 'null'
-          title: Reason Code
+            description: Reason code.
           description: 'Null when VERIFIED. Otherwise why not:
 
             - UNKNOWN_SERIAL: the brand never issued this serial.
@@ -317,6 +339,7 @@ components:
             - ALREADY_SOLD: the serial was already sold.
 
             Codes never reveal which store a serial belongs to.'
+          example: NOT_IN_CHANNEL
       type: object
       required:
       - verification_id

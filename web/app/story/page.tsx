@@ -13,7 +13,7 @@ interface CardMeta {
 const CARDS: CardMeta[] = [
   { id: "hook", title: "One product. One serial number. Two stores.", desc: "The brand checks the serial before payment—discrepancies trigger an investigation." },
   { id: "problem", title: "USD 467 billion in counterfeit goods", desc: "Up to 2.3% of world trade · Fakes reach medicines, car parts, cosmetics, toys, food and phones" },
-  { id: "gap", title: "Verification exists. Most buyers skip it.", desc: "Optional · Separate from paying · Different for every brand" },
+  { id: "gap", title: "Verification is optional and separate from paying.", desc: "Optional · Separate from paying · Different for every brand" },
   { id: "idea", title: "Make authenticity a condition of payment.", desc: "Scan → Brand verifies → PayPal payment created" },
   { id: "how", title: "How it works: Data never moves", desc: "Two locked nodes · Questions in · Private aggregates out" },
   { id: "s1", title: "Scenario 1: Genuine product at authorized store", desc: "The brand verifies it, then PayPal creates the payment." },
@@ -273,7 +273,7 @@ function CardView({ cardId }: { cardId: string }) {
 
         {actualCardId === "gap" && (
           <>
-            <h1 className={s.titleLarge}>Verification exists. Most buyers skip it.</h1>
+            <h1 className={s.titleLarge}>Verification is optional and separate from paying.</h1>
             <div className={s.gapCols}>
               <div className={s.gapCard}>
                 <div className={s.gapIcon}>👁️</div>
@@ -398,7 +398,7 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "s2" && (
           <>
             <div className={`${s.badge} ${s.badgeRed}`}>Scenario 2</div>
-            <h1 className={s.titleHero}>The same serial at a store outside the supply chain</h1>
+            <h1 className={s.titleHero}>The same serial at a store not authorised for it</h1>
             <p className={`${s.subHero} ${s.subRed}`}>No verification, no payment.</p>
           </>
         )}

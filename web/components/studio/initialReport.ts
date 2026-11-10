@@ -10,9 +10,12 @@ const sum = (id: string) => ({ id, aggregation: 'sum' as const });
 
 export const PRODUCT_FOCUS = 'Nimbus P8 128GB';
 
+/** Which of the two Studio pages opens: market insights (M tables) or the supply chain (B tables). */
+export type StudioView = 'insights' | 'supply';
+
 /** Desktop: two estimates side by side over the grid. Phones: everything stacked full width. */
-export const initialReport = (narrow: boolean) => ({
-  selectedPageId: 'insights',
+export const initialReport = (narrow: boolean, view: StudioView = 'insights') => ({
+  selectedPageId: view === 'supply' ? 'supply-chain' : 'insights',
   pages: [
     {
       id: 'insights',
@@ -83,6 +86,43 @@ export const initialReport = (narrow: boolean) => ({
         widget: {
           'p8-age': [{ field: { id: 'M2.product' }, model: { operator: 'equals', value: PRODUCT_FOCUS } }],
         },
+      },
+    },
+    {
+      id: 'supply-chain',
+      widgets: {
+        'b3-chart': {
+          type: 'column-chart-stacked',
+          dataMapping: {
+            categoryKey: [{ id: 'B3.store' }],
+            valueKey: [sum('B3.value')],
+            legendKey: [{ id: 'B3.distributor' }],
+          },
+          format: {
+            title: title('Units sold by store and distributor'),
+            subtitle: title('Exact brand counts · B3'),
+            style: { theme: { common: { legend: { enabled: true } } } },
+          },
+        },
+        'b3-grid': {
+          type: 'grid',
+          dataMapping: {
+            cols: [{ id: 'B3.store' }, { id: 'B3.distributor' }, sum('B3.value')],
+          },
+          format: { title: title('Units sold by store and supplying distributor (B3)'), subtitle: title('Exact brand counts') },
+        },
+        'b4-grid': {
+          type: 'grid',
+          dataMapping: {
+            cols: [{ id: 'B4.store' }, { id: 'B4.reason' }, sum('B4.value')],
+          },
+          format: { title: title('Verification failures by store and reason (B4)'), subtitle: title('Exact brand counts') },
+        },
+      },
+      widgetLayout: {
+        'b3-chart': narrow ? at(0, 0, 24, 22) : at(0, 0, 12, 22),
+        'b3-grid': narrow ? at(0, 22, 24, 22) : at(12, 0, 12, 22),
+        'b4-grid': narrow ? at(0, 44, 24, 22) : at(0, 22, 24, 22),
       },
     },
   ],

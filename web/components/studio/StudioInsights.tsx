@@ -9,7 +9,7 @@ import { API } from '@/lib/api';
 import { buildAi } from './ai';
 import { buildStudioData, type Names, type ReleaseCells } from './data';
 import { STUDIO_WIDGETS } from './widgets';
-import { initialReport } from './initialReport';
+import { initialReport, type StudioView } from './initialReport';
 import { trustLedgerStudioTheme } from './theme';
 import './studio.css';
 
@@ -69,6 +69,10 @@ export default function StudioInsights() {
   // Desktop opens with the analyst panel (edit mode); phones open on the report and can open it.
   const [narrow] = useState(() => window.matchMedia('(max-width: 900px)').matches);
   const [mode, setMode] = useState<AgStudioMode>(narrow ? 'view' : 'edit');
+  // ?view=supply opens the supply-chain page; the two tabs in the bar link to each other.
+  const [view] = useState<StudioView>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('view') === 'supply' ? 'supply' : 'insights',
+  );
 
   useEffect(() => {
     let live = true;
@@ -110,10 +114,10 @@ export default function StudioInsights() {
   );
   const initialState = useMemo(
     () => ({
-      ...initialReport(narrow),
+      ...initialReport(narrow, view),
       panels: { ai: { collapsed: false, width: 360 }, edit: { collapsed: true }, data: { collapsed: true } },
     }),
-    [],
+    [view],
   );
 
   return (
@@ -130,6 +134,14 @@ export default function StudioInsights() {
               Mock AI (no model called)
             </span>
           )}
+        </div>
+        <div className="tl-studio-views" role="tablist" aria-label="Studio pages">
+          <a role="tab" aria-selected={view === 'insights'} className="tl-studio-view" href="/cockpit/studio">
+            Market insights
+          </a>
+          <a role="tab" aria-selected={view === 'supply'} className="tl-studio-view" href="/cockpit/studio?view=supply">
+            Supply chain
+          </a>
         </div>
         {(
           <button

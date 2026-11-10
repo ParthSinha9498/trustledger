@@ -40,3 +40,8 @@
   .tl-est-row { grid-template-columns: minmax(48px, 28%) 1fr; }
   .tl-est-num { grid-column: 1 / -1; justify-content: flex-start; min-width: 0; margin-top: -4px; }
 }
+
+/* Page tabs for the two Studio pages (market insights, supply chain). Links, so each page loads its own report. */
+.tl-studio-views { display: inline-flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-md); }
+.tl-studio-view { padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); text-decoration: none; }
+.tl-studio-view[aria-selected="true"] { background: var(--accent); color: var(--bg); font-weight: 600; }

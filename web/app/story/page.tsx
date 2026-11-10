@@ -430,7 +430,7 @@ function CardView({ cardId }: { cardId: string }) {
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Scenario 4</div>
             <h1 className={s.titleHero}>Brand insights in seconds</h1>
-            <p className={s.subHero}>Answers from real purchases in seconds, not surveys in weeks. Buyers stay anonymous.</p>
+            <p className={s.subHero}>Answers from verified purchases in seconds. Buyers stay anonymous.</p>
           </>
         )}
 

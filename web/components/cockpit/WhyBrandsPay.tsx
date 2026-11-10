@@ -46,7 +46,7 @@ export default function WhyBrandsPay({ title = "Why brands pay for this" }: { se
             <ul className={styles.list}>
               <li><strong>{answered}</strong></li>
               <li><strong>From verified purchases</strong></li>
-              <li>Privacy-protected, with 95% intervals (±) on buyer estimates (brand-side counts are exact)</li>
+              <li>Privacy-protected, each number with a range on buyer estimates (brand-side counts are exact)</li>
             </ul>
           </div>
         </div>

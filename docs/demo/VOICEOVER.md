@@ -19,16 +19,29 @@ Numbers are written as they should be spoken.
 | 7 | Investigation (23) | The brand gets a case. An investigator asks each side questions and sees only aggregates, never a single record. Its findings show where the evidence diverges. |
 | 8 | Supply chain (16) | The supply chain timeline shows every batch as a bar, from shipment to sale. Batches Northline shipped to Stores A, D and F turn up sold at Store C, a store it never supplies. |
 | 9 | Studio supply chain (24) | AG Studio shows the same brand counts as a live dashboard. Stacked by distributor, Store C's units come mostly from Distributor 2. The Distributor 1 slice is the diversion. The table beside it lists the exact counts from the brand's own records. Every failure is at Store C: already sold, or not in channel. |
-| 10 | Business model (11) | Brands spend over a hundred and fifty billion dollars a year on market insights. TrustLedger answers from verified purchases in seconds, and brand budgets fund the free check. |
-| 11 | Brand insights (20) | With TrustLedger, a brand asks which age bands buy its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. PayPal-side answers spend the privacy budget once; asking again costs no more budget. |
+| 10 | Business model (11) | Brands spend over a hundred and fifty billion dollars a year on market insights. TrustLedger answers from verified purchases in seconds, and brand budgets fund the free check. TrustLedger turns verified purchases into answers brands can buy. That income could fund the free check for shoppers. |
+| 11 | Brand insights (20) | With TrustLedger, a brand asks which age bands buy its phones and gets an answer from verified purchases in seconds. Each number comes with a range, explained in the privacy section. |
 | 12 | Analyst (6) | An analyst answers questions about buyers, without seeing a single buyer record. |
-| 13 | Privacy (6.5) | Buyers stay anonymous. One fixed privacy limit per brand, for life, protected with OpenDP differential privacy. |
+| 13 | Privacy (6.5) | Buyers stay anonymous. Each brand has a fixed privacy allowance, a limit on how much any one buyer can be exposed. The buyer summary uses part of it once. Privacy noise is random numbers we add to the counts before they're shown. A count like three hundred and twelve buyers aged eighteen to twenty four comes out slightly higher or lower each time. That stops anyone from working out whether one particular buyer is in the data. The range shows how far that random adjustment could move the number. |
 | 14 | Onboarding (16) | Brands run one verification API, PayPal runs the checkout gate, and a store adds one API call. AI shopping agents can call the same check. For registered categories, PayPal could make it network policy. This prototype runs locally. |
 | 15 | Close (8) | Brands pay for insights. The check is free for shoppers. Trust for buyers. Intelligence for brands. A stronger PayPal network. |
 
 Planned total: about 2:22 of narration (14 rows, words ÷ 2.5 + 0.5 s each) plus 1 s of silence before scene 1. Each scene in the cut = its audio + ≤ 1 s.
 Scene 5 also carries the PayPal approval window (login cut out, about 17 s kept), and scene 7 carries the agent wait,
 which the cut removes; both sit outside the narration budget.
+
+## Final video (take 19 final, 2026-11-10)
+
+The submitted cut is `videos/demo-2026-11-10-take19-final.mp4`, 2:57.57. Changes from the table above:
+
+- **Scene 6 (blocked sale), on-screen caption:** "Unauthorised at Store C" (shown about 47 s to 53 s, over the checkout form). The narration above is unchanged ("not in Store C's channel"). The old caption said "Store C, same serial: no PayPal order exists".
+- **Scene 8 (supply chain):** the picture is the Gantt clip (`gantt_clip.mp4`), with a 3.3 s still hold and the caption "The brand sees its supply chain, batch by batch." The narration is unchanged.
+- **APIMatic beat (about 18.6 s):** inserted after the Onboarding scene (scene 14). It has its own narration, spoken at normal speed before the final speed-up: "The brand's side is generated too. APIMatic built this portal and our SDKs from the same OpenAPI spec. Here the generated Python and TypeScript clients ask the brand node to verify a serial, and an unknown verification ID comes back as a not found." Not in the table above.
+- **Speed:** the whole cut is played at 1.1x (picture and voice, pitch kept by the audio filter). The narration itself was rendered at Kokoro speed 1.0, so the words are the table's pace times 1.1 on playback. Lines were not re-rendered for the speed-up.
+- **Start:** half a second of silence before the first narration.
+- **Pauses:** two 0.7 s pauses after scenes 11 and 13 were cut to 0.3 s.
+
+Not in the video: the sentence "PayPal-side answers spend the privacy budget once; asking again costs no more budget" (removed from scene 11), and the words "later questions cost nothing more" (removed from scene 13).
 
 ## Recording map (take of 2026-11-07, `e2e/out/demo/marks.json`)
 
@@ -91,3 +104,17 @@ Until one is done, the voice and the picture are out of step by about 8 s on sce
   "PayPal could make it network policy" is a proposal, not a shipped feature; never say PayPal does this today.
   "This prototype runs locally" matches the state on 2026-11-07 (no hosted demo).
 - Scene 14: "the check is free for shoppers" is the business model (brands pay for insights), not a price list.
+- Final-video additions (2026-11-10):
+  - Scene 10 bridge, "That income could fund the free check for shoppers": "could" is deliberate. No billing or payments exist
+    in the build. Do not change it to "does" or "will".
+  - Scene 11, "Each number comes with a range, explained in the privacy section": the range is the noise-based interval. Its
+    coverage (how often the range holds) is NOT validated. Never say "95% guaranteed", "validated" or "provably".
+  - Scene 13, "fixed privacy allowance, a limit on how much any one buyer can be exposed": the lifetime budget per brand (ρ 0.25,
+    `backend/common/privacy.py`, `total_rho`). "The buyer summary uses part of it once": the one-time release (ρ 0.20). "Privacy
+    noise is random numbers we add to the counts": the OpenDP Gaussian noise on each released count. The example "312 buyers
+    aged 18 to 24" is illustrative, not data, and is spoken only, not shown.
+  - Scene 6 caption "Unauthorised at Store C": a block means the brand's records do not list this serial for that store. It is
+    not a finding that the product is counterfeit.
+  - KNOWN ISSUE (2026-11-10): the privacy card (about 1:50 in the final cut) still reads "Buyers stay anonymous. Provably." and
+    "none pinned down a single buyer". The README qualifies the red-team result to "in the runs recorded". Fix before submission,
+    not yet changed (waiting on the user's wording choice).

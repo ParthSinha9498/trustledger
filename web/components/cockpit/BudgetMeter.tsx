@@ -31,7 +31,7 @@ export default function BudgetMeter({ budget, compact = false }: { budget: Budge
         </Link>
         {!compact && (
           <p className={styles.foot}>
-            Buyer answers come from a privacy-protected snapshot: asking more reveals nothing new about any buyer.
+            Buyer answers come from a privacy-protected snapshot: asking more does not use more of the privacy allowance.
           </p>
         )}
       </div>

@@ -95,7 +95,7 @@ export const LANDING_COPY = {
     sampleQuery: {
       question: "What age group buys the P8 in Riverton?",
       result: "25–34: 48% (±3.2%) · 35–44: 31% (±2.8%)",
-      timing: "Answered in 1.2s",
+      timing: "Answered from the privacy release",
       note: "95% intervals apply strictly to buyer estimates; brand-side counts are exact.",
     },
     formula: "Brands pay for privacy-safe insights; shoppers get free authenticity checks.",
@@ -134,7 +134,7 @@ export const LANDING_COPY = {
         bullets: [
           "Shopper demographic answers carry calibrated mathematical noise via OpenDP.",
           "Small cohort counts are suppressed to protect individual shopper identities.",
-          "Each brand operates on a fixed lifetime privacy budget; repeating queries reveals nothing new.",
+          "Each brand operates on a fixed lifetime privacy budget; repeating queries does not use more of it.",
         ],
       },
     ],

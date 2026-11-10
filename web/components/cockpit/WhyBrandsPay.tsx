@@ -7,15 +7,13 @@ import styles from "./WhyBrandsPay.module.css";
  * Self-contained (design tokens only) so other surfaces can reuse it.
  * Every sentence maps to a row in notes/CLAIMS.md; do not add numbers here without one.
  *
- * `seconds` is the time the page actually measured for the last answer. When nothing has been
- * measured yet, the panel says "Answered in seconds" and never invents a number.
+ * The panel states the release, not a timing: no committed timed run backs a number on screen.
  */
-export default function WhyBrandsPay({ seconds = null, title = "Why brands pay for this" }: { seconds?: number | null; title?: string }) {
+export default function WhyBrandsPay({ title = "Why brands pay for this" }: { seconds?: number | null; title?: string }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
-  const answered = seconds != null && Number.isFinite(seconds)
-    ? `Answered in ${seconds.toFixed(seconds < 1 ? 2 : 1)} s`
-    : "Answered in seconds";
+  // No timing on screen: the demo has no committed timed run to back a number (claims sheet).
+  const answered = "Answered from the privacy release";
 
   return (
     <section className={styles.panel} aria-labelledby={`${bodyId}-title`}>
@@ -35,7 +33,7 @@ export default function WhyBrandsPay({ seconds = null, title = "Why brands pay f
           <div className={`${styles.col} ${styles.survey}`}>
             <h3 className={styles.colTitle}>Survey</h3>
             <ul className={styles.list}>
-              <li><strong>Weeks to field</strong></li>
+              <li><strong>Slow to field</strong></li>
               <li><strong>Self-reported</strong></li>
               <li>
                 In a Pew survey fielded Nov 2024 (11,114 US adults), 18% of cases were flagged.

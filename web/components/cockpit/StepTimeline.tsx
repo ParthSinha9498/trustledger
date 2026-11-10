@@ -124,7 +124,7 @@ function Facts({ result }: { result: Payload }) {
 /** get_budget, in words: no rho/epsilon outside the privacy page. */
 function LimitFacts({ budget }: { budget: Budget }) {
   if (budget.private_release) {
-    return <p className="small" style={{ margin: 0 }}>PayPal-side answers come from a one-time privacy-protected snapshot: asking more reveals nothing new about any buyer.</p>;
+    return <p className="small" style={{ margin: 0 }}>PayPal-side answers come from a one-time privacy-protected snapshot: asking more does not use more of the privacy allowance.</p>;
   }
   const total = budget.total ?? budget.daily ?? budget.spent + budget.remaining;
   const pct = total > 0 ? Math.round((100 * budget.remaining) / total) : 0;

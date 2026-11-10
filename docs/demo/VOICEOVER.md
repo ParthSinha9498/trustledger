@@ -14,10 +14,10 @@ Numbers are written as they should be spoken.
 | 2 | Gap (5.5) | Checking authenticity is optional and separate from paying, so most buyers skip it. |
 | 3 | Product (8) | TrustLedger makes authenticity a condition of payment. The brand verifies the product before PayPal creates the order. |
 | 4 | Teaser (10.5) | And it pays for itself, more on that later. Data never moves: questions go to the brand and PayPal nodes, and only private aggregates come back. |
-| 5 | Genuine sale (19) | Store A enters serial X123 at checkout. The brand confirms it, and only then does PayPal create the order, with the verification ID inside. The buyer approves, and the receipt is brand verified. |
+| 5 | Genuine sale (19) | At checkout, Store A's POS sends an unsold serial to the brand. The brand confirms it, and only then does PayPal create the order, with the verification ID inside. The buyer approves, and the receipt is brand verified. |
 | 6 | Blocked sale (18) | Now Store C enters the same serial. This serial is not in Store C's channel, so checkout stops before any money moves. No PayPal order exists. |
 | 7 | Investigation (23) | The brand gets a case. An investigator asks each side questions and sees only aggregates, never a single record. Its findings show where the evidence diverges. |
-| 8 | Supply chain (10.5) | The supply chain makes the leak visible: batches one distributor shipped to other stores, sold at Store C, a store it never supplies. |
+| 8 | Supply chain (16) | The supply chain timeline shows every batch as a bar, from shipment to sale. Batches Northline shipped to Stores A, D and F turn up sold at Store C, a store it never supplies. |
 | 9 | Studio supply chain (24) | AG Studio shows the same brand counts as a live dashboard. Stacked by distributor, Store C's units come mostly from Distributor 2. The Distributor 1 slice is the diversion. The table beside it lists the exact counts from the brand's own records. Every failure is at Store C: already sold, or not in channel. |
 | 10 | Business model (11) | Brands spend over a hundred and fifty billion dollars a year on market insights. TrustLedger answers from verified purchases in seconds, and brand budgets fund the free check. |
 | 11 | Brand insights (20) | With TrustLedger, a brand asks which age bands buy its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. PayPal-side answers spend the privacy budget once; asking again costs no more budget. |

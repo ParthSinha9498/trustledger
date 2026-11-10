@@ -18,7 +18,7 @@
     },
     "portalSettings": {
       "titleTemplate": "{title} · TrustLedger Brand Verification",
-      "initialPlatform": "http",
+      "initialPlatform": "http_curl_v1",
       "enableConsoleCalls": true,
       "enableHttpVerbsForAllLangs": true,
       "aiAssistMenu": {

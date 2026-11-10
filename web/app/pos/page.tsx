@@ -119,7 +119,7 @@ export default function Pos() {
             </div>
             <div className={s.hintRow}>
               <span className={`muted ${s.hint}`}>
-                Demo serials: Store A: <code>XA…</code>, Store B: <code>XB…</code>, or <code>X123</code> (fresh seed: verified at Store A, blocked at Store C).
+                Demo serials: <code>XA…</code> is unsold stock at Store A and <code>XB…</code> at Store B. Verify one at Store A, then scan the same serial at Store C to see the block.
               </span>
               <button type="button" className={s.chip} disabled={busy} onClick={tryGenuine}>
                 Fill an unsold unit

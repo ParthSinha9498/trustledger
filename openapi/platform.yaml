@@ -8,6 +8,9 @@ info:
   license:
     name: MIT
     identifier: MIT
+  contact:
+    name: TrustLedger (fictional demo project)
+    url: https://github.com/parthsinha9498/trustledger
 paths:
   /console/plan:
     post:
@@ -20,7 +23,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PlanRequest'
+            example:
+              question: question
         required: true
+        description: Request body for Plan.
       responses:
         '200':
           description: Successful Response
@@ -33,6 +39,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: &id001 []
+      description: Plan
   /console/samples:
     get:
       tags:
@@ -45,6 +54,7 @@ paths:
           content:
             application/json:
               schema: {}
+      description: Get Samples
   /console/run:
     post:
       tags:
@@ -56,7 +66,12 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RunRequest'
+            example:
+              specs: &id006 []
+              explain: true
+              sample_id: sample-id
         required: true
+        description: Request body for Run.
       responses:
         '200':
           description: Successful Response
@@ -69,6 +84,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
+      description: Run
   /console/budget:
     get:
       tags:
@@ -81,6 +99,7 @@ paths:
           content:
             application/json:
               schema: {}
+      description: Budget
   /paypal/sdk/config:
     get:
       tags:
@@ -122,7 +141,8 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          title: Sku
+        description: Sku.
+        example: NMB-P8-128
       - name: store_id
         in: query
         required: false
@@ -130,7 +150,8 @@ paths:
           anyOf:
           - type: string
           - type: 'null'
-          title: Store Id
+        description: Store id.
+        example: store_a
       responses:
         '200':
           description: Successful Response
@@ -143,6 +164,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
+      description: Supply Chain
   /cockpit/blocked:
     get:
       tags:
@@ -160,7 +184,8 @@ paths:
           maximum: 26
           minimum: 1
           default: 8
-          title: Weeks
+        description: Weeks.
+        example: 1
       responses:
         '200':
           description: Successful Response
@@ -168,12 +193,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BlockedSummary'
+              example:
+                brand_id: brand-id
+                current_week: 1
+                weeks: &id002 []
+                total: 1
+                by_reason: &id003 []
+                by_store: &id004 []
+                store_names: &id005 {}
+                exact: true
+                source: source
         '422':
           description: Validation Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
   /console/release/cells:
     get:
       tags:
@@ -225,7 +262,8 @@ paths:
         schema:
           type: integer
           default: 50
-          title: Limit
+        description: Limit.
+        example: 1
       responses:
         '200':
           description: Successful Response
@@ -238,6 +276,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
   /health:
     get:
       summary: Health check
@@ -248,6 +288,9 @@ paths:
           content:
             application/json:
               schema: {}
+      tags:
+      - health
+      description: Health check
   /stores:
     get:
       summary: List stores
@@ -258,6 +301,9 @@ paths:
           content:
             application/json:
               schema: {}
+      tags:
+      - stores
+      description: List stores
   /demo/serial:
     get:
       summary: Demo Serial
@@ -269,7 +315,8 @@ paths:
         required: true
         schema:
           type: string
-          title: Store Id
+        description: Store id.
+        example: store_a
       responses:
         '200':
           description: Successful Response
@@ -282,9 +329,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
+      tags:
+      - demo
   /checkout/scan:
     post:
-      summary: 'Scan a product: verify with the brand, then create the PayPal order'
+      summary: Scan a product and create its PayPal order
       description: 'Calls the brand''s POST /v1/verify. VERIFIED: creates a PayPal order (intent CAPTURE, custom_id
         = verification_id) and returns its id. NOT_VERIFIED: no PayPal call is made; a case opens for the brand
         and the reason is returned.'
@@ -294,7 +345,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ScanRequest'
+            example:
+              store_id: store_a
+              serial: X123
+              sku: NMB-P8-128
+              amount: 1.0
         required: true
+        description: Request body for Scan a product and create its PayPal order.
       responses:
         '200':
           description: Successful Response
@@ -307,6 +364,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
+      tags:
+      - checkout
   /checkout/{checkout_id}/capture:
     post:
       summary: Capture the payment
@@ -317,19 +378,14 @@ paths:
         required: true
         schema:
           type: string
-          title: Checkout Id
+        description: Checkout id.
+        example: chk_3f9a1c2b7d4e
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
         '409':
           description: Checkout is not awaiting payment, or buyer has not approved the PayPal order yet.
           content:
@@ -340,6 +396,14 @@ paths:
                 detail:
                   paypal_issue: ORDER_NOT_APPROVED
                   message: Order has not been approved by buyer
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
         '502':
           description: PayPal upstream error or capture failed.
           content:
@@ -350,6 +414,8 @@ paths:
                 detail:
                   paypal_status: FAILED
       description: Captures the PayPal order, confirms the sale with the brand, and returns the receipt.
+      tags:
+      - checkout
   /checkout/{checkout_id}/pay-test-card:
     post:
       summary: Pay with a PayPal sandbox test card (sandbox only)
@@ -363,19 +429,14 @@ paths:
         required: true
         schema:
           type: string
-          title: Checkout Id
+        description: Checkout id.
+        example: chk_3f9a1c2b7d4e
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema: {}
-        '422':
-          description: Validation Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HTTPValidationError'
         '403':
           description: 'Live mode: test-card payments are sandbox only.'
           content:
@@ -400,6 +461,14 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 detail: checkout is not awaiting payment (blocked checkouts have no PayPal order)
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
         '502':
           description: PayPal upstream error or capture failed.
           content:
@@ -417,6 +486,8 @@ paths:
                 $ref: '#/components/schemas/Error'
               example:
                 detail: SANDBOX_TEST_CARD_NUMBER and SANDBOX_TEST_CARD_EXPIRY are not set
+      tags:
+      - checkout
   /receipts/{checkout_id}:
     get:
       summary: Receipt
@@ -427,7 +498,8 @@ paths:
         required: true
         schema:
           type: string
-          title: Checkout Id
+        description: Checkout id.
+        example: chk_3f9a1c2b7d4e
       responses:
         '200':
           description: Successful Response
@@ -440,7 +512,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       description: Receipt with verification and PayPal order ids.
+      tags:
+      - receipts
   /paypal/webhooks:
     post:
       summary: PayPal webhook receiver
@@ -452,6 +528,8 @@ paths:
             application/json:
               schema: {}
       description: Verifies the PayPal signature before handling the event.
+      tags:
+      - paypal
   /cases:
     get:
       summary: List investigation cases
@@ -463,6 +541,8 @@ paths:
             application/json:
               schema: {}
       description: Newest first, with a findings count.
+      tags:
+      - cases
   /cases/{case_id}:
     get:
       summary: Case detail
@@ -473,7 +553,8 @@ paths:
         required: true
         schema:
           type: string
-          title: Case Id
+        description: Case id.
+        example: case_7c1d2e3f4a5b
       - name: run
         in: query
         required: false
@@ -481,14 +562,16 @@ paths:
           anyOf:
           - type: integer
           - type: 'null'
-          title: Run
+        description: Run.
+        example: 1
       - name: include_earlier_steps
         in: query
         required: false
         schema:
           type: boolean
           default: false
-          title: Include Earlier Steps
+        description: Include earlier steps.
+        example: true
       responses:
         '200':
           description: Successful Response
@@ -501,7 +584,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       description: A case and every agent step, in order.
+      tags:
+      - cases
   /internal/cases/claim:
     post:
       summary: Claim Case
@@ -518,10 +605,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       security:
       - NodeToken: []
       tags:
       - internal
+      description: Claim Case
   /internal/cases/{case_id}/steps:
     post:
       summary: Add Step
@@ -532,13 +622,19 @@ paths:
         required: true
         schema:
           type: string
-          title: Case Id
+        description: Case id.
+        example: case_7c1d2e3f4a5b
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/StepIn'
+            example:
+              kind: kind
+              payload: &id007 {}
+              run: 1
+        description: Request body for Add Step.
       responses:
         '200':
           description: Successful Response
@@ -551,10 +647,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       security:
       - NodeToken: []
       tags:
       - internal
+      description: Add Step
   /internal/cases/{case_id}/finish:
     post:
       summary: Finish Case
@@ -565,13 +664,24 @@ paths:
         required: true
         schema:
           type: string
-          title: Case Id
+        description: Case id.
+        example: case_7c1d2e3f4a5b
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/FinishIn'
+            example:
+              status: status
+              summary: summary
+              confidence: confidence
+              agent_mode: agent-mode
+              agent_model: agent-model
+              agent_reason: agent-reason
+              source_case_id: source-case-id
+              replay_recorded_at: replay-recorded-at
+        description: Request body for Finish Case.
       responses:
         '200':
           description: Successful Response
@@ -584,49 +694,63 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+              example:
+                detail: *id001
       security:
       - NodeToken: []
       tags:
       - internal
+      description: Finish Case
 components:
   schemas:
     BlockedSummary:
       properties:
         brand_id:
           type: string
-          title: Brand Id
+          description: Brand id.
+          example: brand-id
         current_week:
           type: integer
-          title: Current Week
+          description: Current week.
+          example: 1
         weeks:
           items:
             type: integer
+            description: Weeks.
+            example: 1
           type: array
-          title: Weeks
+          description: Weeks.
+          example: *id002
         total:
           type: integer
-          title: Total
+          description: Total.
+          example: 1
         by_reason:
           items:
             $ref: '#/components/schemas/ReasonWeek'
           type: array
-          title: By Reason
+          description: By reason.
+          example: *id003
         by_store:
           items:
             $ref: '#/components/schemas/StoreWeek'
           type: array
-          title: By Store
+          description: By store.
+          example: *id004
         store_names:
           additionalProperties:
             type: string
           type: object
-          title: Store Names
+          description: Store names.
+          example: *id005
         exact:
           type: boolean
-          title: Exact
+          description: Exact.
+          example: true
         source:
           type: string
-          title: Source
+          description: Source.
+          example: source
       type: object
       required:
       - brand_id
@@ -639,57 +763,83 @@ components:
       - exact
       - source
       title: BlockedSummary
+      description: Blocked Summary.
     FinishIn:
       properties:
         status:
           type: string
-          title: Status
+          description: Status.
+          example: status
         summary:
           type: string
-          title: Summary
+          description: Summary.
+          example: summary
         confidence:
           anyOf:
           - type: string
+            description: Confidence.
+            example: confidence
           - type: 'null'
-          title: Confidence
+            description: Confidence.
+          description: Confidence.
+          example: confidence
         agent_mode:
           type: string
-          title: Agent Mode
           default: live
+          description: Agent mode.
         agent_model:
           anyOf:
           - type: string
+            description: Agent model.
+            example: agent-model
           - type: 'null'
-          title: Agent Model
+            description: Agent model.
+          description: Agent model.
+          example: agent-model
         agent_reason:
           anyOf:
           - type: string
+            description: Agent reason.
+            example: agent-reason
           - type: 'null'
-          title: Agent Reason
+            description: Agent reason.
+          description: Agent reason.
+          example: agent-reason
         source_case_id:
           anyOf:
           - type: string
+            description: Source case id.
+            example: source-case-id
           - type: 'null'
-          title: Source Case Id
+            description: Source case id.
+          description: Source case id.
+          example: source-case-id
         replay_recorded_at:
           anyOf:
           - type: string
+            description: Replay recorded at.
+            example: replay-recorded-at
           - type: 'null'
-          title: Replay Recorded At
+            description: Replay recorded at.
+          description: Replay recorded at.
+          example: replay-recorded-at
       type: object
       required:
       - status
       - summary
       title: FinishIn
+      description: Finish In.
     HTTPValidationError:
       properties:
         detail:
           items:
             $ref: '#/components/schemas/ValidationError'
           type: array
-          title: Detail
+          description: Detail.
+          example: *id001
       type: object
       title: HTTPValidationError
+      description: HTTPValidation Error.
     NodeSpec:
       properties:
         node:
@@ -697,46 +847,58 @@ components:
           enum:
           - brand
           - paypal
-          title: Node
+          description: Node.
+          example: brand
         spec:
           additionalProperties: true
           type: object
-          title: Spec
+          description: Spec.
+          example: {}
       type: object
       required:
       - node
       - spec
       title: NodeSpec
+      description: Node Spec.
     PlanRequest:
       properties:
         question:
           type: string
           maxLength: 2000
           minLength: 1
-          title: Question
+          description: Question.
+          example: question
       type: object
       required:
       - question
       title: PlanRequest
+      description: Plan Request.
     ReasonWeek:
       properties:
         week:
           type: integer
-          title: Week
+          description: Week.
+          example: 1
         reason_code:
           anyOf:
           - type: string
+            description: Reason code.
+            example: reason-code
           - type: 'null'
-          title: Reason Code
+            description: Reason code.
+          description: Reason code.
+          example: reason-code
         value:
           type: integer
-          title: Value
+          description: Value.
+          example: 1
       type: object
       required:
       - week
       - reason_code
       - value
       title: ReasonWeek
+      description: Reason Week.
     RunRequest:
       properties:
         specs:
@@ -744,34 +906,44 @@ components:
             $ref: '#/components/schemas/NodeSpec'
           type: array
           maxItems: 8
-          title: Specs
+          description: Specs.
+          example: *id006
         explain:
           type: boolean
-          title: Explain
           default: false
+          description: Explain.
         sample_id:
           anyOf:
           - type: string
+            description: Sample id.
+            example: sample-id
           - type: 'null'
-          title: Sample Id
+            description: Sample id.
+          description: Sample id.
+          example: sample-id
       type: object
       required:
       - specs
       title: RunRequest
+      description: Run Request.
     ScanRequest:
       properties:
         store_id:
           type: string
-          title: Store Id
+          description: Store id.
+          example: store_a
         serial:
           type: string
-          title: Serial
+          description: Serial.
+          example: X123
         sku:
           type: string
-          title: Sku
+          description: Sku.
+          example: NMB-P8-128
         amount:
           type: number
-          title: Amount
+          description: Amount.
+          example: 1.0
       type: object
       required:
       - store_id
@@ -779,70 +951,97 @@ components:
       - sku
       - amount
       title: ScanRequest
+      description: Scan Request.
     StepIn:
       properties:
         kind:
           type: string
-          title: Kind
+          description: Kind.
+          example: kind
         payload:
           additionalProperties: true
           type: object
-          title: Payload
+          description: Payload.
+          example: *id007
         run:
           anyOf:
           - type: integer
+            description: Run.
+            example: 1
           - type: 'null'
-          title: Run
+            description: Run.
+          description: Run.
+          example: 1
       type: object
       required:
       - kind
       - payload
       title: StepIn
+      description: Step In.
     StoreWeek:
       properties:
         week:
           type: integer
-          title: Week
+          description: Week.
+          example: 1
         store_id:
           anyOf:
           - type: string
+            description: Store id.
+            example: store_a
           - type: 'null'
-          title: Store Id
+            description: Store id.
+          description: Store id.
+          example: store_a
         value:
           type: integer
-          title: Value
+          description: Value.
+          example: 1
       type: object
       required:
       - week
       - store_id
       - value
       title: StoreWeek
+      description: Store Week.
     ValidationError:
       properties:
         loc:
           items:
             anyOf:
             - type: string
+              description: Loc.
+              example: loc
             - type: integer
+              description: Loc.
+              example: 1
+            description: Loc.
+            example: loc
           type: array
-          title: Location
+          description: Loc.
+          example: []
         msg:
           type: string
-          title: Message
+          description: Msg.
+          example: msg
         type:
           type: string
-          title: Error Type
+          description: Type.
+          example: type
         input:
-          title: Input
+          description: Input.
         ctx:
           type: object
-          title: Context
+          additionalProperties: true
+          description: Extra context for the error; keys vary by error type.
+          example: {}
       type: object
       required:
       - loc
       - msg
       - type
       title: ValidationError
+      description: Validation Error.
     Error:
       type: object
       properties:
@@ -851,19 +1050,26 @@ components:
           oneOf:
           - type: string
             example: checkout is not awaiting payment
+            description: Detail.
           - type: object
             properties:
               paypal_issue:
                 type: string
                 example: ORDER_NOT_APPROVED
+                description: Paypal issue.
               message:
                 type: string
                 example: Order has not been approved by buyer
+                description: Message.
               paypal_status:
                 type: string
                 example: FAILED
+                description: Paypal status.
+            description: Detail.
+            example: {}
       required:
       - detail
+      description: Error.
   securitySchemes:
     NodeToken:
       type: apiKey
@@ -879,3 +1085,31 @@ servers:
   variables:
     apiHost:
       default: trustledger-api.onrender.com
+      description: Host name of the deployment.
+tags:
+- name: cases
+  description: Operations for cases.
+- name: checkout
+  description: Operations for checkout.
+- name: cockpit
+  description: Operations for cockpit.
+- name: console
+  description: Operations for console.
+- name: demo
+  description: Operations for demo.
+- name: health
+  description: Operations for health.
+- name: internal
+  description: Operations for internal.
+- name: paypal
+  description: Operations for paypal.
+- name: paypal-sdk
+  description: Operations for paypal-sdk.
+- name: receipts
+  description: Operations for receipts.
+- name: stores
+  description: Operations for stores.
+- name: studio
+  description: Operations for studio.
+- name: supply-chain
+  description: Operations for supply-chain.

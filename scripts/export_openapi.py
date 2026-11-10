@@ -17,6 +17,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -83,6 +84,164 @@ def _prune_schemas(spec: dict) -> None:
             break
         keep |= more
     spec["components"]["schemas"] = {k: schemas[k] for k in sorted(keep) if k in schemas}
+
+
+# --------------------------------------------------------------------------- APIMatic polish
+
+EXAMPLE_HINTS = {
+    "serial": "X123", "sku": "NMB-P8-128", "store_id": "store_a", "paypal_order_id": "5O190127TN364715T",
+    "checkout_id": "chk_3f9a1c2b7d4e", "case_id": "case_7c1d2e3f4a5b", "verification_id": "ver_3f9a1c2b7d4e",
+    "order_id": "5O190127TN364715T", "email": "buyer@example.com",
+}
+
+
+def _humanize(name: str) -> str:
+    words = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name).replace("_", " ").strip()
+    return (words[:1].upper() + words[1:]).rstrip(".") + "."
+
+
+def _example_value(name: str, schema: dict):
+    """A plausible scalar example for a field, or None when there is no safe scalar to show."""
+    if not isinstance(schema, dict) or "$ref" in schema:
+        return None
+    if schema.get("enum"):
+        return schema["enum"][0]
+    if "anyOf" in schema:  # Optional[X] renders as anyOf [X, null]: show the X
+        for sub in schema["anyOf"]:
+            ex = _example_value(name, sub)
+            if ex is not None:
+                return ex
+        return None
+    kind = schema.get("type")
+    if kind == "string":
+        if schema.get("format") == "date-time":
+            return "2026-10-14T17:03:00Z"
+        return EXAMPLE_HINTS.get(name, name.replace("_", "-"))
+    if kind == "integer":
+        return 1
+    if kind == "number":
+        return 1.0
+    if kind == "boolean":
+        return True
+    if kind == "array":
+        items = schema.get("items", {})
+        if isinstance(items, dict) and "$ref" not in items and items.get("type") == "string":
+            return [_example_value(name, items)]
+        return []
+    if kind == "object":
+        return {}
+    return None
+
+
+def _fix_schema(s: dict, name: str | None, is_component: bool) -> None:
+    if not isinstance(s, dict) or "$ref" in s:
+        return
+    if s.get("type") == "object" and not s.get("properties") and "additionalProperties" not in s:
+        # Free-form object (e.g. FastAPI's ValidationError.ctx): declare it so tooling does not reject it.
+        s["additionalProperties"] = True
+        s.setdefault("description", "Extra context for the error; keys vary by error type.")
+    if not is_component:
+        s.pop("title", None)  # FastAPI repeats field titles; duplicate titles fail APIMatic validation
+    if not s.get("description") and name:
+        s["description"] = _humanize(name) if not is_component else _humanize(name)
+    if "example" not in s and "default" not in s and name and not is_component:
+        ex = _example_value(name, s)
+        if ex is not None:
+            s["example"] = ex
+    for pname, ps in (s.get("properties") or {}).items():
+        _fix_schema(ps, pname, False)
+    items = s.get("items")
+    if isinstance(items, dict):
+        _fix_schema(items, name, False)
+    for key in ("anyOf", "oneOf", "allOf"):
+        for sub in s.get(key) or []:
+            _fix_schema(sub, name, False)
+
+
+def _object_example(schema: dict, schemas: dict, depth: int = 0):
+    """Build a response/request example from a schema's properties (None when nothing usable)."""
+    if depth > 4:
+        return None
+    if "$ref" in schema:
+        target = schemas.get(schema["$ref"].rsplit("/", 1)[1], {})
+        if "example" in target:
+            return copy.deepcopy(target["example"])
+        return _object_example(target, schemas, depth + 1)
+    if "example" in schema:
+        return copy.deepcopy(schema["example"])
+    props = schema.get("properties")
+    if not props:
+        return None
+    out = {}
+    for pname, ps in props.items():
+        if "$ref" in ps:
+            sub = _object_example(ps, schemas, depth + 1)
+        else:
+            sub = ps.get("example", _example_value(pname, ps))
+        if sub is not None:
+            out[pname] = sub
+    return out or None
+
+
+def polish(spec: dict) -> dict:
+    """Fill the metadata APIMatic's validator asks for: descriptions, examples, tags, contact, sorted codes.
+
+    Only wording and examples are added here. Paths, schemas and field names come from the code.
+    """
+    schemas = spec.setdefault("components", {}).setdefault("schemas", {})
+    for name, sch in schemas.items():
+        _fix_schema(sch, name, True)
+        if not sch.get("description"):
+            sch["description"] = _humanize(re.sub(r"(?<!^)(?=[A-Z])", " ", name))
+    for name, sch in schemas.items():
+        for pname, ps in (sch.get("properties") or {}).items():
+            _fix_schema(ps, pname, False)
+    spec.setdefault("info", {}).setdefault("contact", {
+        "name": "TrustLedger (fictional demo project)",
+        "url": "https://github.com/parthsinha9498/trustledger"})
+
+    used_tags: dict[str, str] = {}
+    for path, ops in spec.get("paths", {}).items():
+        for method, op in ops.items():
+            if method not in ("get", "post", "put", "patch", "delete"):
+                continue
+            if not op.get("tags"):
+                first = path.strip("/").split("/")[0] or "root"
+                op["tags"] = [first]
+            for t in op["tags"]:
+                used_tags.setdefault(t, f"Operations for {t}.")
+            if not op.get("description"):
+                op["description"] = op.get("summary") or _humanize(op.get("operationId", "operation"))
+            for p in op.get("parameters", []):
+                p.setdefault("description", _humanize(p["name"]))
+                p.get("schema", {}).pop("title", None)  # repeated FastAPI titles fail validation
+                if "example" not in p and "examples" not in p:
+                    ex = _example_value(p["name"], p.get("schema", {}))
+                    if ex is not None:
+                        p["example"] = ex
+            body = op.get("requestBody")
+            if body:
+                body.setdefault("description", f"Request body for {op.get('summary', op.get('operationId', 'this call'))}.")
+                for media in body.get("content", {}).values():
+                    if "example" not in media and "examples" not in media:
+                        ex = _object_example(media.get("schema", {}), schemas)
+                        if ex is not None:
+                            media["example"] = ex
+            for code in list(op.get("responses", {})):
+                resp = op["responses"][code]
+                resp.setdefault("description", "Response.")
+                for media in resp.get("content", {}).values():
+                    if "example" not in media and "examples" not in media:
+                        ex = _object_example(media.get("schema", {}), schemas)
+                        if ex is not None:
+                            media["example"] = ex
+            op["responses"] = {k: op["responses"][k] for k in sorted(op.get("responses", {}), key=str)}
+    spec["tags"] = [{"name": t, "description": d} for t, d in sorted(used_tags.items())]
+    for server in spec.get("servers", []):
+        server.setdefault("description", "Environment.")
+        for var in server.get("variables", {}).values():
+            var.setdefault("description", "Host name of the deployment.")
+    return spec
 
 
 # --------------------------------------------------------------------------- brand verification
@@ -236,13 +395,13 @@ def brand_verification_spec() -> dict:
         "components": {"schemas": schemas, "securitySchemes": NODE_TOKEN_SCHEME},
     }
     _prune_schemas(spec)
-    return spec
+    return polish(spec)
 
 
 # --------------------------------------------------------------------------- platform (api service)
 
 PLATFORM_DOCS = {
-    ("/checkout/scan", "post"): ("scanProduct", "Scan a product: verify with the brand, then create the PayPal order",
+    ("/checkout/scan", "post"): ("scanProduct", "Scan a product and create its PayPal order",
                                  "Calls the brand's POST /v1/verify. VERIFIED: creates a PayPal order (intent "
                                  "CAPTURE, custom_id = verification_id) and returns its id. NOT_VERIFIED: no PayPal "
                                  "call is made; a case opens for the brand and the reason is returned."),
@@ -353,7 +512,7 @@ def platform_spec() -> dict:
             "503": err("No sandbox test card configured on the server.",
                        "SANDBOX_TEST_CARD_NUMBER and SANDBOX_TEST_CARD_EXPIRY are not set"),
         })
-    return spec
+    return polish(spec)
 
 
 # --------------------------------------------------------------------------- output

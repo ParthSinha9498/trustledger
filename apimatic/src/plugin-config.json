@@ -1,0 +1,9 @@
+{
+  "pluginId": "trustledger-brand-verification",
+  "pluginName": "TrustLedger Brand Verification",
+  "pluginVersion": "0.1.0",
+  "license": "MIT",
+  "homepage": "https://github.com/ParthSinha9498/trustledger",
+  "repository": "https://github.com/ParthSinha9498/trustledger",
+  "languages": {}
+}

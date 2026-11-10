@@ -1,0 +1,18 @@
+{
+  "ImportSettings": {
+    "AutoGenerateTestCases": false,
+    "ImportAdditionalHeader": false,
+    "ImportTypeCombinatorsWithOnlyOneType": false
+  },
+  "CodeGenSettings": {
+    "Timeout": 10,
+    "ValidateRequiredParameters": true,
+    "EnableGlobalUserAgent": true,
+    "UserAgent": "TrustLedger-{language}-SDK/{version} (OS: {os-info}, Engine: {engine}/{engine-version})",
+    "EnableLogging": true,
+    "UserConfigurableRetries": true,
+    "UseEnumPrefix": false,
+    "EnforceStandardizedCasing": true,
+    "ControllerPostfix": "Api"
+  }
+}

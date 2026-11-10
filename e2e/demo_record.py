@@ -381,6 +381,22 @@ def main() -> None:
             pass
         rec.wait(2.5)
 
+        # ---- Studio supply chain: AG Studio page, live (scene 9)
+        rec.mark("scene", "studio-supply")
+        rec.go("/cockpit/studio?view=supply")
+        try:
+            page.wait_for_selector("body[data-ready='1']", timeout=8000)
+        except Exception:
+            pass
+        rec.wait(4)  # AG Studio widgets mount after the client bundle loads
+        try:
+            rec.ring(page.get_by_text("Units sold by store and distributor", exact=False).first)
+            rec.wait(7)
+            rec.unring()
+        except Exception:
+            pass
+        rec.wait(11)
+
         # ---- Business case: the pivot into Brand Insights
         rec.card("business", 11)
 

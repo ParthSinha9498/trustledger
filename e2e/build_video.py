@@ -56,13 +56,14 @@ PLAN = [
                          ("main", "receipt", "s2")], "live"),  # the Brand Verified receipt is narrated in scene 5
     (6, "Blocked sale", [("main", "s2", "s3")], "live"),
     (7, "Investigation", [("main", "s3", "cut_start"), ("main", "cut_end", "supply-chain")], "live"),
-    (8, "Supply chain", [("main", "supply-chain", "business")], "live"),
-    (9, "Business model", [("main", "business+2.4", "s4")], "card"),
-    (10, "Brand insights", [("main", "s4", "analyst")], "live"),
-    (11, "AI analyst", [("main", "analyst", "guarantee")], "live"),  # AG Studio page, recorded live
-    (12, "Privacy", [("main", "guarantee", "levels")], "card"),
-    (13, "Onboarding", [("main", "levels", "close")], "card"),
-    (14, "Close", [("main", "close", "end")], "card"),
+    (8, "Supply chain", [("main", "supply-chain", "studio-supply")], "live"),
+    (9, "Studio supply chain", [("main", "studio-supply", "business")], "live"),  # AG Studio supply-chain page, recorded live
+    (10, "Business model", [("main", "business+2.4", "s4")], "card"),
+    (11, "Brand insights", [("main", "s4", "analyst")], "live"),
+    (12, "AI analyst", [("main", "analyst", "guarantee")], "live"),  # AG Studio page, recorded live
+    (13, "Privacy", [("main", "guarantee", "levels")], "card"),
+    (14, "Onboarding", [("main", "levels", "close")], "card"),
+    (15, "Close", [("main", "close", "end")], "card"),
 ]
 
 

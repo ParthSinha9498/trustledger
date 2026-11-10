@@ -18,12 +18,13 @@ Numbers are written as they should be spoken.
 | 6 | Blocked sale (18) | Now Store C enters the same serial. This serial is not in Store C's channel, so checkout stops before any money moves. No PayPal order exists. |
 | 7 | Investigation (23) | The brand gets a case. An investigator asks each side questions and sees only aggregates, never a single record. Its findings show where the evidence diverges. |
 | 8 | Supply chain (10.5) | The supply chain makes the leak visible: batches one distributor shipped to other stores, sold at Store C, a store it never supplies. |
-| 9 | Business model (11) | Brands spend over a hundred and fifty billion dollars a year on market insights. TrustLedger answers from verified purchases in seconds, and brand budgets fund the free check. |
-| 10 | Brand insights (20) | With TrustLedger, a brand asks which age bands buy its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. PayPal-side answers spend the privacy budget once; asking again costs no more budget. |
-| 11 | Analyst (6) | An analyst answers questions about buyers, without seeing a single buyer record. |
-| 12 | Privacy (6.5) | Buyers stay anonymous. One fixed privacy limit per brand, for life, protected with OpenDP differential privacy. |
-| 13 | Onboarding (16) | Brands run one verification API, PayPal runs the checkout gate, and a store adds one API call. AI shopping agents can call the same check. For registered categories, PayPal could make it network policy. This prototype runs locally. |
-| 14 | Close (8) | Brands pay for insights. The check is free for shoppers. Trust for buyers. Intelligence for brands. A stronger PayPal network. |
+| 9 | Studio supply chain (24) | AG Studio shows the same brand counts as a live dashboard. Stacked by distributor, Store C's units come mostly from Distributor 2. The Distributor 1 slice is the diversion. The table beside it lists the exact counts from the brand's own records. Every failure is at Store C: already sold, or not in channel. |
+| 10 | Business model (11) | Brands spend over a hundred and fifty billion dollars a year on market insights. TrustLedger answers from verified purchases in seconds, and brand budgets fund the free check. |
+| 11 | Brand insights (20) | With TrustLedger, a brand asks which age bands buy its phones and gets an answer from verified purchases in seconds, with a ninety five percent interval on every value. PayPal-side answers spend the privacy budget once; asking again costs no more budget. |
+| 12 | Analyst (6) | An analyst answers questions about buyers, without seeing a single buyer record. |
+| 13 | Privacy (6.5) | Buyers stay anonymous. One fixed privacy limit per brand, for life, protected with OpenDP differential privacy. |
+| 14 | Onboarding (16) | Brands run one verification API, PayPal runs the checkout gate, and a store adds one API call. AI shopping agents can call the same check. For registered categories, PayPal could make it network policy. This prototype runs locally. |
+| 15 | Close (8) | Brands pay for insights. The check is free for shoppers. Trust for buyers. Intelligence for brands. A stronger PayPal network. |
 
 Planned total: about 2:22 of narration (14 rows, words ÷ 2.5 + 0.5 s each) plus 1 s of silence before scene 1. Each scene in the cut = its audio + ≤ 1 s.
 Scene 5 also carries the PayPal approval window (login cut out, about 17 s kept), and scene 7 carries the agent wait,

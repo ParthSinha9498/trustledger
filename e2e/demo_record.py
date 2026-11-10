@@ -14,7 +14,7 @@ import argparse, base64, json, os, re, time, urllib.request
 from playwright.sync_api import Locator, Page, sync_playwright
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out", "demo")
-SERIAL, SKU_TEXT = "X123", "128"
+SERIAL, SKU_TEXT = None, "128"  # SERIAL is set in main() from the POS demo series (unsold at Store A)
 
 # Injected into every page: a visible cursor that follows the mouse, with a ripple on click.
 CURSOR_JS = """(() => {
@@ -162,8 +162,15 @@ def api_post(api: str, path: str) -> dict:
         return json.load(r)
 
 
-def scan(rec: Recorder, store: int | str = 0) -> dict:
+def api_get(api: str, path: str) -> dict:
+    with urllib.request.urlopen(api + path) as r:
+        return json.load(r)
+
+
+def scan(rec: Recorder, store: int | str = 0, hold: float = 0.0, mark: str = "") -> dict:
     page = rec.page
+    if mark:
+        rec.mark("scene", mark)
     if isinstance(store, str):
         rec.click(page.get_by_role("radiogroup", name="Store").get_by_text(store, exact=False).first)
     else:
@@ -171,6 +178,15 @@ def scan(rec: Recorder, store: int | str = 0) -> dict:
     rec.click(page.get_by_role("radiogroup", name="Product").get_by_role("radio").filter(has_text=SKU_TEXT).first)
     page.locator("#serial").fill(SERIAL)
     rec.wait(0.6)
+    if hold:
+        # Give the checkout page a moment on screen: the serial is what the brand checks
+        rec.caption("The store's POS sends the serial to the brand first", 1)
+        rec.ring(page.get_by_text("Demo serials", exact=False).first)
+        rec.wait(hold / 2)
+        rec.unring()
+        rec.ring(page.locator("#serial"))
+        rec.wait(hold / 2)
+        rec.unring()
     with page.expect_response(lambda r: "/checkout/scan" in r.url) as resp:
         rec.click(page.get_by_role("button", name=re.compile("Verify and check out")))
     rec.wait(2.0)
@@ -285,6 +301,10 @@ def main() -> None:
     ap.add_argument("--api", default=os.environ.get("API_URL", "http://localhost:8000"))
     ap.add_argument("--case-timeout", type=int, default=300, help="seconds to wait for the agent")
     args = ap.parse_args()
+    global SERIAL
+    # Store A's unsold demo serial (the POS "Fill an unsold unit" series). Store C re-scans this same serial.
+    SERIAL = api_get(args.api, "/demo/serial?store_id=store_a")["serial"]
+    print("serial:", SERIAL)
     os.makedirs(OUT, exist_ok=True)
     mock = api_paypal_mode(args.api) == "mock"
 
@@ -314,10 +334,10 @@ def main() -> None:
         rec.card("s1", 2.5)
         rec.go("/pos")
         rec.caption("Store A: brand verifies → PayPal order created", 0.5)
-        a = scan(rec, 0)
+        a = scan(rec, 0, hold=5, mark="checkout")
         if a.get("status") != "VERIFIED":
-            raise SystemExit(f"Store A was not verified ({a.get('reason_code')}): X123 is probably already sold. "
-                             "Reseed before each take (e.g. docker compose run --rm seed).")
+            raise SystemExit(f"Store A was not verified ({a.get('reason_code')}) for serial {SERIAL}. "
+                             "Check GET /demo/serial and the demo stock.")
         a_png = verdict_png(page)
         rec.ring(page.get_by_text("PayPal order created", exact=False).first)
         rec.wait(3.5)
@@ -379,7 +399,34 @@ def main() -> None:
             rec.unring()
         except Exception:
             pass
+        # The Bryntum timeline (a Gantt-style view of each batch) sits below the strip: scroll to it and hold
+        try:
+            tl = page.get_by_text("Timeline", exact=True).first
+            tl.scroll_into_view_if_needed()
+            rec.wait(1.5)
+            rec.mark("scene", "timeline")  # scene 8 starts here
+            rec.ring(tl)
+            rec.wait(9)
+            rec.unring()
+        except Exception:
+            pass
         rec.wait(2.5)
+
+        # ---- Studio supply chain: AG Studio page, live (scene 9)
+        rec.mark("scene", "studio-supply")
+        rec.go("/cockpit/studio?view=supply")
+        try:
+            page.wait_for_selector("body[data-ready='1']", timeout=8000)
+        except Exception:
+            pass
+        rec.wait(4)  # AG Studio widgets mount after the client bundle loads
+        try:
+            rec.ring(page.get_by_text("Units sold by store and distributor", exact=False).first)
+            rec.wait(7)
+            rec.unring()
+        except Exception:
+            pass
+        rec.wait(11)
 
         # ---- Business case: the pivot into Brand Insights
         rec.card("business", 11)

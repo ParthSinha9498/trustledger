@@ -437,7 +437,7 @@ function CardView({ cardId }: { cardId: string }) {
         {actualCardId === "guarantee" && (
           <>
             <div className={`${s.badge} ${s.badgeTeal}`}>Privacy Guarantee</div>
-            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Buyers stay anonymous. Provably.</h1>
+            <h1 className={s.titleLarge} style={{ marginBottom: 12 }}>Buyers stay anonymous, by design</h1>
             <p className={s.subHero} style={{ fontSize: 24, marginBottom: 20 }}>The AI never sees a customer record, only group answers with noise added</p>
             <div className={s.guaranteeBox}>
               <div className={s.formulaHighlight}>Differential privacy, built on OpenDP</div>
@@ -449,7 +449,7 @@ function CardView({ cardId }: { cardId: string }) {
               </div>
             </div>
             <div className={s.sourceFooter} style={{ marginTop: 20 }}>
-              Our internal red-team tried 11 attack types; none pinned down a single buyer
+              Our scripted red-team tried 11 attack types; none pinned a single buyer in the runs recorded
             </div>
           </>
         )}

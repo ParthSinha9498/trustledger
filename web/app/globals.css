@@ -756,3 +756,29 @@ pre { white-space: pre-wrap; word-break: break-word; font-family: var(--font-mon
   border-radius: var(--radius-pill);
 }
 
+
+/* ---------- judge password prompt ---------- */
+.judge-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(15 23 42 / 0.45);
+}
+.judge-gate {
+  width: min(400px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+.judge-gate h2 { margin: 0; font-size: 18px; }
+.judge-gate p { margin: 0; }
+.judge-gate input { width: 100%; box-sizing: border-box; }
+.judge-gate-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }

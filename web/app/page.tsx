@@ -929,6 +929,7 @@ export default function Home() {
           </Link>
         </div>
       </section>
+      <p className="muted small judge-note" style={{ textAlign: "center", padding: "0 16px 24px" }}>Judges: enter the judge password when asked.</p>
     </main>
   );
 }

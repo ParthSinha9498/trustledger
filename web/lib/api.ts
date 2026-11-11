@@ -1,3 +1,5 @@
+import { getJudgeKey, requestJudgeKey, setJudgeKey } from "./judgeKey";
+
 export const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 /** Error carrying the HTTP status and parsed body, so pages can show refusals clearly. */
@@ -7,11 +9,42 @@ export class ApiError extends Error {
   }
 }
 
+/** Error code of a JSON error body (FastAPI `detail` object, `error` object or top-level `code`). */
+async function errorCode(res: Response): Promise<string | null> {
+  try {
+    const b = (await res.clone().json()) as { code?: unknown; detail?: unknown; error?: unknown };
+    const pick = (o: unknown) => (o && typeof o === "object" && typeof (o as { code?: unknown }).code === "string" ? (o as { code: string }).code : null);
+    return pick(b) ?? pick(b.detail) ?? pick(b.error);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * fetch for TrustLedger API URLs. Adds X-Judge-Key when a key is stored. On 401 `judge_key_required`
+ * it asks for the judge password once and retries the request once. Other URLs (PayPal, etc.) pass through.
+ */
+export async function judgedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const ours = url.startsWith(API);
+  const send = (key: string | null) => {
+    const headers = new Headers(init.headers);
+    if (ours && key) headers.set("X-Judge-Key", key);
+    return fetch(url, { ...init, headers, cache: init.cache ?? "no-store" });
+  };
+  const res = await send(ours ? getJudgeKey() : null);
+  if (!ours || res.status !== 401 || (await errorCode(res)) !== "judge_key_required") return res;
+  const key = await requestJudgeKey();
+  if (!key) return res;
+  setJudgeKey(key);
+  const retry = await send(key);
+  if (retry.status === 401) setJudgeKey(null);  // wrong password: do not keep it
+  return retry;
+}
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await judgedFetch(`${API}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
-    cache: "no-store",
   });
   if (!res.ok) {
     const text = await res.text();
@@ -28,9 +61,10 @@ export function errorText(e: unknown): string {
     const b = e.body as { detail?: unknown } | string | null;
     const detail = b && typeof b === "object" && "detail" in b ? b.detail : b;
     if (detail && typeof detail === "object") {
-      const d = detail as { refused?: string; detail?: string; error?: string };
+      const d = detail as { refused?: string; detail?: string; error?: string; message?: string };
       if (d.refused) return refusalText(d.refused) + (d.detail ? ` (${d.detail})` : "");
       if (d.error) return d.error;
+      if (typeof d.message === "string") return d.message;
       return JSON.stringify(detail);
     }
     if (e.status === 404) return "Not found (the endpoint may not be available yet).";

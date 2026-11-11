@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AgStudioAiModule, AgStudioLicenseManager, type AgStudioMode } from 'ag-studio';
 import { AgStudio, AgStudioProvider, createWidgets } from 'ag-studio-react';
-import { API } from '@/lib/api';
+import { API, judgedFetch } from '@/lib/api';
 import { buildAi } from './ai';
 import { buildStudioData, type Names, type ReleaseCells } from './data';
 import { STUDIO_WIDGETS } from './widgets';
@@ -31,7 +31,7 @@ type LlmMode = 'unknown' | 'mock' | 'model';
  */
 function mockAwareFetch(onMode: (m: LlmMode) => void): typeof fetch {
   return async (input, init) => {
-    const res = await fetch(input, init);
+    const res = await judgedFetch(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, init);
     const header = res.headers.get('X-TrustLedger-LLM');
     if (header === 'mock') onMode('mock');
     else if (res.headers.get('X-TrustLedger-Model')) onMode('model');
@@ -77,11 +77,11 @@ export default function StudioInsights() {
   useEffect(() => {
     let live = true;
     Promise.all([
-      fetch(`${API}/console/release/cells`, { cache: 'no-store' }).then(async (r) => {
+      judgedFetch(`${API}/console/release/cells`, { cache: 'no-store' }).then(async (r) => {
         if (!r.ok) throw new Error(r.status === 404 ? 'No private release yet for this brand.' : `Release cells: HTTP ${r.status}`);
         return (await r.json()) as ReleaseCells;
       }),
-      fetch(`${API}/stores`, { cache: 'no-store' })
+      judgedFetch(`${API}/stores`, { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : []))
         .then((rows: { store_id: string; name?: string }[]) => Object.fromEntries(rows.filter((s) => s.name).map((s) => [s.store_id, s.name as string])))
         .catch(() => ({})),

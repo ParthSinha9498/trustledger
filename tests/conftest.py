@@ -40,6 +40,11 @@ def env(monkeypatch):
     from backend import seed
     seed.build(small=True)
 
+    from backend.api import console as console_api
+    from backend.api import main as api_main
+    console_api.reset_question_quota()
+    api_main._case_day.update(day="", count=0)
+
     from backend.api.main import app as api_app
     from backend.brand_node.main import app as brand_app
     from backend.paypal_node.main import app as paypal_app

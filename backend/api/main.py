@@ -1,9 +1,13 @@
 """Platform API: checkout gate, receipts, PayPal webhooks, cases for the brand cockpit."""
+import hmac
+import datetime
 import random
+import threading
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel
 
@@ -14,6 +18,36 @@ from backend.common.auth import require_node_token
 from backend.api import cockpit, console, paypal_sdk, studio, supply_chain
 
 app = FastAPI(title="TrustLedger API")
+
+JUDGE_EXEMPT = ("/health", "/docs", "/openapi.json", "/redoc", "/paypal/webhooks")
+
+
+class JudgeKeyMiddleware:
+    """Judge password gate: every request needs X-Judge-Key == JUDGE_PASSWORD. Unset/empty means no gate.
+    Pure ASGI, added before CORS so 401s still carry CORS headers. OPTIONS (preflight) and exempt paths pass."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or scope["method"] == "OPTIONS":
+            return await self.app(scope, receive, send)
+        password = config.env("JUDGE_PASSWORD", "") or ""
+        path = scope["path"]
+        if not password or path in JUDGE_EXEMPT or path.startswith("/internal/") or path.startswith("/docs/"):
+            return await self.app(scope, receive, send)
+        given = dict(scope["headers"]).get(b"x-judge-key", b"").decode("latin-1")
+        if hmac.compare_digest(given.encode(), password.encode()):
+            return await self.app(scope, receive, send)
+        # Envelope {"error": ...} as in the other API errors, plus top-level code and detail for the web client.
+        body = {"code": "judge_key_required", "message": "Enter the judge password",
+                "detail": {"code": "judge_key_required", "message": "Enter the judge password"},
+                "error": {"code": "judge_key_required", "message": "Enter the judge password"}}
+        response = JSONResponse(body, status_code=401)
+        await response(scope, receive, send)
+
+
+app.add_middleware(JudgeKeyMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=(config.env("CORS_ORIGINS", "http://localhost:3000")).split(","),
@@ -26,6 +60,33 @@ app.include_router(paypal_sdk.router)
 app.include_router(supply_chain.router)
 app.include_router(cockpit.router)
 app.include_router(studio.router)
+
+@app.exception_handler(HTTPException)
+async def _http_error(request: Request, exc: HTTPException):
+    # Structured errors (e.g. rate_limited) are passed through as-is; everything else keeps FastAPI's shape.
+    if isinstance(exc.detail, dict) and "error" in exc.detail:
+        return JSONResponse(exc.detail, status_code=exc.status_code, headers=exc.headers)
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=exc.headers)
+
+
+# Daily cap on blocked-checkout investigations (new cases), UTC day, in memory.
+_case_day = {"day": "", "count": 0}
+_case_lock = threading.Lock()
+
+
+def _case_budget_left() -> bool:
+    cap = int(config.env("MAX_CASES_PER_DAY", "30") or 30)
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    with _case_lock:
+        if _case_day["day"] != today:
+            _case_day.update(day=today, count=0)
+        return _case_day["count"] < cap
+
+
+def _count_case() -> None:
+    with _case_lock:
+        _case_day["count"] += 1
+
 
 REASON_TEXT = {
     "NOT_IN_CHANNEL": "This product is not in this store's supply chain.",
@@ -84,7 +145,9 @@ def scan(req: ScanRequest):
         with db.connect("platform") as pc, pc.transaction():
             pc.execute(INSERT_CHECKOUT, (checkout_id, req.store_id, req.serial, req.sku, req.amount,
                                          v["verification_id"], None, "BLOCKED"))
-            case_id, event = record_failure(pc, req, v)
+            case_id, event = record_failure(pc, req, v, may_open=_case_budget_left())
+        if event == "case_opened":
+            _count_case()
         if event:
             notify.case_event(event, {"case_id": case_id, "store_id": req.store_id, "sku": req.sku,
                                       "reason_code": v["reason_code"]})
@@ -107,16 +170,19 @@ def material_change(case: dict) -> bool:
             or not set(case["skus"]) <= set(case["run_skus"]))
 
 
-def record_failure(pc, req: "ScanRequest", v: dict) -> tuple[str, str | None]:
+def record_failure(pc, req: "ScanRequest", v: dict, may_open: bool = True) -> tuple[str | None, str | None]:
     """A case is one open problem (brand, store, reason), not one failed scan.
 
-    Attach the failure to the matching open case, or open a new one. Returns (case_id, notify event or None).
+    Attach the failure to the matching open case, or open a new one (only if may_open; the daily cap).
+    Returns (case_id or None, notify event or None).
     """
     case = pc.execute(
         "SELECT * FROM cases WHERE brand_id=%s AND store_id=%s AND reason_code=%s AND status <> 'closed' "
         "ORDER BY created_at DESC LIMIT 1 FOR UPDATE",
         (config.brand_id(), req.store_id, v["reason_code"]),
     ).fetchone()
+    if case is None and not may_open:
+        return None, None
     if case is None:
         case_id = f"case_{uuid.uuid4().hex[:10]}"
         pc.execute(

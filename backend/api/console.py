@@ -10,12 +10,16 @@ Privacy rules kept here:
     refusal codes). Never the question text, raw rows or buyer identifiers (nodes never return them).
   * Every spec is validated (QuerySpec + validate_for_node) before it is shown or run.
 """
+import collections
+import datetime
 import json
 import re
+import threading
+import time
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from backend import config
@@ -23,6 +27,49 @@ from backend.common import http
 from backend.common.query_spec import NODE_RULES, QuerySpec, SpecRefused, tool_parameters, validate_for_node
 
 router = APIRouter(prefix="/console", tags=["console"])
+
+# Per-client-IP quota for the questions that spend LLM calls (/plan, /run). In-process, so it resets on restart.
+QUESTION_PER_MINUTE = 5
+QUESTION_PER_DAY = 60
+_question_minute: dict[str, collections.deque] = {}
+_question_day: dict[str, tuple[str, int]] = {}
+_quota_lock = threading.Lock()
+
+
+def client_ip(request: Request) -> str:
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd.strip():
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def reset_question_quota() -> None:
+    with _quota_lock:
+        _question_minute.clear()
+        _question_day.clear()
+
+
+def question_quota(request: Request) -> None:
+    """Dependency for /console/plan and /console/run: 5 per minute and 60 per day per client IP."""
+    ip = client_ip(request)
+    now = time.monotonic()
+    today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    with _quota_lock:
+        window = _question_minute.setdefault(ip, collections.deque())
+        while window and now - window[0] > 60:
+            window.popleft()
+        day, used = _question_day.get(ip, (today, 0))
+        if day != today:
+            day, used = today, 0
+        if len(window) >= QUESTION_PER_MINUTE or used >= QUESTION_PER_DAY:
+            raise HTTPException(429, {"error": {
+                "code": "rate_limited",
+                "message": "Too many questions. Try a sample question, or again in a minute."}},
+                headers={"Retry-After": "60"})
+        window.append(now)
+        _question_day[ip] = (day, used + 1)
+
+
 
 Node = Literal["brand", "paypal"]
 MAX_SPECS_PER_RUN = 8
@@ -263,7 +310,7 @@ def get_console_llm():
 # ---------------------------------------------------------------- plan
 
 
-@router.post("/plan")
+@router.post("/plan", dependencies=[Depends(question_quota)])
 def plan(req: PlanRequest):
     proposed, rationale = get_console_llm().plan(req.question)
     specs, dropped = [], []
@@ -402,7 +449,7 @@ def get_samples():
     return SAMPLE_QUESTIONS
 
 
-@router.post("/run")
+@router.post("/run", dependencies=[Depends(question_quota)])
 def run(req: RunRequest):
     results = [run_one(s.node, s.spec) for s in req.specs]
     explanation = None

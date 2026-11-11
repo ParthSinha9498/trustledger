@@ -130,7 +130,9 @@ INSIGHT_QUESTIONS = {
 }
 
 
-def test_insight_questions_plan_and_answer(env):
+def test_insight_questions_plan_and_answer(env, monkeypatch):
+    from backend.api import console as console_api
+    monkeypatch.setattr(console_api, "QUESTION_PER_MINUTE", 1000)  # this test asks many questions in a row
     api = env["api"]
     for question, (node, metric, group_by, filters) in INSIGHT_QUESTIONS.items():
         plan = api.post("/console/plan", json={"question": question}).json()

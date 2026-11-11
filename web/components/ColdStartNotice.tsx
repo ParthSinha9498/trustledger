@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { API } from "@/lib/api";
+import { API, judgedFetch } from "@/lib/api";
 
 export default function ColdStartNotice() {
   const [waking, setWaking] = useState(false);
@@ -15,7 +15,7 @@ export default function ColdStartNotice() {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 2000);
-        const res = await fetch(`${API}/health`, { signal: controller.signal, cache: "no-store" });
+        const res = await judgedFetch(`${API}/health`, { signal: controller.signal, cache: "no-store" });
         clearTimeout(timeoutId);
         if (res.ok) {
           if (waking) {

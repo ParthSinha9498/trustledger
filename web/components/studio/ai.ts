@@ -18,6 +18,7 @@ import {
   type AgAiTool,
   type AgAnyAiAgentDefinition,
 } from 'ag-studio';
+import { judgedFetch } from '@/lib/api';
 import { createChatCompletionsAdapter } from './chatCompletionsAdapter';
 import { queryRelease, tableCatalogue, type Names, type QueryRow, type ReleaseCells } from './data';
 
@@ -112,7 +113,7 @@ export function buildAi(deps: AnalystDeps): AgAiHarnessSetup {
       params: (s: AgAiParamsBuilder) => s.object({}),
       execute: async (_args: unknown, ctx: AgAiToolContext) => {
         try {
-          const r = await fetch(`${deps.apiBase}/console/budget`, { signal: ctx.signal });
+          const r = await judgedFetch(`${deps.apiBase}/console/budget`, { signal: ctx.signal });
           if (!r.ok) return ctx.error(`budget unavailable (HTTP ${r.status})`);
           const b = (await r.json()) as Record<string, unknown>;
           return ctx.success(

@@ -5,7 +5,7 @@ import ResultView from "@/components/cockpit/ResultView";
 import SpecEditor from "@/components/cockpit/SpecEditor";
 import WhyBrandsPay from "@/components/cockpit/WhyBrandsPay";
 import { fmtNum, label } from "@/components/cockpit/format";
-import { api, errorText, type Budget, type PlanResponse, type PlannedSpec, type QueryResult, type RunResponse } from "@/lib/api";
+import { ApiError, api, errorText, type Budget, type PlanResponse, type PlannedSpec, type QueryResult, type RunResponse } from "@/lib/api";
 import styles from "./insights.module.css";
 
 /** Business questions the planner answers in mock and live mode (kept in sync with tests/test_console.py). */
@@ -80,8 +80,9 @@ export default function InsightsPage() {
       planned = (r.specs ?? []).map((s) => ({ node: s.node, spec: { ...s.spec, group_by: s.spec?.group_by ?? [], filters: s.spec?.filters ?? {} } }));
       setSpecs(planned);
       setRationale(r.rationale ?? null);
-    } catch {
-      setErr("Live planning unavailable right now, try an example question.");
+    } catch (e) {
+      // 429 (rate limited) carries its own message from the API; anything else gets the generic line.
+      setErr(e instanceof ApiError && e.status === 429 ? errorText(e) : "Live planning unavailable right now, try an example question.");
       setBusy(null);
       return;
     }

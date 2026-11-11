@@ -20,6 +20,19 @@ from backend.brand_node import supply_chain  # noqa: E402
 app.include_router(supply_chain.router)
 
 
+@app.on_event("startup")
+def _ensure_supply_chain_index() -> None:
+    """Idempotent: the supply-chain batch query correlates over serials per batch. Without this index it
+    takes seconds on a small instance; with it, milliseconds. Safe to run on every start."""
+    import logging
+    try:
+        with db.connect("brand") as c:
+            c.execute("CREATE INDEX IF NOT EXISTS serials_batch_sold_idx ON serials (batch_id, sold_store_id, sold_week)")
+            c.execute("ANALYZE serials")
+    except Exception as e:  # never block the node from starting
+        logging.getLogger("brand_node").warning("supply-chain index not ensured: %s", e)
+
+
 # ---------------------------------------------------------------- verification API
 
 class VerifyRequest(BaseModel):

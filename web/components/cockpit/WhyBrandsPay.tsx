@@ -9,11 +9,11 @@ import styles from "./WhyBrandsPay.module.css";
  *
  * The panel states the release, not a timing: no committed timed run backs a number on screen.
  */
-export default function WhyBrandsPay({ title = "Why brands pay for this" }: { seconds?: number | null; title?: string }) {
+export default function WhyBrandsPay({ seconds = null, title = "Why brands pay for this" }: { seconds?: number | null; title?: string }) {
   const [open, setOpen] = useState(false);
   const bodyId = useId();
-  // No timing on screen: the demo has no committed timed run to back a number (claims sheet).
-  const answered = "Answered from the privacy release";
+  // The time is measured in the browser for the question on screen (claims sheet: "Brand Insights answers arrive in seconds").
+  const answered = seconds != null ? `Answered in ${seconds.toFixed(seconds < 1 ? 2 : 1)} s` : "Answered in seconds";
 
   return (
     <section className={styles.panel} aria-labelledby={`${bodyId}-title`}>

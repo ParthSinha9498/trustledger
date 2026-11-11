@@ -163,7 +163,7 @@ export default function InsightsPage() {
                 {!r.refused && seconds != null && (
                   <div className={styles.heroBanner}>
                     <div className={styles.heroTiming}>
-                      <span className={styles.timingHighlight}>Answered from the privacy release</span>
+                      <span className={styles.timingHighlight}>Answered in {seconds.toFixed(seconds < 1 ? 2 : 1)} s</span>
                       <span>{sourceText({ ...r, node, spec })}.</span>
                     </div>
                   </div>

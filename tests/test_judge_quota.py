@@ -59,3 +59,17 @@ def test_daily_case_cap(env, monkeypatch):
     assert all(r["status"] == "NOT_VERIFIED" for r in ids)
     assert ids[0]["case_id"] and ids[1]["case_id"]
     assert ids[2]["case_id"] is None
+
+
+def test_sample_questions_and_plain_runs_are_never_limited(env):
+    api = env["api"]
+    sample = api.get("/console/samples").json()[0]["question"]
+    for _ in range(8):
+        assert api.post("/console/plan", json={"question": sample}).status_code == 200
+    specs = api.post("/console/plan", json={"question": sample}).json()["specs"]
+    for _ in range(8):
+        assert api.post("/console/run", json={"specs": specs, "explain": False}).status_code == 200
+    # Typed questions still have their full allowance afterwards.
+    for _ in range(5):
+        assert api.post("/console/plan", json=PLAN).status_code == 200
+    assert api.post("/console/plan", json=PLAN).status_code == 429

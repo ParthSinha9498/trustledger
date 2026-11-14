@@ -145,13 +145,15 @@ It is a scripted battery, not an adaptive adversary: the attack plans are fixed 
 4. **OpenDP**:
    - Core mathematical foundation for the differential privacy Gaussian mechanism and private releases on federated demographic analytics.
 5. **Render**:
-   - Deployment target: a Render Blueprint (`render.yaml`) with a web service and one backend service running the API, brand node, PayPal node and worker. Not live yet. See [docs/DEPLOY.md](docs/DEPLOY.md).
+   - Deployment target: a Render Blueprint (`render.yaml`) with a web service and one backend service running the API, brand node, PayPal node and worker. Live at https://trustledger-web.onrender.com (API: https://trustledger-backend-0abs.onrender.com/health). See [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ---
 
 ## Try It & Testing Instructions
 
-> **Planned hosting:** a Render deployment is planned, not live. Run the stack locally (see below).
+> **Live demo:** https://trustledger-web.onrender.com. The app asks for the judge password once: `trust-ledger-judges`.
+> The services sleep when idle, so the first load can take about a minute. PayPal sandbox only: no real money.
+> You can also run the stack locally (see below).
 
 ### Paying in sandbox: one click with a test card
 With `PAYPAL_MODE=sandbox`, the pay page (`web/app/pay/[id]/page.tsx`, with the button in `web/components/checkout/PayPalPay.tsx`) displays **Pay with test card (sandbox)** first. One click executes payment on a real PayPal sandbox order using PayPal's card testing endpoint (`backend/api/paypal_client.py:186-210`): no PayPal login, no real money. The order is created only after the brand node confirms serial verification. The button appears when `SANDBOX_TEST_CARD_NUMBER` and `SANDBOX_TEST_CARD_EXPIRY` (`YYYY-MM`; optional `SANDBOX_TEST_CARD_CVV`) are configured in `.env` (documented in `.env.example` and `render.yaml`). Test cards: https://developer.paypal.com/tools/sandbox/card-testing/.

@@ -12,9 +12,9 @@ This guide uses the Render Blueprint in `render.yaml`.
 |---|---|---|---|
 | `trustledger-web` | web (Docker, `docker/web.Dockerfile`) | Render free | Next.js app |
 | `trustledger-backend` | web (Docker, `docker/backend.Dockerfile`) | Render free | One container, four processes (`docker/all_in_one.sh`) |
-| `trustledger-db` | Render Postgres | `plan: free` in `render.yaml` | One instance, three logical databases |
+| `trustledger-db` | Render Postgres | Basic-256mb (paid), `plan: basic-256mb` in `render.yaml` | One instance, three logical databases |
 
-- **Database plan:** `render.yaml` currently sets `plan: free` on `trustledger-db`. Its header comment says Basic-256mb. A paid Postgres Basic-256mb is **planned for 9 Nov** and is not in place yet.
+- **Database plan:** `trustledger-db` runs on paid Postgres Basic-256mb (upgraded in place from free on 14 Nov 2026, data kept). It has no 30-day expiry.
 - **Sleep:** Render free web services spin down after inactivity. The web app shows **"Waking the demo (~1 min)"** while the backend starts (`web/components/ColdStartNotice.tsx`).
 
 ### Process layout inside `trustledger-backend`

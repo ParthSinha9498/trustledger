@@ -1,4 +1,4 @@
-# Render Blueprint for TrustLedger (all free tier: Postgres free, web and backend free)
+# Render Blueprint for TrustLedger (web and backend free, Postgres on paid Basic-256mb)
 # Spec: https://render.com/docs/blueprint-spec
 # Setup steps (what to click, what to paste): docs/DEPLOY.md
 #
@@ -11,9 +11,8 @@
 #                                           worker       investigation agent, no DB at all
 #                                         The data nodes are never reachable from the internet. It seeds
 #                                         the databases on first start (SEED_ON_START=auto: only when empty).
-#   trustledger-db        postgres (free). Free Postgres expires after 30 days: recreate it before expiry
-#                                         and reseed. 3 logical databases (platform,
-#                                         brand, paypal_side) initialized on the single instance.
+#   trustledger-db        postgres (basic-256mb, paid: no 30-day expiry). 3 logical databases (platform,
+#                                         brand, paypal_side) on the single instance.
 #
 # Free web services sleep after 15 minutes idle; the web app shows "Waking the demo" on the first load.
 
@@ -21,7 +20,7 @@ databases:
   - name: trustledger-db
     databaseName: platform
     user: trustledger
-    plan: free
+    plan: basic-256mb
     region: oregon
     ipAllowList: []
 

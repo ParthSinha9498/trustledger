@@ -1,6 +1,6 @@
 # TrustLedger Deployment Guide (Render)
 
-**Status:** not live yet. `render.yaml` is written; the first Render deploy is planned. Until a hosted URL is published, run the stack locally with Docker Compose (see the README).
+**Status:** live on Render since 26 Oct 2026. Web: https://trustledger-web.onrender.com. API: https://trustledger-backend-0abs.onrender.com (`/health` is open; other routes need the `X-Judge-Key` header). `main` deploys automatically.
 
 This guide uses the Render Blueprint in `render.yaml`.
 

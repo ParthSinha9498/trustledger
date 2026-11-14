@@ -6,6 +6,8 @@
 
 **Make product authenticity a condition of payment.**
 
+**Demo video (under 3 minutes):** https://youtu.be/GOL8PhGAtEM · **Live demo:** https://trustledger-web.onrender.com (judge password `trust-ledger-judges`)
+
 TrustLedger bridges physical brand serialization and digital checkout. Before any PayPal order is created, the brand verifies the serialized unit against its verified supply chain. If genuine, PayPal creates the payment with the verification ID stored in the order's `custom_id`. If counterfeit or diverted, payment is blocked before money moves, and an autonomous AI agent investigates the failure using differential privacy aggregates.
 
 ---

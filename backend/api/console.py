@@ -50,7 +50,8 @@ def reset_question_quota() -> None:
 
 
 def question_quota(request: Request) -> None:
-    """Dependency for /console/plan and /console/run: 5 per minute and 60 per day per client IP."""
+    """5 per minute and 60 per day per client IP. Charged once per typed question (/console/plan) and once per
+    model-written explanation (/console/run with explain). Sample questions use stored plans and are never charged."""
     ip = client_ip(request)
     now = time.monotonic()
     today = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
@@ -76,6 +77,11 @@ MAX_SPECS_PER_RUN = 8
 MAX_ROWS_TO_EXPLAIN = 40
 
 # ---------------------------------------------------------------- models
+
+
+def is_sample_question(question: str) -> bool:
+    """One-click sample questions are answered from stored plans, never by a model."""
+    return any(question.strip().lower() == s["question"].lower() for s in SAMPLE_QUESTIONS)
 
 
 class PlanRequest(BaseModel):
@@ -267,7 +273,7 @@ class LiveConsoleLLM:
 
     def plan(self, question: str) -> tuple[list[dict], str]:
         # One-click sample questions use verified stored query plans; never call a model
-        if any(question.strip().lower() == s["question"].lower() for s in SAMPLE_QUESTIONS):
+        if is_sample_question(question):
             return mock_plan(question)
 
         system = PLAN_SYSTEM.replace("{current_week}", str(config.current_week()))
@@ -310,8 +316,10 @@ def get_console_llm():
 # ---------------------------------------------------------------- plan
 
 
-@router.post("/plan", dependencies=[Depends(question_quota)])
-def plan(req: PlanRequest):
+@router.post("/plan")
+def plan(req: PlanRequest, request: Request):
+    if not is_sample_question(req.question):
+        question_quota(request)
     proposed, rationale = get_console_llm().plan(req.question)
     specs, dropped = [], []
     seen = set()
@@ -449,8 +457,10 @@ def get_samples():
     return SAMPLE_QUESTIONS
 
 
-@router.post("/run", dependencies=[Depends(question_quota)])
-def run(req: RunRequest):
+@router.post("/run")
+def run(req: RunRequest, request: Request):
+    if req.explain and not req.sample_id:  # the only model call on this route
+        question_quota(request)
     results = [run_one(s.node, s.spec) for s in req.specs]
     explanation = None
     if req.explain:

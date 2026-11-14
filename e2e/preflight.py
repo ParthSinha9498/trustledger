@@ -33,6 +33,9 @@ TEXT_EXT = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".css", ".md", ".mdx", ".html"
 results: list[dict] = []
 
 
+JUDGE_KEY = os.environ.get("JUDGE_PASSWORD", "")  # set it to test a deployment that has the judge gate on
+
+
 def add(check: str, result: str, detail: str = "", page: str = "", size: str = "", scheme: str = "") -> None:
     results.append({"check": check, "page": page, "size": size, "scheme": scheme, "result": result, "detail": detail})
     if result in ("FAIL", "WARN"):
@@ -137,7 +140,8 @@ def slug(path: str) -> str:
 
 
 def first_case(api: str) -> str | None:
-    with urllib.request.urlopen(api + "/cases", timeout=10) as r:
+    req = urllib.request.Request(api + "/cases", headers={"X-Judge-Key": JUDGE_KEY} if JUDGE_KEY else {})
+    with urllib.request.urlopen(req, timeout=120) as r:
         cases = json.load(r)
     return cases[0]["case_id"] if cases else None
 
@@ -146,6 +150,8 @@ def check_page(browser, base: str, path: str, name: str, w: int, h: int, scheme:
     """Returns True if the page has a mobile menu toggle (aria-controls)."""
     size, tag = f"{w}x{h}", f"{name}-{w}-{scheme}"
     ctx = browser.new_context(viewport={"width": w, "height": h}, color_scheme=scheme)
+    if JUDGE_KEY:  # hosted demo: the web app reads the judge password from localStorage
+        ctx.add_init_script(f"try{{localStorage.setItem('tl_judge_key',{json.dumps(JUDGE_KEY)})}}catch(e){{}}")
     page: Page = ctx.new_page()
     errors, hydration = [], []
 

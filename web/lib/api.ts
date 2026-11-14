@@ -61,9 +61,11 @@ export function errorText(e: unknown): string {
     const b = e.body as { detail?: unknown } | string | null;
     const detail = b && typeof b === "object" && "detail" in b ? b.detail : b;
     if (detail && typeof detail === "object") {
-      const d = detail as { refused?: string; detail?: string; error?: string; message?: string };
+      const d = detail as { refused?: string; detail?: string; error?: string | { message?: unknown }; message?: string };
       if (d.refused) return refusalText(d.refused) + (d.detail ? ` (${d.detail})` : "");
-      if (d.error) return d.error;
+      if (typeof d.error === "string") return d.error;
+      // Structured errors (rate_limited, judge_key_required): { error: { code, message } }
+      if (d.error && typeof d.error === "object" && typeof d.error.message === "string") return d.error.message;
       if (typeof d.message === "string") return d.message;
       return JSON.stringify(detail);
     }

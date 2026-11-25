@@ -228,3 +228,36 @@ def test_plain_text_turn_continues_and_json_summary_finishes(env):
     assert c["status"] == "complete"
     assert c["summary"] == "Root cause identified."
 
+
+
+def test_stale_investigating_run_is_reclaimed(env):
+    """A run that never called /finish (container restart mid-run) must not pin the case in 'investigating'."""
+    from backend import db
+
+    api, headers = env["api"], env["brand"].headers
+    case_id = scan(api, "FAKE-001")["case_id"]
+    claim = lambda: api.post("/internal/cases/claim", headers=headers).json()["case"]  # noqa: E731
+
+    first = claim()
+    assert first["case_id"] == case_id and first["run_count"] == 1 and first["claimed_at"] is not None
+    assert claim() is None  # a fresh claim is not stale
+
+    # Claimed long ago, no step ever logged: the run is dead, so the case is reclaimed as run 2.
+    with db.connect("platform") as pc:
+        pc.execute("UPDATE cases SET claimed_at = now() - interval '2 hours' WHERE case_id=%s", (case_id,))
+    second = claim()
+    assert second["case_id"] == case_id and second["run_count"] == 2
+    assert api.get(f"/cases/{case_id}").json()["status"] == "investigating"
+
+    # An old claim with a recent step is a long run still alive: not reclaimed.
+    with db.connect("platform") as pc:
+        pc.execute("UPDATE cases SET claimed_at = now() - interval '2 hours' WHERE case_id=%s", (case_id,))
+    api.post(f"/internal/cases/{case_id}/steps", headers=headers, json={"kind": "thought", "payload": {"text": "still working"}})
+    assert claim() is None
+
+    # A row claimed before claimed_at existed (NULL) with an old created_at and no recent step: reclaimed.
+    with db.connect("platform") as pc:
+        pc.execute("UPDATE cases SET claimed_at = NULL, created_at = now() - interval '2 days' WHERE case_id=%s", (case_id,))
+        pc.execute("UPDATE case_steps SET at = now() - interval '2 days' WHERE case_id=%s", (case_id,))
+    third = claim()
+    assert third["case_id"] == case_id and third["run_count"] == 3

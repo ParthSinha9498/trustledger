@@ -19,6 +19,24 @@ from backend.api import cockpit, console, paypal_sdk, studio, supply_chain
 
 app = FastAPI(title="TrustLedger API")
 
+# A run that stops without calling /finish (the container restarted or spun down mid-investigation) would
+# otherwise pin its case in 'investigating' forever: new failures attach to it and no worker ever re-runs it.
+# A case whose claim is older than this, with no agent step logged in the same window, is reclaimed.
+STALE_RUN_MINUTES = int(config.env("STALE_RUN_MINUTES", "20") or 20)
+
+
+@app.on_event("startup")
+def _ensure_cases_claimed_at() -> None:
+    """Idempotent: `claimed_at` marks when a worker took a case. Rows claimed before the column existed keep
+    NULL and fall back to created_at for the stale check. Safe to run on every start."""
+    import logging
+    try:
+        with db.connect("platform") as c:
+            c.execute("ALTER TABLE cases ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ")
+    except Exception as e:  # never block the API from starting
+        logging.getLogger("api").warning("cases.claimed_at not ensured: %s", e)
+
+
 JUDGE_EXEMPT = ("/health", "/docs", "/openapi.json", "/redoc", "/paypal/webhooks")
 
 
@@ -387,11 +405,16 @@ def claim_case():
     with db.connect("platform") as pc:
         row = pc.execute(
             """UPDATE cases SET status='investigating', run_count = run_count + 1,
-                   run_failure_count = failure_count, run_skus = skus
-               WHERE case_id = (SELECT case_id FROM cases
-                                WHERE status = 'open' OR (status = 'waiting_capacity' AND (retry_after IS NULL OR retry_after <= now()))
+                   run_failure_count = failure_count, run_skus = skus, claimed_at = now()
+               WHERE case_id = (SELECT case_id FROM cases c
+                                WHERE status = 'open'
+                                   OR (status = 'waiting_capacity' AND (retry_after IS NULL OR retry_after <= now()))
+                                   OR (status = 'investigating'
+                                       AND COALESCE(claimed_at, created_at) < now() - %s * interval '1 minute'
+                                       AND NOT EXISTS (SELECT 1 FROM case_steps s WHERE s.case_id = c.case_id
+                                                       AND s.at > now() - %s * interval '1 minute'))
                                 ORDER BY created_at LIMIT 1 FOR UPDATE SKIP LOCKED)
-               RETURNING *"""
+               RETURNING *""", (STALE_RUN_MINUTES, STALE_RUN_MINUTES)
         ).fetchone()
     return {"case": row}
 
